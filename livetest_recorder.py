@@ -238,9 +238,9 @@ class LiveLabRecorder:
                 await self.cleanup_conflicts()
 
         for c in (SANDBOX_NAME, "genio_client"):
-            await self._bash_on(c, "apt-get update -qq && DEBIAN_FRONTEND=noninteractive "
-                                "apt-get install -y -qq wireguard-tools iproute2 "
-                                "iputils-ping python3 curl >/dev/null 2>&1", 420)
+            self._bash_on(c, "apt-get update -qq && DEBIAN_FRONTEND=noninteractive "
+                          "apt-get install -y -qq wireguard-tools iproute2 "
+                          "iputils-ping python3 curl >/dev/null 2>&1", 420)
         self.container_up = True
         return plan
 

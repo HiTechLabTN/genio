@@ -80,9 +80,9 @@ class NodeManagerAgent:
 
     async def _setup_sandbox(self, node, ctx):
         from genio_executive_core import NodeResult
-        recorder = await self._get_recorder()
+        recorder = self._get_recorder()
         try:
-            plan = await recorder.setup_two_node_network()
+            plan = recorder.setup_two_node_network()
             ctx.scratch["sandbox_plan"] = plan
             return NodeResult(node.id, True,
                               output=f"2-node: srv={plan['srv_wan_ip']} cli={plan['cli_wan_ip']}")
@@ -91,6 +91,6 @@ class NodeManagerAgent:
 
     async def _teardown_sandbox(self, node, ctx):
         from genio_executive_core import NodeResult
-        recorder = await self._get_recorder()
-        await recorder.stop_sandbox()
+        recorder = self._get_recorder()
+        recorder.stop_sandbox()
         return NodeResult(node.id, True, output="sandbox torn down")

@@ -1,0 +1,44 @@
+{
+  "title": "🔐 WireGuard VPN من الصفر — Lab حقيقي خطوة بخطوة | HiTech Lab",
+  "description": "🎬 Lab complet et RÉEL : installation, génération de clés, montée de l'interface wg0, erreurs authentiques et résolution — le tout exécuté en direct dans un sandbox Docker isolé.\n\n📌 Article complet (config files + troubleshooting) :\n👉 https://lab.hitech.tn\n\n⏱️ Chapitres :\n00:00 🧰 Installation des outils dans la sandbox\n00:10 🔑 Génération réelle des clés WireGuard\n00:24 🔥 L'erreur wg show avant configuration\n00:38 ⚙️ Configuration wg0.conf + montage interface\n00:56 ✅ Vérification finale : handshake + ping\n\n🧠 Ce que tu vas apprendre :\n• Comment WireGuard fonctionne sous le capot (cryptokey routing)\n• Les erreurs réelles et comment les diagnostiquer (wg show, tcpdump)\n• La configuration complète wg0.conf sans aucun raccourci\n\n#WireGuard #Linux #DevOps #Security #VPN #HiTechLab #Tunisie",
+  "tags": [
+    "WireGuard",
+    "Linux",
+    "VPN",
+    "DevOps",
+    "Sécurité",
+    "Réseau",
+    "HiTechLab",
+    "Tunisie",
+    "tutoriel",
+    "sandbox",
+    "docker"
+  ],
+  "category_id": "28",
+  "privacy_status": "public",
+  "made_for_kids": false,
+  "lab_url": "https://lab.hitech.tn",
+  "video_path": "/data/ai_tools/webapp/backend/media/video/livetest_1787854199.mp4",
+  "chapters": [
+    {
+      "ts": "00:00",
+      "title": "🧰 Installation des outils dans la sandbox"
+    },
+    {
+      "ts": "00:10",
+      "title": "🔑 Génération réelle des clés WireGuard"
+    },
+    {
+      "ts": "00:24",
+      "title": "🔥 L'erreur wg show avant configuration"
+    },
+    {
+      "ts": "00:38",
+      "title": "⚙️ Configuration wg0.conf + montage interface"
+    },
+    {
+      "ts": "00:56",
+      "title": "✅ Vérification finale : handshake + ping"
+    }
+  ]
+}

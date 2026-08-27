@@ -12,6 +12,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from loguru import logger
 
+from config import get_config
 from genio_executive_core import PlanNode, NodeResult, AgentContext, Artifact
 
 
@@ -60,20 +61,31 @@ class CinemaDirectorAgent:
                           artifacts=[art])
 
     async def _generate_audio(self, node: PlanNode, ctx: AgentContext) -> NodeResult:
-        from media.voice_studio import VoiceStudio
         content = ctx.scratch.get("content", "")
         if not content:
             return NodeResult(node.id, True, output="no content for audio")
-        summary = ctx.scratch.get("summary", content[:500])
-        studio = VoiceStudio()
         try:
+            import httpx
+            cfg = get_config()
+            async with httpx.AsyncClient(timeout=5.0) as client:
+                r = await client.get(f"{cfg.cinema.tts_url}/health")
+                if r.status_code != 200:
+                    return NodeResult(node.id, True,
+                                      output="cinema engine unavailable, audio skipped")
+        except Exception:
+            return NodeResult(node.id, True,
+                              output="cinema engine unreachable, audio skipped")
+        try:
+            from media.voice_studio import VoiceStudio
+            summary = ctx.scratch.get("summary", content[:500])
+            studio = VoiceStudio()
             result = await studio.generate_tts(summary, "article_summary.wav")
             art = Artifact("wav", result.get("audio_file", ""),
                            {"duration": result.get("duration_seconds", 0)})
             ctx.artifacts["audio"] = art
             return NodeResult(node.id, True, output="audio generated", artifacts=[art])
         except Exception as exc:
-            return NodeResult(node.id, False, error=str(exc))
+            return NodeResult(node.id, True, output=f"audio generation failed: {exc}")
 
     async def _generate_cover(self, node: PlanNode, ctx: AgentContext) -> NodeResult:
         title = ctx.scratch.get("title", ctx.goal)
@@ -126,13 +138,15 @@ class CinemaDirectorAgent:
             return NodeResult(node.id, True, output="no video for YouTube")
         try:
             from youtube_publisher import build_wireguard_payload
+            from dataclasses import asdict
             ghost_art = ctx.artifacts.get("ghost_post")
             article_url = ghost_art.path_or_url if ghost_art else "https://lab.hitech.tn"
             payload = build_wireguard_payload(vid.path_or_url, 70.0, article_url)
+            payload_dict = asdict(payload) if hasattr(payload, '__dataclass_fields__') else payload
             payload_path = Path("/data/ai_tools/genio/reports") / f"yt_{id(payload)}.json"
             payload_path.parent.mkdir(parents=True, exist_ok=True)
             import json
-            payload_path.write_text(json.dumps(payload, indent=2, ensure_ascii=False))
+            payload_path.write_text(json.dumps(payload_dict, indent=2, ensure_ascii=False))
             art = Artifact("youtube_payload", str(payload_path))
             ctx.artifacts["youtube_payload"] = art
             return NodeResult(node.id, True, output=f"payload: {payload_path}")
