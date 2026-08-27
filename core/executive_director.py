@@ -18,13 +18,15 @@ from typing import Any, Callable, Dict, List, Optional, Tuple, Awaitable
 
 from loguru import logger
 
+import sys as _sys
+_sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
 from config import get_config, GENIO_DIR, REPORTS_DIR
 
 
 # ── Re-export legacy modules for backward compatibility ── #
-import sys as _sys
-_sys.path.insert(0, str(GENIO_DIR))
-_sys.path.insert(0, str(GENIO_DIR.parent / "webapp" / "backend"))
+sys.path.insert(0, str(GENIO_DIR))
+sys.path.insert(0, str(GENIO_DIR.parent / "webapp" / "backend"))
 
 
 # ── DAG Node Types ── #
