@@ -6,6 +6,9 @@ on:
       - 'v*'
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build-release:
     runs-on: ubuntu-latest
@@ -25,7 +28,9 @@ jobs:
 
       - name: Package Linux Bundle
         run: |
-          tar -czvf dist/genio-web-linux-bundle.tar.gz -C dist .
+          # ننشئ الأرشيف في مجلد مؤقت لتفادي خطأ file changed
+          tar -czvf /tmp/genio-web-linux-bundle.tar.gz -C dist .
+          mv /tmp/genio-web-linux-bundle.tar.gz dist/
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
