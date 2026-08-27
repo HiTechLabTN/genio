@@ -4,6 +4,7 @@ on:
   push:
     tags:
       - 'v*'
+  workflow_dispatch:
 
 jobs:
   build-release:
@@ -33,5 +34,6 @@ jobs:
             dist/*
           draft: false
           prerelease: false
+          tag_name: ${{ github.ref_name || 'v1.0.0' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
