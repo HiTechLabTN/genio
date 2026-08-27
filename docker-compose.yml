@@ -1,4 +1,5 @@
 version: "3.9"
+
 services:
   genio-core:
     build:
@@ -15,6 +16,7 @@ services:
       - ollama
     networks:
       - genio-net
+    restart: unless-stopped
 
   ollama:
     image: ollama/ollama:latest
@@ -25,6 +27,7 @@ services:
       - ollama-data:/root/.ollama
     networks:
       - genio-net
+    restart: unless-stopped
 
   web-ui:
     build:
@@ -39,6 +42,13 @@ services:
       - genio-core
     networks:
       - genio-net
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.genio.rule=Host(`genio.hitech.tn`)"
+      - "traefik.http.routers.genio.entrypoints=websecure"
+      - "traefik.http.routers.genio.tls.certresolver=letsencrypt"
+      - "traefik.http.services.genio.loadbalancer.server.port=8080"
 
 volumes:
   ollama-data:
