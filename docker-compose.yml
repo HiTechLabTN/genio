@@ -1,0 +1,48 @@
+version: "3.9"
+services:
+  genio-core:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: genio-core
+    environment:
+      - OLLAMA_BASE_URL=http://ollama:11434
+      - GHOST_URL=https://lab.hitech.tn
+    volumes:
+      - ./reports:/app/reports
+      - ./state:/app/state
+    depends_on:
+      - ollama
+    networks:
+      - genio-net
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: genio-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama-data:/root/.ollama
+    networks:
+      - genio-net
+
+  web-ui:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+    container_name: genio-web
+    ports:
+      - "3000:8080"
+    environment:
+      - GENIO_API_URL=http://genio-core:8080
+    depends_on:
+      - genio-core
+    networks:
+      - genio-net
+
+volumes:
+  ollama-data:
+
+networks:
+  genio-net:
+    driver: bridge

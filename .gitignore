@@ -1,0 +1,56 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+*.egg
+.eggs/
+venv/
+.venv/
+env/
+.env
+
+# State & Runtime
+*.state.json
+feedback_memory.json
+genio_state.json
+*.sqlite3
+*.db
+*.log
+/tmp/
+state/
+reports/*.md
+
+# Media artifacts (large)
+*.mp4
+*.wav
+*.mp3
+*.png
+*.jpg
+*.jpeg
+frames/
+audio/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+docker-compose.override.yml
+
+# Credentials (NEVER commit)
+.env
+*.secret
+*.key
+*_credentials.json
+client_secret*.json
+token*.json
