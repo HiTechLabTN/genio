@@ -1,108 +1,58 @@
-# 🧠 Genio — Autonomous Multimodal AI Executive Director
+# 🇹🇳 Genio — أول مهندس ذكاء اصطناعي مستقل في تونس والعالم العربي
 
-[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
-[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://python.org)
-[![Platform](https://img.shields.io/badge/platform-linux-lightgrey.svg)]()
-
-> **Genio** is a fully autonomous, multimodal AI Executive Director and Infrastructure Engineer that transcends standard LLM limitations through dynamic multi-model routing, self-evolving vector memory, live multi-node sandbox validation, and automated content production.
-
----
-
-## 🏗️ Architecture
-
-```
-┌──────────────────────────────────────────────────────────────┐
-│                    GENIO AUTONOMOUS PIPELINE                 │
-├──────────────────────────────────────────────────────────────┤
-│                                                              │
-│  ┌─────────┐   ┌──────────────┐   ┌───────────────────────┐ │
-│  │  PLANNER │──▶│ CONTENT ARCH │──▶│   MULTI-NODE SANDBOX  │ │
-│  │  (DAG)   │   │ (8 passes)   │   │  (WireGuard + NAT)    │ │
-│  └─────────┘   └──────────────┘   └───────────────────────┘ │
-│       │              │                       │                │
-│       ▼              ▼                       ▼                │
-│  ┌─────────┐   ┌──────────────┐   ┌───────────────────────┐ │
-│  │ MEMORY  │   │   AUDITOR    │   │   VIDEO + TTS + COVER │ │
-│  │ ENGINE  │   │ (self-heal)  │   │   (1080p Darija)      │ │
-│  └─────────┘   └──────────────┘   └───────────────────────┘ │
-│       │              │                       │                │
-│       ▼              ▼                       ▼                │
-│  ┌─────────────────────────────────────────────────────────┐ │
-│  │              PUBLISHERS (Ghost + YouTube)                │ │
-│  └─────────────────────────────────────────────────────────┘ │
-│                                                              │
-└──────────────────────────────────────────────────────────────┘
-```
-
-## ⚡ Quick Start
-
-```bash
-# One-command setup (installs dependencies, probes hardware)
-./bootstrap.sh
-
-# Full autonomous lab generation
-python3 core/executive_director.py --auto "WireGuard VPN Multi-Node Lab"
-
-# Dry-run (plan only)
-python3 core/executive_director.py --prompt "Docker Reverse Proxy" --dry-run
-
-# Record feedback lesson
-python3 core/executive_director.py --feedback "Toujours citer la version de l'OS"
-```
-
-## 📦 Installation
-
-```bash
-git clone https://github.com/hitech-lab/genio.git
-cd genio
-pip install -r requirements.txt
-```
-
-### Prerequisites
-- Python 3.10+
-- Docker (for sandbox validation)
-- Ollama (local LLM inference)
-- ffmpeg + Chromium (media generation)
-
-## 🧩 Module Overview
-
-| Module | Purpose |
-|--------|---------|
-| `core/executive_director.py` | Master ReAct reasoning loop & DAG task decomposition |
-| `core/model_router.py` | Dynamic LLM routing with automatic failover |
-| `core/memory_engine.py` | Dual-vector memory (SQLite-vec) + episodic self-debrief |
-| `core/perception/` | Video analysis, web scraping, voice parsing |
-| `sandbox/node_manager.py` | Multi-container network orchestration |
-| `sandbox/live_recorder.py` | 1080p terminal recording with Darija voice-over |
-| `sandbox/self_healer.py` | Kernel log inspector & auto-patching loop |
-| `media/visual_generator.py` | Cyberpunk HTML/SVG cards with SMIL animations |
-| `media/voice_studio.py` | Multi-pass TTS & studio audio mastering |
-| `media/cinema_director.py` | Automated video assembly |
-| `publishers/ghost_publisher.py` | Mobiledoc native HTML card publisher |
-| `publishers/youtube_publisher.py` | YouTube OAuth uploader with timestamps |
-| `web/server.py` | FastAPI backend with SSE, WebSocket, Tool Calling |
-
-## 🎯 Key Features
-
-- **Autonomous Pipeline**: Single command → full lab generation, validation, and publication
-- **Self-Healing**: Auto-retries on Docker failures, LLM rate limits, and command errors
-- **IT-Connect Standard**: 2-node scenarios, real routing, pedagogical Darija writing
-- **Multi-Model Failover**: gemma2 → qwen2.5 → qwen2.5-coder (automatic on failure)
-- **Memory Evolution**: Learns from every rejection, never repeats mistakes
-
-## 📊 Supported LLM Backends
-
-| Backend | Status | Failover |
-|---------|--------|----------|
-| Ollama (local) | ✅ Primary | auto-retry |
-| OpenRouter (API) | ✅ Cloud | 429→backup |
-| Claude (API) | 🔄 Ready | manual |
-| GPT-4 (API) | 🔄 Ready | manual |
-
-## 📄 License
-
-Apache License 2.0 — see [LICENSE](LICENSE) for details.
+<p align="center">
+  <img src="https://img.icons8.com/isometric/512/processor.png" width="120" alt="Genio Logo"/>
+  <br>
+  <b>منظومة ذكاء اصطناعي أوتونوموس 100% • يخدم وحدو، يصلّح كودو وحدو، ويفهمك بالدارجة</b>
+  <br>
+  <a href="https://genio.hitech.tn"><b>🌐 الموقع الرسمي وقمرة القيادة: genio.hitech.tn</b></a>
+</p>
 
 ---
 
-**Built with ❤️ by [HiTech Lab](https://lab.hitech.tn)**
+### 🚀 شنوة هو Genio؟
+**Genio** ماهوش مجرد Chatbot وإلا سكريبت عادي، Genio هو **مهندس بنية تحتية وذكاء اصطناعي مستقل (Autonomous AI Systems Engineer)**:
+* **عندو عقل وحدو (Self-Governing):** يتفقد العتاد وحرارة كارت الشاشة (RTX 3060) والـ VRAM ويقرر وحدو وقتاش يخدم بالموديلات المحلية (Ollama) ووقت الذروة يخدم بالسحاب (Cloud AI).
+* **يصلّح كودو وحدو (Self-Healing):** إذا لقى أي مشكل في الران تايم وإلا مكتبة ناقصة، يحلل الـ Traceback، يستشير نماذج البرمجة العميقة، ويصلح السكريبت في البلاصة ويعاود يخدم من غير ما يقلقك.
+* **إنتاج ومونتاج كامل (Full Media Pipeline):** يكتب تقارير تقنية دقيقة بالدارجة، يعمل تسجيلات حية للتيرمينال، يمنتج فيديو 1080p بصوت تونسي، وينشر أوتوماتيكياً على الموقع الرسمي وعلى YouTube.
+
+---
+
+### 📲 صبّ التطبيق على جهازك (Download Universal Clients)
+
+صفحة الهبوط تكتشف نظامك أوتوماتيكياً، وتنجم زادة تصب النسخة اللي تحب عليها مباشرة:
+
+| المنصة | نوع الحزمة | رابط التحميل المباشر |
+| :--- | :--- | :--- |
+| 📱 **Android** | تطبيق موبايل  | [تحميل genio-mobile.apk](https://github.com/HiTechLabTN/genio/releases/latest/download/genio-mobile.apk) |
+| 🪟 **Windows (10 / 11)** | مثبت برامج  | [تحميل genio-setup-windows.exe](https://github.com/HiTechLabTN/genio/releases/latest/download/genio-setup-windows.exe) |
+| 📦 **Linux Standalone** | حزمة محمولة  | [تحميل genio-desktop-linux.AppImage](https://github.com/HiTechLabTN/genio/releases/latest/download/genio-desktop-linux.AppImage) |
+| 🍎 **iOS / iPhone** | تطبيق ويب PWA | افتح `https://genio.hitech.tn` واضغط على **Add to Home Screen** |
+
+---
+
+### 🛠️ البنية الهندسية للسيستيم (Architecture)
+
+```
+        ┌────────────────────────────────────────────────────────┐
+        │        Genio Command HUD (تطبيق الموبايل والديسكتوب)     │
+        └───────────────────────────┬────────────────────────────┘
+                                    │ WebSockets / REST
+                                    ▼
+        ┌────────────────────────────────────────────────────────┐
+        │   Control Plane (.tn Server) & n8n YouTube Publisher   │
+        └───────────────────────────┬────────────────────────────┘
+                                    │ Secure Execution Tunnel
+                                    ▼
+        ┌────────────────────────────────────────────────────────┐
+        │  ├── Dynamic Model Router (Ollama Local / Cloud)       │
+        │  ├── Autonomous Self-Healing Engine (Auto-Patching)    │
+        │  └── FFmpeg 1080p Video + Darija Voice Synthesizer     │
+        └────────────────────────────────────────────────────────┘
+```
+
+---
+
+<p align="center">
+  صُنع بكل فخر بواسطة <b>HiTech Lab 🇹🇳</b> — تونس
+</p>
