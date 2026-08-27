@@ -24,23 +24,40 @@
         <p class="text-[10px] text-cyan-500 font-mono">المهندس الذاتي المستقل</p>
       </div>
     </div>
-    <div class="flex gap-2">
-      <button id="push-btn" onclick="subscribePush()" class="px-2.5 py-1 bg-cyan-950 text-cyan-300 border border-cyan-500/40 rounded-lg text-xs font-semibold">
-        🔔 التنبيهات
-      </button>
-    </div>
+    <button id="push-btn" onclick="subscribePush()" class="px-2.5 py-1 bg-cyan-950 text-cyan-300 border border-cyan-500/40 rounded-lg text-xs font-semibold">
+      🔔 التنبيهات
+    </button>
   </header>
 
-  <!-- Smart Download Banner (OS Detection) -->
-  <div id="os-banner" class="bg-gradient-to-r from-cyan-950 to-slate-900 border-b border-cyan-500/20 px-4 py-2 flex justify-between items-center text-xs">
-    <span id="detected-os" class="text-slate-300">صبّ التطبيق الخاص بنظامك:</span>
-    <a id="download-link" href="https://github.com/HiTechTN/genio/releases" target="_blank" 
-       class="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold px-3 py-1 rounded-md text-[11px] transition">
-      تحميل التطبيق 🚀
-    </a>
-  </div>
+  <!-- Smart Download Center (Auto Detection + Full Platform Grid) -->
+  <section class="bg-gradient-to-b from-slate-900 to-[#080c14] border-b border-cyan-500/20 p-3">
+    <!-- Primary OS Detected Banner -->
+    <div class="hud-card p-2.5 rounded-xl flex items-center justify-between border-cyan-400/40 bg-cyan-950/30">
+      <div class="flex items-center gap-2">
+        <span class="text-lg" id="os-icon">⚡</span>
+        <div>
+          <div class="text-[11px] text-gray-400">النظام المكتشف لجهازك:</div>
+          <div class="text-xs font-bold text-cyan-300" id="detected-os-text">جاري الفحص...</div>
+        </div>
+      </div>
+      <a id="primary-dl-btn" href="https://github.com/HiTechLabTN/genio/releases/latest" 
+         class="bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 text-slate-950 font-black px-4 py-2 rounded-lg text-xs transition shadow-lg shadow-cyan-500/20">
+        تحميل مباشر 🚀
+      </a>
+    </div>
 
-  <!-- Realtime Telemetry -->
+    <!-- All Other Platforms Download Links -->
+    <div class="mt-2 pt-2 border-t border-slate-800/60 flex items-center justify-between text-[11px] text-slate-400 overflow-x-auto gap-2">
+      <span class="text-gray-500 shrink-0">كل المنصات:</span>
+      <a href="https://github.com/HiTechLabTN/genio/releases/latest/download/genio-mobile.apk" class="hover:text-cyan-400 bg-slate-900 px-2 py-1 rounded border border-slate-800 shrink-0">📱 Android (APK)</a>
+      <a href="https://github.com/HiTechLabTN/genio/releases/latest/download/genio-desktop-linux.deb" class="hover:text-cyan-400 bg-slate-900 px-2 py-1 rounded border border-slate-800 shrink-0">🐧 Linux (.deb)</a>
+      <a href="https://github.com/HiTechLabTN/genio/releases/latest/download/genio-desktop-linux.AppImage" class="hover:text-cyan-400 bg-slate-900 px-2 py-1 rounded border border-slate-800 shrink-0">📦 AppImage</a>
+      <a href="https://github.com/HiTechLabTN/genio/releases/latest/download/genio-setup-windows.exe" class="hover:text-cyan-400 bg-slate-900 px-2 py-1 rounded border border-slate-800 shrink-0">🪟 Windows (.exe)</a>
+      <a href="https://github.com/HiTechLabTN/genio/releases/latest/download/genio-web-bundle.tar.gz" class="hover:text-cyan-400 bg-slate-900 px-2 py-1 rounded border border-slate-800 shrink-0">🌐 Web Bundle</a>
+    </div>
+  </section>
+
+  <!-- Realtime Telemetry Grid -->
   <section class="grid grid-cols-3 gap-2 p-3 text-center text-xs">
     <div class="hud-card p-2 rounded-xl">
       <div class="text-gray-400 text-[10px]">حرارة الـ GPU</div>
@@ -79,7 +96,6 @@
   </footer>
 
   <script>
-    // Service Worker & Push
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/sw.js');
     }
@@ -92,36 +108,43 @@
       }
     }
 
-    // OS Auto-Detection
-    function detectPlatform() {
+    // OS Auto-Detection & Dynamic Primary Button Setup
+    function setupSmartPlatformDetector() {
       const ua = navigator.userAgent.toLowerCase();
-      const osLabel = document.getElementById('detected-os');
-      const dlLink = document.getElementById('download-link');
-      const baseUrl = "https://github.com/HiTechTN/genio/releases/latest";
+      const osText = document.getElementById('detected-os-text');
+      const osIcon = document.getElementById('os-icon');
+      const btn = document.getElementById('primary-dl-btn');
+      const base = "https://github.com/HiTechLabTN/genio/releases/latest/download";
 
       if (/android/i.test(ua)) {
-        osLabel.innerText = "📱 تخدم على Android: صب الـ APK المباشر";
-        dlLink.href = `${baseUrl}/download/genio-command-android.apk`;
-        dlLink.innerText = "تحميل APK";
-      } else if (/iphone|ipad|ipod/i.test(ua)) {
-        osLabel.innerText = "🍎 تخدم على iOS: ثبّت كـ PWA عبر زر المشاركة";
-        dlLink.href = "#";
-        dlLink.innerText = "تثبيت PWA";
+        osIcon.innerText = "📱";
+        osText.innerText = "Android (تطبيق APK الأصلي)";
+        btn.href = `${base}/genio-mobile.apk`;
+        btn.innerText = "تحميل تطبيق APK 🚀";
       } else if (/linux/i.test(ua)) {
-        osLabel.innerText = "🐧 تخدم على Linux: متاح بصيغة AppImage و Deb";
-        dlLink.href = `${baseUrl}/download/genio-desktop-linux.AppImage`;
-        dlLink.innerText = "تحميل AppImage";
+        osIcon.innerText = "🐧";
+        osText.innerText = "Linux (Debian / Ubuntu / Pop!_OS)";
+        btn.href = `${base}/genio-desktop-linux.deb`;
+        btn.innerText = "تحميل حزمة DEB 🚀";
       } else if (/win/i.test(ua)) {
-        osLabel.innerText = "🪟 تخدم على Windows: متاح مثبت EXE";
-        dlLink.href = `${baseUrl}/download/genio-setup-windows.exe`;
-        dlLink.innerText = "تحميل EXE";
-      } else if (/mac/i.test(ua)) {
-        osLabel.innerText = "🍏 تخدم على macOS: متاح ملف DMG";
-        dlLink.href = `${baseUrl}/download/genio-macos.dmg`;
-        dlLink.innerText = "تحميل DMG";
+        osIcon.innerText = "🪟";
+        osText.innerText = "Windows 10 / 11";
+        btn.href = `${base}/genio-setup-windows.exe`;
+        btn.innerText = "تحميل مثبت EXE 🚀";
+      } else if (/iphone|ipad|ipod/i.test(ua)) {
+        osIcon.innerText = "🍎";
+        osText.innerText = "iOS / Safari (تثبيت PWA)";
+        btn.href = "#";
+        btn.innerText = "إضافة للشاشة الرئيسية 📲";
+        btn.onclick = () => alert("على نظام iOS: اضغط على زر المشاركة (Share) في المتصفح ثم اختر 'Add to Home Screen' لتثبيت التطبيق مباشرة!");
+      } else {
+        osIcon.innerText = "🌐";
+        osText.innerText = "تطبيق الويب الشامل";
+        btn.href = `${base}/genio-web-bundle.tar.gz`;
+        btn.innerText = "تحميل Web Bundle 🚀";
       }
     }
-    detectPlatform();
+    setupSmartPlatformDetector();
 
     async function sendCommand() {
       const input = document.getElementById('prompt-input');

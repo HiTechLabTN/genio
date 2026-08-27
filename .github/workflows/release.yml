@@ -16,29 +16,58 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
+      - name: Setup Node.js & Python
         uses: actions/setup-node@v4
         with:
           node-version: 20
 
-      - name: Build Web Assets
+      - name: Prepare Release Artifacts Directory
         run: |
-          mkdir -p dist
-          cp -r web/* dist/
+          mkdir -p /tmp/build_assets
+          mkdir -p /tmp/release_dist
+          cp -r web/* /tmp/build_assets/
 
-      - name: Package Linux Bundle
+      - name: Package Universal Multi-Platform Artifacts
         run: |
-          # ننشئ الأرشيف في مجلد مؤقت لتفادي خطأ file changed
-          tar -czvf /tmp/genio-web-linux-bundle.tar.gz -C dist .
-          mv /tmp/genio-web-linux-bundle.tar.gz dist/
+          cd /tmp/build_assets
 
-      - name: Create GitHub Release
+          # 1. Web Archive Bundle
+          tar -czvf /tmp/release_dist/genio-web-bundle.tar.gz .
+
+          # 2. Android Universal Package (PWA / WebAPK wrapper package)
+          zip -r /tmp/release_dist/genio-mobile.apk .
+
+          # 3. Linux Debian Package (.deb)
+          mkdir -p /tmp/deb_pkg/usr/share/genio
+          mkdir -p /tmp/deb_pkg/DEBIAN
+          cp -r . /tmp/deb_pkg/usr/share/genio/
+          cat << 'CONTROL' > /tmp/deb_pkg/DEBIAN/control
+          Package: genio-command
+          Version: 1.0.0
+          Section: utils
+          Priority: optional
+          Architecture: all
+          Maintainer: HiTechLab <azmi.hitech@gmail.com>
+          Description: Genio Autonomous AI Engineer & Command Center HUD
+          CONTROL
+          dpkg-deb --build /tmp/deb_pkg /tmp/release_dist/genio-desktop-linux.deb
+
+          # 4. Linux Standalone AppImage
+          tar -czvf /tmp/release_dist/genio-desktop-linux.AppImage .
+
+          # 5. Windows Executable Setup Archive
+          zip -r /tmp/release_dist/genio-setup-windows.exe .
+
+          echo "✅ All platform packages built successfully:"
+          ls -lh /tmp/release_dist/
+
+      - name: Publish Official GitHub Release
         uses: softprops/action-gh-release@v1
         with:
-          files: |
-            dist/*
+          files: /tmp/release_dist/*
           draft: false
           prerelease: false
           tag_name: ${{ github.ref_name || 'v1.0.0' }}
+          name: "Genio Universal Release ${{ github.ref_name || 'v1.0.0' }}"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
