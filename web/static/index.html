@@ -1,394 +1,181 @@
 <!DOCTYPE html>
-<html lang="en" class="scroll-smooth">
+<html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Genio — Autonomous AI Executive Director</title>
-  <meta name="description" content="Genio: Fully autonomous multimodal AI Executive Director. Self-healing, multi-model routing, live sandbox validation.">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Genio — قمرة القيادة والتحكم الذاتي</title>
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#00f0ff">
   <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/static/style.css">
+  <style>
+    body { background-color: #060911; color: #e2e8f0; font-family: system-ui, -apple-system, sans-serif; }
+    .hud-card { background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(14px); border: 1px solid rgba(0, 240, 255, 0.25); }
+    .glow-cyan { text-shadow: 0 0 12px rgba(0, 240, 255, 0.6); }
+  </style>
+</head>
+<body class="flex flex-col h-screen overflow-hidden">
+
+  <!-- Header HUD -->
+  <header class="hud-card p-3 flex justify-between items-center border-b border-cyan-500/30">
+    <div class="flex items-center gap-3">
+      <div class="w-3 h-3 rounded-full bg-cyan-400 animate-ping"></div>
+      <div>
+        <h1 class="text-base font-black tracking-widest text-cyan-400 glow-cyan">GENIO COMMAND</h1>
+        <p class="text-[10px] text-cyan-500 font-mono">المهندس الذاتي المستقل</p>
+      </div>
+    </div>
+    <button id="push-btn" onclick="subscribePush()" class="px-2.5 py-1 bg-cyan-950 text-cyan-300 border border-cyan-500/40 rounded-lg text-xs font-semibold">
+      🔔 التنبيهات
+    </button>
+  </header>
+
+  <!-- Smart Download Center (Auto Detection) -->
+  <section class="bg-gradient-to-b from-slate-900 to-[#080c14] border-b border-cyan-500/20 p-3">
+    <div class="hud-card p-2.5 rounded-xl flex items-center justify-between border-cyan-400/40 bg-cyan-950/30">
+      <div class="flex items-center gap-2">
+        <span class="text-lg" id="os-icon">⚡</span>
+        <div>
+          <div class="text-[11px] text-gray-400">النظام المكتشف لجهازك:</div>
+          <div class="text-xs font-bold text-cyan-300" id="detected-os-text">جاري الفحص...</div>
+        </div>
+      </div>
+      <a id="primary-dl-btn" href="https://github.com/HiTechLabTN/genio/releases/latest" 
+         class="bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 text-slate-950 font-black px-4 py-2 rounded-lg text-xs transition shadow-lg shadow-cyan-500/20">
+        تحميل مباشر 🚀
+      </a>
+    </div>
+
+    <!-- All Other Platforms Download Links -->
+    <div class="mt-2 pt-2 border-t border-slate-800/60 flex items-center justify-between text-[11px] text-slate-400 overflow-x-auto gap-2">
+      <span class="text-gray-500 shrink-0">كل المنصات:</span>
+      <a href="https://github.com/HiTechLabTN/genio/releases/latest/download/genio-mobile.apk" class="hover:text-cyan-400 bg-slate-900 px-2 py-1 rounded border border-slate-800 shrink-0">📱 Android (APK)</a>
+      <a href="https://github.com/HiTechLabTN/genio/releases/latest/download/genio-desktop-linux.deb" class="hover:text-cyan-400 bg-slate-900 px-2 py-1 rounded border border-slate-800 shrink-0">🐧 Linux (.deb)</a>
+      <a href="https://github.com/HiTechLabTN/genio/releases/latest/download/genio-desktop-linux.AppImage" class="hover:text-cyan-400 bg-slate-900 px-2 py-1 rounded border border-slate-800 shrink-0">📦 AppImage</a>
+      <a href="https://github.com/HiTechLabTN/genio/releases/latest/download/genio-setup-windows.exe" class="hover:text-cyan-400 bg-slate-900 px-2 py-1 rounded border border-slate-800 shrink-0">🪟 Windows (.exe)</a>
+      <a href="https://github.com/HiTechLabTN/genio/releases/latest/download/genio-web-bundle.tar.gz" class="hover:text-cyan-400 bg-slate-900 px-2 py-1 rounded border border-slate-800 shrink-0">🌐 Web Bundle</a>
+    </div>
+  </section>
+
+  <!-- Realtime Telemetry Grid -->
+  <section class="grid grid-cols-3 gap-2 p-3 text-center text-xs">
+    <div class="hud-card p-2 rounded-xl">
+      <div class="text-gray-400 text-[10px]">حرارة الـ GPU</div>
+      <div id="gpu-temp" class="text-cyan-400 font-bold text-sm">38°C</div>
+    </div>
+    <div class="hud-card p-2 rounded-xl">
+      <div class="text-gray-400 text-[10px]">VRAM الفارغة</div>
+      <div id="vram-free" class="text-emerald-400 font-bold text-sm">6.9 GB</div>
+    </div>
+    <div class="hud-card p-2 rounded-xl">
+      <div class="text-gray-400 text-[10px]">حالة السيستيم</div>
+      <div id="sys-status" class="text-cyan-300 font-bold text-sm">جاهز للخدمة</div>
+    </div>
+  </section>
+
+  <!-- Live Chat Stream in Tunisian Darija -->
+  <main id="chat-stream" class="flex-1 overflow-y-auto p-4 space-y-3">
+    <div class="hud-card p-3 rounded-xl border-l-4 border-cyan-400">
+      <div class="flex justify-between items-center text-[10px] text-cyan-400 font-mono">
+        <span>[GENIO_CORE]</span>
+        <span>نشط</span>
+      </div>
+      <p class="text-sm mt-1 text-slate-200 leading-relaxed">
+        أهلاً بك عزمي! كل شي مريڤل والعتاد على Pop!_OS شغال 100%. الذكاء الاصطناعي والموديلات في وضع الاستعداد التام، قلي شنوة تحبنا نخدمو توة؟
+      </p>
+    </div>
+  </main>
+
+  <!-- Command Input Area -->
+  <footer class="hud-card p-3 border-t border-cyan-500/30 flex gap-2 items-center">
+    <input id="prompt-input" type="text" placeholder="اكتب أمرك لهنا وإلا فكرة مقال/فيديو..." 
+           class="flex-1 bg-slate-900/90 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-cyan-400">
+    <button onclick="sendCommand()" class="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold px-4 py-2 rounded-xl text-sm transition">
+      ابعث
+    </button>
+  </footer>
+
   <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          fontFamily: { mono: ['JetBrains Mono', 'monospace'], sans: ['Inter', 'sans-serif'] },
-          colors: {
-            neon: { green: '#00ff88', cyan: '#00e5ff', pink: '#ff006e', purple: '#b026ff' },
-            dark: { 900: '#030712', 800: '#0a0e1a', 700: '#111827', 600: '#1e293b' },
-          }
-        }
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js');
+    }
+
+    async function subscribePush() {
+      if (!('Notification' in window)) return alert('المتصفح لا يدعم التنبيهات');
+      const perm = await Notification.requestPermission();
+      if (perm === 'granted') {
+        document.getElementById('push-btn').innerText = '✅ مفعّلة';
+      }
+    }
+
+    function setupSmartPlatformDetector() {
+      const ua = navigator.userAgent.toLowerCase();
+      const osText = document.getElementById('detected-os-text');
+      const osIcon = document.getElementById('os-icon');
+      const btn = document.getElementById('primary-dl-btn');
+      const base = "https://github.com/HiTechLabTN/genio/releases/latest/download";
+
+      if (/android/i.test(ua)) {
+        osIcon.innerText = "📱";
+        osText.innerText = "Android (تطبيق APK الأصلي)";
+        btn.href = `${base}/genio-mobile.apk`;
+        btn.innerText = "تحميل تطبيق APK 🚀";
+      } else if (/linux/i.test(ua)) {
+        osIcon.innerText = "🐧";
+        osText.innerText = "Linux (Debian / Ubuntu / Pop!_OS)";
+        btn.href = `${base}/genio-desktop-linux.deb`;
+        btn.innerText = "تحميل حزمة DEB 🚀";
+      } else if (/win/i.test(ua)) {
+        osIcon.innerText = "🪟";
+        osText.innerText = "Windows 10 / 11";
+        btn.href = `${base}/genio-setup-windows.exe`;
+        btn.innerText = "تحميل مثبت EXE 🚀";
+      } else if (/iphone|ipad|ipod/i.test(ua)) {
+        osIcon.innerText = "🍎";
+        osText.innerText = "iOS / Safari (تثبيت PWA)";
+        btn.href = "#";
+        btn.innerText = "إضافة للشاشة الرئيسية 📲";
+        btn.onclick = () => alert("على نظام iOS: اضغط على زر المشاركة (Share) في المتصفح ثم اختر 'Add to Home Screen' لتثبيت التطبيق مباشرة!");
+      } else {
+        osIcon.innerText = "🌐";
+        osText.innerText = "تطبيق الويب الشامل";
+        btn.href = `${base}/genio-web-bundle.tar.gz`;
+        btn.innerText = "تحميل Web Bundle 🚀";
+      }
+    }
+    setupSmartPlatformDetector();
+
+    async function sendCommand() {
+      const input = document.getElementById('prompt-input');
+      const val = input.value.trim();
+      if (!val) return;
+
+      const chat = document.getElementById('chat-stream');
+      chat.innerHTML += `
+        <div class="hud-card p-3 rounded-xl border-r-4 border-slate-400 text-left" dir="ltr">
+          <span class="text-[10px] text-slate-400 font-mono">[OPERATOR]</span>
+          <p class="text-sm mt-1 text-slate-100">${val}</p>
+        </div>`;
+      
+      input.value = '';
+      chat.scrollTop = chat.scrollHeight;
+
+      try {
+        const res = await fetch('/api/command', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prompt: val, source: 'mobile_hud' })
+        });
+        const data = await res.json();
+        chat.innerHTML += `
+          <div class="hud-card p-3 rounded-xl border-l-4 border-emerald-400">
+            <span class="text-[10px] text-emerald-400 font-mono">[GENIO_REPLY]</span>
+            <p class="text-sm mt-1 text-slate-200">${data.message}</p>
+          </div>`;
+        chat.scrollTop = chat.scrollHeight;
+      } catch (err) {
+        console.error(err);
       }
     }
   </script>
-</head>
-<body class="bg-dark-900 text-gray-100 font-sans overflow-x-hidden">
-
-  <!-- ═══════════════ NAV ═══════════════ -->
-  <nav id="navbar" class="fixed top-0 w-full z-50 bg-dark-900/80 backdrop-blur-xl border-b border-white/5 transition-all">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-16">
-      <a href="#" class="flex items-center gap-3 group">
-        <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-neon-green/20 to-neon-cyan/20 border border-neon-green/30 flex items-center justify-center text-neon-green font-mono font-bold text-lg group-hover:shadow-lg group-hover:shadow-neon-green/20 transition-all">G</div>
-        <span class="font-mono font-bold text-lg tracking-tight">Genio<span class="text-neon-green">.</span></span>
-      </a>
-      <div class="hidden md:flex items-center gap-8 text-sm font-medium text-gray-400">
-        <a href="#features" class="hover:text-neon-green transition-colors">Features</a>
-        <a href="#playground" class="hover:text-neon-green transition-colors">Playground</a>
-        <a href="#tutorials" class="hover:text-neon-green transition-colors">Tutorials</a>
-        <a href="#docs" class="hover:text-neon-green transition-colors">Docs</a>
-        <a href="#architecture" class="hover:text-neon-green transition-colors">Architecture</a>
-      </div>
-      <div class="flex items-center gap-4">
-        <div id="gh-stars" class="hidden sm:flex items-center gap-2 text-xs font-mono text-gray-500">
-          <span class="text-yellow-400">&#9733;</span><span id="gh-star-count">—</span>
-          <span class="text-gray-600">|</span>
-          <span class="text-gray-400">&#9741;</span><span id="gh-fork-count">—</span>
-        </div>
-        <a href="https://github.com/HiTechLabTN/genio" target="_blank"
-           class="px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-sm font-mono hover:bg-neon-green/10 hover:border-neon-green/30 hover:text-neon-green transition-all">
-          GitHub
-        </a>
-      </div>
-    </div>
-  </nav>
-
-  <!-- ═══════════════ HERO ═══════════════ -->
-  <section id="hero" class="relative min-h-screen flex items-center justify-center pt-16 overflow-hidden">
-    <div class="absolute inset-0 grid-bg opacity-30"></div>
-    <div class="absolute top-1/4 left-1/4 w-96 h-96 bg-neon-green/5 rounded-full blur-3xl animate-pulse-slow"></div>
-    <div class="absolute bottom-1/4 right-1/4 w-80 h-80 bg-neon-cyan/5 rounded-full blur-3xl animate-pulse-slow delay-1000"></div>
-
-    <div class="relative z-10 max-w-5xl mx-auto px-4 text-center">
-      <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-neon-green/10 border border-neon-green/20 text-neon-green text-xs font-mono mb-8 animate-fade-in">
-        <span class="w-2 h-2 rounded-full bg-neon-green animate-pulse"></span>
-        v4.0 — Full Autonomous Pipeline
-      </div>
-
-      <h1 class="text-5xl sm:text-7xl lg:text-8xl font-black tracking-tight leading-none mb-6 animate-fade-in-up">
-        <span class="bg-gradient-to-r from-white via-gray-200 to-gray-400 bg-clip-text text-transparent">Genio</span>
-        <span class="text-neon-green">.</span>
-      </h1>
-
-      <p class="text-xl sm:text-2xl text-gray-400 max-w-2xl mx-auto mb-4 font-light animate-fade-in-up delay-100">
-        Autonomous Multimodal AI Executive Director
-      </p>
-      <p class="text-sm text-gray-500 max-w-xl mx-auto mb-10 font-mono animate-fade-in-up delay-200">
-        Self-healing pipeline &middot; Multi-model routing &middot; Live sandbox validation &middot; 1080p Darija video generation
-      </p>
-
-      <div class="flex flex-col sm:flex-row items-center justify-center gap-4 animate-fade-in-up delay-300">
-        <a href="#playground" class="group px-8 py-3.5 rounded-xl bg-neon-green text-dark-900 font-bold text-sm hover:shadow-lg hover:shadow-neon-green/25 transition-all flex items-center gap-2">
-          Launch Playground
-          <svg class="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
-        </a>
-        <a href="#docs" class="px-8 py-3.5 rounded-xl bg-white/5 border border-white/10 text-sm font-medium hover:bg-white/10 transition-all">
-          Read the Docs
-        </a>
-      </div>
-
-      <!-- Terminal Preview -->
-      <div class="mt-16 mx-auto max-w-3xl rounded-2xl border border-white/10 bg-dark-800/80 backdrop-blur overflow-hidden shadow-2xl shadow-neon-green/5 animate-fade-in-up delay-500">
-        <div class="flex items-center gap-2 px-4 py-3 bg-dark-700/50 border-b border-white/5">
-          <div class="w-3 h-3 rounded-full bg-red-500/80"></div>
-          <div class="w-3 h-3 rounded-full bg-yellow-500/80"></div>
-          <div class="w-3 h-3 rounded-full bg-green-500/80"></div>
-          <span class="ml-3 text-xs font-mono text-gray-500">genio — autonomous pipeline</span>
-        </div>
-        <div id="hero-terminal" class="p-5 font-mono text-sm leading-relaxed text-left min-h-[200px]">
-          <div class="text-gray-500">$ <span class="text-neon-green">python3 core/executive_director.py --auto --prompt "WireGuard VPN Lab"</span></div>
-          <div class="mt-2 text-gray-400" id="terminal-output"></div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ═══════════════ FEATURES ═══════════════ -->
-  <section id="features" class="py-24 relative">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div class="text-center mb-16">
-        <h2 class="text-4xl sm:text-5xl font-black tracking-tight mb-4">Core Capabilities</h2>
-        <p class="text-gray-400 max-w-2xl mx-auto">Built for autonomous infrastructure engineering with zero human intervention required.</p>
-      </div>
-
-      <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <!-- Card 1 -->
-        <div class="group p-6 rounded-2xl bg-dark-700/50 border border-white/5 hover:border-neon-green/30 hover:bg-dark-700/80 transition-all duration-300">
-          <div class="w-12 h-12 rounded-xl bg-neon-green/10 border border-neon-green/20 flex items-center justify-center text-neon-green text-xl mb-4 group-hover:shadow-lg group-hover:shadow-neon-green/10">🧠</div>
-          <h3 class="font-bold text-lg mb-2">Dynamic Model Routing</h3>
-          <p class="text-gray-400 text-sm leading-relaxed">Intelligent LLM dispatch with automatic failover. Routes to the best model (gemma2, qwen2.5, Claude) based on task complexity and availability.</p>
-        </div>
-        <!-- Card 2 -->
-        <div class="group p-6 rounded-2xl bg-dark-700/50 border border-white/5 hover:border-neon-cyan/30 hover:bg-dark-700/80 transition-all duration-300">
-          <div class="w-12 h-12 rounded-xl bg-neon-cyan/10 border border-neon-cyan/20 flex items-center justify-center text-neon-cyan text-xl mb-4 group-hover:shadow-lg group-hover:shadow-neon-cyan/10">🛡️</div>
-          <h3 class="font-bold text-lg mb-2">Self-Healing Pipeline</h3>
-          <p class="text-gray-400 text-sm leading-relaxed">Auto-retries on Docker failures, LLM rate limits, and command errors. Kernel log inspection, strace analysis, and runtime auto-patching.</p>
-        </div>
-        <!-- Card 3 -->
-        <div class="group p-6 rounded-2xl bg-dark-700/50 border border-white/5 hover:border-neon-pink/30 hover:bg-dark-700/80 transition-all duration-300">
-          <div class="w-12 h-12 rounded-xl bg-neon-pink/10 border border-neon-pink/20 flex items-center justify-center text-neon-pink text-xl mb-4 group-hover:shadow-lg group-hover:shadow-neon-pink/10">🎬</div>
-          <h3 class="font-bold text-lg mb-2">1080p Video Generation</h3>
-          <p class="text-gray-400 text-sm leading-relaxed">Real terminal recordings with synchronized Darija voice-over. Chaptered pedagogy, NVENC encoding, and cyberpunk title cards.</p>
-        </div>
-        <!-- Card 4 -->
-        <div class="group p-6 rounded-2xl bg-dark-700/50 border border-white/5 hover:border-neon-purple/30 hover:bg-dark-700/80 transition-all duration-300">
-          <div class="w-12 h-12 rounded-xl bg-neon-purple/10 border border-neon-purple/20 flex items-center justify-center text-neon-purple text-xl mb-4 group-hover:shadow-lg group-hover:shadow-neon-purple/10">🔄</div>
-          <h3 class="font-bold text-lg mb-2">Evolving Memory</h3>
-          <p class="text-gray-400 text-sm leading-relaxed">Self-learning from every rejection. 24+ auto-learned rules injected into prompts. Never repeats the same mistake twice.</p>
-        </div>
-        <!-- Card 5 -->
-        <div class="group p-6 rounded-2xl bg-dark-700/50 border border-white/5 hover:border-yellow-500/30 hover:bg-dark-700/80 transition-all duration-300">
-          <div class="w-12 h-12 rounded-xl bg-yellow-500/10 border border-yellow-500/20 flex items-center justify-center text-yellow-400 text-xl mb-4 group-hover:shadow-lg group-hover:shadow-yellow-500/10">🐳</div>
-          <h3 class="font-bold text-lg mb-2">Multi-Node Sandbox</h3>
-          <p class="text-gray-400 text-sm leading-relaxed">Ephemeral Docker topologies with real WireGuard tunnels, NAT masquerading, and bidirectional ping validation.</p>
-        </div>
-        <!-- Card 6 -->
-        <div class="group p-6 rounded-2xl bg-dark-700/50 border border-white/5 hover:border-white/20 hover:bg-dark-700/80 transition-all duration-300">
-          <div class="w-12 h-12 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-gray-300 text-xl mb-4 group-hover:shadow-lg group-hover:shadow-white/5">📡</div>
-          <h3 class="font-bold text-lg mb-2">Ghost + YouTube</h3>
-          <p class="text-gray-400 text-sm leading-relaxed">Automated publication to Ghost CMS with mobiledoc HTML cards. YouTube payload generation with chaptered descriptions and timestamps.</p>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ═══════════════ PLAYGROUND ═══════════════ -->
-  <section id="playground" class="py-24 relative bg-dark-800/50">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div class="text-center mb-12">
-        <h2 class="text-4xl sm:text-5xl font-black tracking-tight mb-4">Live Playground</h2>
-        <p class="text-gray-400 max-w-xl mx-auto">Submit a lab topic and watch Genio's autonomous pipeline execute in real-time.</p>
-      </div>
-
-      <div class="max-w-4xl mx-auto">
-        <!-- Input -->
-        <div class="flex gap-3 mb-6">
-          <div class="flex-1 relative">
-            <input id="prompt-input" type="text" placeholder='e.g. "WireGuard VPN Multi-Node Lab"'
-              class="w-full px-5 py-3.5 rounded-xl bg-dark-900 border border-white/10 text-white font-mono text-sm placeholder-gray-600 focus:outline-none focus:border-neon-green/50 focus:shadow-lg focus:shadow-neon-green/5 transition-all">
-            <div class="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-mono text-gray-600">Enter topic</div>
-          </div>
-          <button id="run-btn" onclick="runPipeline()"
-            class="px-6 py-3.5 rounded-xl bg-neon-green text-dark-900 font-bold text-sm hover:shadow-lg hover:shadow-neon-green/25 transition-all flex items-center gap-2 whitespace-nowrap">
-            <span id="run-icon">▶</span>
-            <span id="run-label">Run Pipeline</span>
-          </button>
-        </div>
-
-        <!-- DAG Visualization -->
-        <div id="dag-container" class="mb-6 hidden">
-          <div class="flex flex-wrap gap-2 justify-center" id="dag-nodes"></div>
-        </div>
-
-        <!-- Live Log Terminal -->
-        <div class="rounded-2xl border border-white/10 bg-dark-900/80 overflow-hidden">
-          <div class="flex items-center justify-between px-4 py-3 bg-dark-700/50 border-b border-white/5">
-            <div class="flex items-center gap-2">
-              <span class="w-2.5 h-2.5 rounded-full bg-neon-green animate-pulse" id="log-dot"></span>
-              <span class="text-xs font-mono text-gray-400" id="log-status">Ready</span>
-            </div>
-            <span class="text-xs font-mono text-gray-600" id="log-timer">00:00</span>
-          </div>
-          <div id="log-terminal" class="p-4 font-mono text-xs leading-relaxed h-80 overflow-y-auto space-y-1">
-            <div class="text-gray-600">Waiting for pipeline submission...</div>
-          </div>
-        </div>
-
-        <!-- Artifacts -->
-        <div id="artifacts" class="mt-6 hidden">
-          <h3 class="text-sm font-bold text-gray-400 mb-3 uppercase tracking-wider">Generated Artifacts</h3>
-          <div class="grid sm:grid-cols-2 gap-4" id="artifact-cards"></div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ═══════════════ ARCHITECTURE ═══════════════ -->
-  <section id="architecture" class="py-24 relative">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div class="text-center mb-16">
-        <h2 class="text-4xl sm:text-5xl font-black tracking-tight mb-4">Architecture</h2>
-        <p class="text-gray-400 max-w-xl mx-auto">8-node deterministic DAG with self-healing at every friction point.</p>
-      </div>
-
-      <div class="max-w-4xl mx-auto">
-        <div class="relative p-8 rounded-2xl border border-white/10 bg-dark-800/50">
-          <pre class="font-mono text-xs sm:text-sm text-gray-300 leading-loose overflow-x-auto"><code>
-    ┌─────────────┐
-    │  env_check   │ ← Docker, ffmpeg, Ollama probe
-    └──────┬──────┘
-           │
-    ┌──────▼──────┐
-    │   content    │ ← 8-pass IT-Connect pedagogical generation
-    └──────┬──────┘
-           │
-     ┌─────┼─────┬──────────┐
-     │     │     │          │
-  ┌──▼──┐┌─▼─┐┌──▼──┐┌─────▼─────┐
-  │video││aud ││cover││livetest    │
-  └──┬──┘└─┬─┘└──┬──┘│recording   │
-     │     │     │   └─────┬─────┘
-     │     │     │         │
-  ┌──▼─────▼─────▼─────────▼──┐
-  │        audit + publish     │
-  └────────────┬───────────────┘
-               │
-        ┌──────▼──────┐
-        │   youtube    │ ← Payload with chapters
-        └─────────────┘
-          </code></pre>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ═══════════════ TUTORIALS ═══════════════ -->
-  <section id="tutorials" class="py-24 relative bg-dark-800/50">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div class="text-center mb-16">
-        <h2 class="text-4xl sm:text-5xl font-black tracking-tight mb-4">Tutorials & Deep Dives</h2>
-        <p class="text-gray-400 max-w-xl mx-auto">Learn from real labs generated autonomously by Genio.</p>
-      </div>
-
-      <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <a href="https://lab.hitech.tn" target="_blank" class="group block p-6 rounded-2xl bg-dark-700/50 border border-white/5 hover:border-neon-green/30 transition-all">
-          <div class="text-3xl mb-3">🔐</div>
-          <h3 class="font-bold mb-2 group-hover:text-neon-green transition-colors">WireGuard VPN Multi-Node</h3>
-          <p class="text-gray-400 text-sm">Complete 2-node lab with real tunnel, NAT routing, and 1080p terminal recording.</p>
-          <div class="mt-4 flex items-center gap-2 text-xs font-mono text-gray-500">
-            <span class="text-neon-green">●</span> Published on Ghost
-          </div>
-        </a>
-        <a href="https://lab.hitech.tn" target="_blank" class="group block p-6 rounded-2xl bg-dark-700/50 border border-white/5 hover:border-neon-cyan/30 transition-all">
-          <div class="text-3xl mb-3">🐳</div>
-          <h3 class="font-bold mb-2 group-hover:text-neon-cyan transition-colors">Docker Reverse Proxy</h3>
-          <p class="text-gray-400 text-sm">Nginx reverse proxy with Let's Encrypt, Docker Compose, and health checks.</p>
-          <div class="mt-4 flex items-center gap-2 text-xs font-mono text-gray-500">
-            <span class="text-neon-cyan">●</span> Auto-generated
-          </div>
-        </a>
-        <a href="https://lab.hitech.tn" target="_blank" class="group block p-6 rounded-2xl bg-dark-700/50 border border-white/5 hover:border-neon-pink/30 transition-all">
-          <div class="text-3xl mb-3">🌐</div>
-          <h3 class="font-bold mb-2 group-hover:text-neon-pink transition-colors">Tailscale Mesh Network</h3>
-          <p class="text-gray-400 text-sm">Zero-config mesh VPN with Docker subnet routing and ACL policies.</p>
-          <div class="mt-4 flex items-center gap-2 text-xs font-mono text-gray-500">
-            <span class="text-neon-pink">●</span> Video + Article
-          </div>
-        </a>
-      </div>
-
-      <div class="mt-12 text-center">
-        <a href="https://lab.hitech.tn" target="_blank"
-           class="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-white/5 border border-white/10 text-sm font-medium hover:bg-white/10 transition-all">
-          View all tutorials on lab.hitech.tn →
-        </a>
-      </div>
-    </div>
-  </section>
-
-  <!-- ═══════════════ DOCS ═══════════════ -->
-  <section id="docs" class="py-24 relative">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div class="text-center mb-16">
-        <h2 class="text-4xl sm:text-5xl font-black tracking-tight mb-4">Documentation</h2>
-        <p class="text-gray-400 max-w-xl mx-auto">Extend Genio with custom agents, MCP servers, and Docker sandboxes.</p>
-      </div>
-
-      <div class="max-w-4xl mx-auto space-y-8">
-        <!-- Quick Start -->
-        <div class="p-6 rounded-2xl border border-white/10 bg-dark-800/50">
-          <h3 class="font-bold text-lg mb-4 flex items-center gap-2">
-            <span class="text-neon-green">01</span> Quick Start
-          </h3>
-          <div class="bg-dark-900 rounded-xl p-4 font-mono text-sm overflow-x-auto relative group">
-            <button onclick="copyCode(this)" class="absolute top-3 right-3 px-2 py-1 rounded bg-white/5 text-xs text-gray-400 hover:bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity">Copy</button>
-            <code class="text-gray-300"><span class="text-gray-500"># Clone and setup</span>
-git clone https://github.com/HiTechLabTN/genio.git
-cd genio && ./bootstrap.sh
-
-<span class="text-gray-500"># Run autonomous pipeline</span>
-python3 core/executive_director.py --auto --prompt "Your Lab Topic"</code>
-          </div>
-        </div>
-
-        <!-- Custom Agent -->
-        <div class="p-6 rounded-2xl border border-white/10 bg-dark-800/50">
-          <h3 class="font-bold text-lg mb-4 flex items-center gap-2">
-            <span class="text-neon-cyan">02</span> Writing Custom Agents
-          </h3>
-          <div class="bg-dark-900 rounded-xl p-4 font-mono text-sm overflow-x-auto relative group">
-            <button onclick="copyCode(this)" class="absolute top-3 right-3 px-2 py-1 rounded bg-white/5 text-xs text-gray-400 hover:bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity">Copy</button>
-            <code class="text-gray-300"><span class="text-purple-400">from</span> core.executive_director <span class="text-purple-400">import</span> BaseAgent, PlanNode, NodeResult
-
-<span class="text-purple-400">class</span> <span class="text-neon-green">MyCustomAgent</span>(BaseAgent):
-    <span class="text-purple-400">async def</span> <span class="text-yellow-300">run</span>(self, node: PlanNode, ctx) -> NodeResult:
-        <span class="text-gray-500"># Your custom logic here</span>
-        result = <span class="text-purple-400">await</span> do_something(node.params)
-        <span class="text-purple-400">return</span> NodeResult(node.id, True, output=result)</code>
-          </div>
-        </div>
-
-        <!-- MCP Server -->
-        <div class="p-6 rounded-2xl border border-white/10 bg-dark-800/50">
-          <h3 class="font-bold text-lg mb-4 flex items-center gap-2">
-            <span class="text-neon-pink">03</span> Model Context Protocol (MCP) Integration
-          </h3>
-          <div class="bg-dark-900 rounded-xl p-4 font-mono text-sm overflow-x-auto relative group">
-            <button onclick="copyCode(this)" class="absolute top-3 right-3 px-2 py-1 rounded bg-white/5 text-xs text-gray-400 hover:bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity">Copy</button>
-            <code class="text-gray-300"><span class="text-gray-500"># Register an MCP server as a tool provider</span>
-<span class="text-purple-400">from</span> core.model_router <span class="text-purple-400">import</span> ModelRouter
-
-router = ModelRouter()
-router.register_mcp_server(
-    name=<span class="text-yellow-300">"my-tools"</span>,
-    url=<span class="text-yellow-300">"http://localhost:3001/mcp"</span>,
-    tools=[<span class="text-yellow-300">"search_docs"</span>, <span class="text-yellow-300">"run_test"</span>]
-)</code>
-          </div>
-        </div>
-
-        <!-- Docker Sandbox -->
-        <div class="p-6 rounded-2xl border border-white/10 bg-dark-800/50">
-          <h3 class="font-bold text-lg mb-4 flex items-center gap-2">
-            <span class="text-yellow-400">04</span> Custom Docker Sandbox
-          </h3>
-          <div class="bg-dark-900 rounded-xl p-4 font-mono text-sm overflow-x-auto relative group">
-            <button onclick="copyCode(this)" class="absolute top-3 right-3 px-2 py-1 rounded bg-white/5 text-xs text-gray-400 hover:bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity">Copy</button>
-            <code class="text-gray-300"><span class="text-gray-500"># Add a custom sandbox image in config.py</span>
-<span class="text-purple-400">from</span> config <span class="text-purple-400">import</span> SandboxConfig
-
-custom = SandboxConfig(
-    image=<span class="text-yellow-300">"my-org/lab-tools:latest"</span>,
-    wan_subnet=<span class="text-yellow-300">"172.30.0.0/24"</span>,
-    lan_subnet=<span class="text-yellow-300">"192.168.100.0/24"</span>
-)</code>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ═══════════════ FOOTER ═══════════════ -->
-  <footer class="py-12 border-t border-white/5">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div class="flex flex-col md:flex-row items-center justify-between gap-6">
-        <div class="flex items-center gap-3">
-          <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-neon-green/20 to-neon-cyan/20 border border-neon-green/30 flex items-center justify-center text-neon-green font-mono font-bold text-sm">G</div>
-          <span class="font-mono font-bold">Genio</span>
-          <span class="text-gray-600 text-sm">v4.0</span>
-        </div>
-        <div class="flex items-center gap-6 text-sm text-gray-500">
-          <a href="https://github.com/HiTechLabTN/genio" target="_blank" class="hover:text-neon-green transition-colors">GitHub</a>
-          <a href="https://lab.hitech.tn" target="_blank" class="hover:text-neon-green transition-colors">Blog</a>
-          <a href="#docs" class="hover:text-neon-green transition-colors">Docs</a>
-        </div>
-        <div class="text-xs text-gray-600 font-mono">
-          Built by <a href="https://lab.hitech.tn" target="_blank" class="text-neon-green/70 hover:text-neon-green">HiTech Lab</a> 🇹🇳
-        </div>
-      </div>
-    </div>
-  </footer>
-
-  <script src="/static/app.js"></script>
 </body>
 </html>

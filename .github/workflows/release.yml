@@ -16,97 +16,15 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js & Python
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
 
-      - name: Prepare Release Artifacts Directory
-        run: |
-          mkdir -p /tmp/build_assets
-          mkdir -p /tmp/release_dist
-          cp -r web/* /tmp/build_assets/
-
       - name: Package Universal Multi-Platform Artifacts
         run: |
-          cd /tmp/build_assets
-
-          # 1. Web Archive Bundle
-          tar -czvf /tmp/release_dist/genio-web-bundle.tar.gz .
-
-          # 2. Android Universal Package
-          zip -r /tmp/release_dist/genio-mobile.apk .
-
-          # 3. Linux Debian Package (.deb) with Desktop Entry and Executable Launcher
-          mkdir -p /tmp/deb_pkg/usr/share/genio
-          mkdir -p /tmp/deb_pkg/usr/bin
-          mkdir -p /tmp/deb_pkg/usr/share/applications
-          mkdir -p /tmp/deb_pkg/usr/share/pixmaps
-          mkdir -p /tmp/deb_pkg/DEBIAN
-
-          # Copy assets
-          cp -r . /tmp/deb_pkg/usr/share/genio/
-
-          # Download App Icon
-          curl -sL "https://img.icons8.com/isometric/512/processor.png" -o /tmp/deb_pkg/usr/share/pixmaps/genio.png
-
-          # Executable Launcher script
-          cat << 'BIN' > /tmp/deb_pkg/usr/bin/genio-command
-#!/bin/bash
-# Launch Genio in native standalone app window mode
-URL="https://genio.hitech.tn"
-
-if command -v google-chrome &> /dev/null; then
-    google-chrome --app="$URL" "$@"
-elif command -v chromium-browser &> /dev/null; then
-    chromium-browser --app="$URL" "$@"
-elif command -v chromium &> /dev/null; then
-    chromium --app="$URL" "$@"
-elif command -v xdg-open &> /dev/null; then
-    xdg-open "$URL"
-fi
-BIN
-          chmod 755 /tmp/deb_pkg/usr/bin/genio-command
-
-          # Desktop Entry for Linux App Launcher
-          cat << 'DESK' > /tmp/deb_pkg/usr/share/applications/genio.desktop
-[Desktop Entry]
-Version=1.0
-Type=Application
-Name=Genio Command Center
-GenericName=Autonomous AI Engineer HUD
-Comment=Autonomous AI & Infrastructure Command Center
-Exec=/usr/bin/genio-command
-Icon=genio
-Terminal=false
-Categories=Utility;Development;System;
-Keywords=AI;Genio;HiTech;Autonomous;
-StartupNotify=true
-DESK
-          chmod 644 /tmp/deb_pkg/usr/share/applications/genio.desktop
-
-          # Control file
-          cat << 'CONTROL' > /tmp/deb_pkg/DEBIAN/control
-Package: genio-command
-Version: 1.0.1
-Section: utils
-Priority: optional
-Architecture: all
-Maintainer: HiTechLab <azmi.hitech@gmail.com>
-Description: Genio Autonomous AI Engineer & Command Center HUD
- Complete autonomous command center and telemetry monitor for Genio.
-CONTROL
-
-          dpkg-deb --build /tmp/deb_pkg /tmp/release_dist/genio-desktop-linux.deb
-
-          # 4. Linux Standalone AppImage
-          tar -czvf /tmp/release_dist/genio-desktop-linux.AppImage .
-
-          # 5. Windows Executable Setup Archive
-          zip -r /tmp/release_dist/genio-setup-windows.exe .
-
-          echo "✅ Packages ready:"
-          ls -lh /tmp/release_dist/
+          chmod +x scripts/package_release.sh
+          ./scripts/package_release.sh
 
       - name: Publish Official GitHub Release
         uses: softprops/action-gh-release@v1
