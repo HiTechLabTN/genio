@@ -1,0 +1,13 @@
+services:
+  genio-landing:
+    image: genio-genio-landing:latest
+    container_name: genio-landing
+    restart: unless-stopped
+    expose:
+      - "8080"
+    networks:
+      - infra_network
+
+networks:
+  infra_network:
+    external: true

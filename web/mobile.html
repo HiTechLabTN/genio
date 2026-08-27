@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Genio — قمرة القيادة والتحكم الذاتي</title>
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#00f0ff">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { background-color: #060911; color: #e2e8f0; font-family: system-ui, -apple-system, sans-serif; }
+    .hud-card { background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(14px); border: 1px solid rgba(0, 240, 255, 0.25); }
+    .glow-cyan { text-shadow: 0 0 12px rgba(0, 240, 255, 0.6); }
+  </style>
+</head>
+<body class="flex flex-col h-screen overflow-hidden">
+
+  <!-- Header HUD -->
+  <header class="hud-card p-3 flex justify-between items-center border-b border-cyan-500/30">
+    <div class="flex items-center gap-3">
+      <div class="w-3 h-3 rounded-full bg-cyan-400 animate-ping"></div>
+      <div>
+        <h1 class="text-base font-black tracking-widest text-cyan-400 glow-cyan">GENIO COMMAND</h1>
+        <p class="text-[10px] text-cyan-500 font-mono">المهندس الذاتي المستقل</p>
+      </div>
+    </div>
+    <div class="flex gap-2">
+      <button id="push-btn" onclick="subscribePush()" class="px-2.5 py-1 bg-cyan-950 text-cyan-300 border border-cyan-500/40 rounded-lg text-xs font-semibold">
+        🔔 التنبيهات
+      </button>
+    </div>
+  </header>
+
+  <!-- Smart Download Banner (OS Detection) -->
+  <div id="os-banner" class="bg-gradient-to-r from-cyan-950 to-slate-900 border-b border-cyan-500/20 px-4 py-2 flex justify-between items-center text-xs">
+    <span id="detected-os" class="text-slate-300">صبّ التطبيق الخاص بنظامك:</span>
+    <a id="download-link" href="https://github.com/HiTechTN/genio/releases" target="_blank" 
+       class="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold px-3 py-1 rounded-md text-[11px] transition">
+      تحميل التطبيق 🚀
+    </a>
+  </div>
+
+  <!-- Realtime Telemetry -->
+  <section class="grid grid-cols-3 gap-2 p-3 text-center text-xs">
+    <div class="hud-card p-2 rounded-xl">
+      <div class="text-gray-400 text-[10px]">حرارة الـ GPU</div>
+      <div id="gpu-temp" class="text-cyan-400 font-bold text-sm">38°C</div>
+    </div>
+    <div class="hud-card p-2 rounded-xl">
+      <div class="text-gray-400 text-[10px]">VRAM الفارغة</div>
+      <div id="vram-free" class="text-emerald-400 font-bold text-sm">6.9 GB</div>
+    </div>
+    <div class="hud-card p-2 rounded-xl">
+      <div class="text-gray-400 text-[10px]">حالة السيستيم</div>
+      <div id="sys-status" class="text-cyan-300 font-bold text-sm">جاهز للخدمة</div>
+    </div>
+  </section>
+
+  <!-- Live Chat Stream in Tunisian Darija -->
+  <main id="chat-stream" class="flex-1 overflow-y-auto p-4 space-y-3">
+    <div class="hud-card p-3 rounded-xl border-l-4 border-cyan-400">
+      <div class="flex justify-between items-center text-[10px] text-cyan-400 font-mono">
+        <span>[GENIO_CORE]</span>
+        <span>نشط</span>
+      </div>
+      <p class="text-sm mt-1 text-slate-200 leading-relaxed">
+        أهلاً بك عزمي! كل شي مريڤل والعتاد على Pop!_OS شغال 100%. الذكاء الاصطناعي والموديلات في وضع الاستعداد التام، قلي شنوة تحبنا نخدمو توة؟
+      </p>
+    </div>
+  </main>
+
+  <!-- Command Input Area -->
+  <footer class="hud-card p-3 border-t border-cyan-500/30 flex gap-2 items-center">
+    <input id="prompt-input" type="text" placeholder="اكتب أمرك لهنا وإلا فكرة مقال/فيديو..." 
+           class="flex-1 bg-slate-900/90 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-cyan-400">
+    <button onclick="sendCommand()" class="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold px-4 py-2 rounded-xl text-sm transition">
+      ابعث
+    </button>
+  </footer>
+
+  <script>
+    // Service Worker & Push
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js');
+    }
+
+    async function subscribePush() {
+      if (!('Notification' in window)) return alert('المتصفح لا يدعم التنبيهات');
+      const perm = await Notification.requestPermission();
+      if (perm === 'granted') {
+        document.getElementById('push-btn').innerText = '✅ مفعّلة';
+      }
+    }
+
+    // OS Auto-Detection
+    function detectPlatform() {
+      const ua = navigator.userAgent.toLowerCase();
+      const osLabel = document.getElementById('detected-os');
+      const dlLink = document.getElementById('download-link');
+      const baseUrl = "https://github.com/HiTechTN/genio/releases/latest";
+
+      if (/android/i.test(ua)) {
+        osLabel.innerText = "📱 تخدم على Android: صب الـ APK المباشر";
+        dlLink.href = `${baseUrl}/download/genio-command-android.apk`;
+        dlLink.innerText = "تحميل APK";
+      } else if (/iphone|ipad|ipod/i.test(ua)) {
+        osLabel.innerText = "🍎 تخدم على iOS: ثبّت كـ PWA عبر زر المشاركة";
+        dlLink.href = "#";
+        dlLink.innerText = "تثبيت PWA";
+      } else if (/linux/i.test(ua)) {
+        osLabel.innerText = "🐧 تخدم على Linux: متاح بصيغة AppImage و Deb";
+        dlLink.href = `${baseUrl}/download/genio-desktop-linux.AppImage`;
+        dlLink.innerText = "تحميل AppImage";
+      } else if (/win/i.test(ua)) {
+        osLabel.innerText = "🪟 تخدم على Windows: متاح مثبت EXE";
+        dlLink.href = `${baseUrl}/download/genio-setup-windows.exe`;
+        dlLink.innerText = "تحميل EXE";
+      } else if (/mac/i.test(ua)) {
+        osLabel.innerText = "🍏 تخدم على macOS: متاح ملف DMG";
+        dlLink.href = `${baseUrl}/download/genio-macos.dmg`;
+        dlLink.innerText = "تحميل DMG";
+      }
+    }
+    detectPlatform();
+
+    async function sendCommand() {
+      const input = document.getElementById('prompt-input');
+      const val = input.value.trim();
+      if (!val) return;
+
+      const chat = document.getElementById('chat-stream');
+      chat.innerHTML += `
+        <div class="hud-card p-3 rounded-xl border-r-4 border-slate-400 text-left" dir="ltr">
+          <span class="text-[10px] text-slate-400 font-mono">[OPERATOR]</span>
+          <p class="text-sm mt-1 text-slate-100">${val}</p>
+        </div>`;
+      
+      input.value = '';
+      chat.scrollTop = chat.scrollHeight;
+
+      try {
+        const res = await fetch('/api/command', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prompt: val, source: 'mobile_hud' })
+        });
+        const data = await res.json();
+        chat.innerHTML += `
+          <div class="hud-card p-3 rounded-xl border-l-4 border-emerald-400">
+            <span class="text-[10px] text-emerald-400 font-mono">[GENIO_REPLY]</span>
+            <p class="text-sm mt-1 text-slate-200">${data.message}</p>
+          </div>`;
+        chat.scrollTop = chat.scrollHeight;
+      } catch (err) {
+        console.error(err);
+      }
+    }
+  </script>
+</body>
+</html>
