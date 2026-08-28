@@ -1,79 +1,55 @@
-<div dir="rtl" align="right">
+# 🇹🇳 Genio — Autonomous Multimodal AI Systems Engineer
 
-# 🇹🇳 Genio — منظومة المهندس الذاتي المستقل للبنية التحتية والذكاء الاصطناعي
-
-<div align="center">
-  <img src="genio-logo.svg" width="140" alt="Genio Logo"/>
+<p align="center">
+  <img src="https://img.icons8.com/isometric/512/processor.png" width="140" alt="Genio Logo"/>
   <br>
-  <b>النسخة الرسمية الرابعة v4.0 • يخدم وحدو، يصلّح كودو وحدو، ويفهمك بالدارجة</b>
+  <b>المهندس الذاتي المستقل للبنية التحتية والذكاء الاصطناعي (v4.0)</b>
+  <br>
+  منظومة مستقلة بالكامل: تخدم وحدها، تصلّح كودها وحدها، وتتكلم بالدارجة التونسية والعربية البيضاء
   <br><br>
-  <a href="https://genio.hitech.tn">
-    <img src="https://img.shields.io/badge/قمرة_القيادة_الحية-genio.hitech.tn-00f0ff?style=for-the-badge" alt="Live HUD"/>
-  </a>
-  <a href="https://github.com/HiTechLabTN/genio/releases/latest">
-    <img src="https://img.shields.io/badge/تحميل_التطبيقات-v1.0.1_Universal-10b981?style=for-the-badge" alt="Releases"/>
-  </a>
-</div>
+  <a href="https://genio.hitech.tn"><b>🌐 قمرة القيادة الحية: genio.hitech.tn</b></a> | 
+  <a href="https://github.com/HiTechLabTN/genio/releases/latest"><b>📦 تحميل التطبيقات (Releases)</b></a>
+</p>
 
 ---
 
-### 🚀 شنوة هو Genio بالضبط؟
+## 📌 شنوة هو Genio؟
 
-<bdi>**Genio**</bdi> ماهوش مجرد Chatbot، هو **مهندس بنية تحتية وذكاء اصطناعي ذاتي ومستقل بالكامل** (<bdi>Autonomous Multimodal AI Systems Engineer</bdi>):
+**Genio** هو **Autonomous AI Systems Engineer** (مهندس بنية تحتية وذكاء اصطناعي مستقل بالكامل):
 
-* 🧠 **اتخاذ قرار وتحكم ذاتي (<bdi>Self-Governing</bdi>):** يراقب حرارة كارت الشاشة (<bdi>RTX 3060</bdi>) والـ <bdi>VRAM</bdi> ويختار تلقائياً بين الموديلات المحلية (<bdi>Ollama</bdi>) والسحابية.
-* 🛡️ **إصلاح وترقيع ذاتي (<bdi>Autonomous Self-Healing</bdi>):** إذا اعترضه خطأ يحلل الـ <bdi>Traceback</bdi>، يستشير نماذج الكودينغ العميقة، ويصلح السكريبت ذاتياً ويعيد التنفيذ.
-* 🎬 **إنتاج ومونتاج فيديو كامل (<bdi>Full 1080p Media Pipeline</bdi>):** يسجل التيرمينال الحية، يركب تعليق صوتي تونسي متزامن، وينشر أوتوماتيكياً على <bdi>Ghost</bdi> و <bdi>YouTube</bdi>.
-* 🔄 **ذاكرة متطورة (<bdi>Evolving Memory</bdi>):** يحفظ الأخطاء السابقة كقواعد برمجية ويحقنها في المهام التالية لمنع تكرار الخطأ.
+* 🧠 **اتخاذ القرار الذاتي (Self-Governing):** يراقب حرارة كارت الشاشة (RTX 3060) والـ VRAM ويختار الموديل الأنسب محلياً عبر Ollama (مثل Qwen-Coder) أو سحابياً عند الحاجة.
+* 🛡️ **الإصلاح البرمجي الذاتي (Self-Healing):** عند حدوث أي خطأ في الـ Runtime، يقوم بتحليل الـ Traceback واستشارة نموذج التفكير البرمجي وإصلاح الكود وإعادة تشغيله تلقائياً.
+* 🎬 **إنتاج ونشر الميديا بالكامل (Full Media Pipeline):** توليد سيناريو وشرح بالدارجة، تسجيل التيرمينال الحية، مونتاج فيديو 1080p بصوت تونسي، والنشر المباشر على Ghost و YouTube عبر n8n.
+* 🔄 **الذاكرة التراكمية المتطورة (Evolving Memory):** يتعلم من كل عملية تدقيق ويحفظ الأخطاء السابقة كقواعد برمجية لمنع تكرارها.
 
 ---
 
-### 📲 روابط التحميل المباشرة لجميع الأنظمة
+## 📲 تحميل التطبيقات لجميع الأنظمة (Download Universal Clients)
 
-<div align="center">
+صفحة الهبوط تكتشف نظامك تلقائياً، وتنجم تحمل الحزمة الخاصة بنظامك مباشرة:
 
 | المنصة والنظام | نوع الحزمة | رابط التحميل المباشر |
 | :--- | :--- | :--- |
-| 🐧 **Linux (Pop!_OS / Ubuntu / Debian)** | حزمة تثبيت <bdi>`.deb`</bdi> | [⬇️ تحميل genio-desktop-linux.deb](https://github.com/HiTechLabTN/genio/releases/latest/download/genio-desktop-linux.deb) |
-| 📱 **Android** | تطبيق موبايل <bdi>`.apk`</bdi> | [⬇️ تحميل genio-mobile.apk](https://github.com/HiTechLabTN/genio/releases/latest/download/genio-mobile.apk) |
-| 🪟 **Windows (10 / 11)** | مثبت برامج <bdi>`.exe`</bdi> | [⬇️ تحميل genio-setup-windows.exe](https://github.com/HiTechLabTN/genio/releases/latest/download/genio-setup-windows.exe) |
-| 📦 **Linux Standalone** | حزمة محمولة <bdi>`.AppImage`</bdi> | [⬇️ تحميل genio-desktop-linux.AppImage](https://github.com/HiTechLabTN/genio/releases/latest/download/genio-desktop-linux.AppImage) |
-| 🍎 **iOS / iPhone** | تطبيق ويب <bdi>PWA</bdi> | افتح [genio.hitech.tn](https://genio.hitech.tn) واضغط **Add to Home Screen** |
-
-</div>
+| 🐧 **Linux (Pop!_OS / Ubuntu / Debian)** | حزمة تثبيت `.deb` | [تحميل genio-desktop-linux.deb](https://github.com/HiTechLabTN/genio/releases/latest/download/genio-desktop-linux.deb) |
+| 📱 **Android** | تطبيق موبايل `.apk` | [تحميل genio-mobile.apk](https://github.com/HiTechLabTN/genio/releases/latest/download/genio-mobile.apk) |
+| 🪟 **Windows (10 / 11)** | مثبت برامج `.exe` | [تحميل genio-setup-windows.exe](https://github.com/HiTechLabTN/genio/releases/latest/download/genio-setup-windows.exe) |
+| 📦 **Linux Standalone** | حزمة محمولة `.AppImage` | [تحميل genio-desktop-linux.AppImage](https://github.com/HiTechLabTN/genio/releases/latest/download/genio-desktop-linux.AppImage) |
+| 🍎 **iOS / iPhone** | تطبيق ويب PWA | افتح [genio.hitech.tn](https://genio.hitech.tn) واضغط **Add to Home Screen** |
 
 ---
 
-### 🏗️ الهندسة التنفيذية للسيستيم (<bdi>8-Node Autonomous DAG</bdi>)
+## 🧩 دليل الوحدات البرمجية الأساسية (Core Modules)
 
-┌─────────────┐
-│  env_check   │ ← فحص جاهزية Docker و FFmpeg والموديلات المحلية
-└──────┬──────┘
-       │
-┌──────▼──────┐
-│   content    │ ← كتابة المقال والسيناريو بالدارجة التونسية
-└──────┬──────┘
-       │
- ┌─────┼─────┬──────────┐
- │     │     │          │
-┌──▼──┐┌─▼─┐┌──▼──┐┌─────▼─────┐
-│video││aud ││cover││livetest    │ ← تسجيل تيرمينال ومونتاج وتوليد صوت
-└──┬──┘└─┬─┘└──┬──┘│recording   │
-│     │     │   └─────┬─────┘
-│     │     │         │
-┌──▼─────▼─────▼─────────▼──┐
-│        audit + publish     │ ← تدقيق الجودة والأمان والنشر المباشر
-└────────────┬───────────────┘
-│
-┌──────▼──────┐
-│   youtube    │ ← رفع الفيديو مع الفصول والوصف عبر n8n
-└─────────────┘
-
+| المسار البرمجي | الوظيفة التقنية |
+| :--- | :--- |
+| `core/evolution/model_router.py` | التوجيه الذكي للموديلات حسب حرارة الـ GPU والـ VRAM. |
+| `core/evolution/self_healing.py` | تشخيص الأخطاء وترقيع الكود وإعادة التنفيذ ذاتياً. |
+| `core/skills/power_guard.py` | قفل الحفاظ على الطاقة ومنع النوم أثناء معالجة المهام. |
+| `media/voice_synth.py` | توليد الصوت التونسي المتزامن مع خطوات الشرح والتطبيق. |
+| `sandbox/livetest_recorder.py` | تسجيل شاشة التيرمينال الحية بدقة 1080p داخل بيئة دوكر. |
 
 ---
 
-<div align="center">
+<p align="center">
   صُنع بكل فخر بواسطة <b>HiTech Lab 🇹🇳</b> — تونس
-</div>
-
-</div>
+</p>
