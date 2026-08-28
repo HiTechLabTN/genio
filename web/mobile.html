@@ -23,6 +23,7 @@
 </head>
 <body class="flex flex-col min-h-screen">
 
+  <!-- Navbar -->
   <nav class="hud-card sticky top-0 z-50 border-b border-cyan-500/30 px-6 py-3.5 flex justify-between items-center">
     <div class="flex items-center gap-3">
       <div class="w-3.5 h-3.5 rounded-full bg-cyan-400 animate-ping"></div>
@@ -50,6 +51,7 @@
     </div>
   </nav>
 
+  <!-- Hero Section -->
   <header class="max-w-5xl mx-auto px-4 pt-12 pb-8 text-center space-y-5">
     <div class="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-cyan-950/60 border border-cyan-500/30 text-cyan-400 text-xs font-bold mono">
       <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> النسخة v4.0 — أوتونوموس 100%
@@ -66,6 +68,7 @@
       منظومة متكاملة تدير السيرفرات والعتاد، تختار الموديلات الأنسب حسب حرارة كارت الشاشة والـ VRAM، وتنتج محتوى تقني كامل بدقة 1080p بصوت تونسي وتنشر مباشرة دون أي تدخل يدوي.
     </p>
 
+    <!-- Smart OS Download Box -->
     <div class="mt-8 hud-card p-5 rounded-2xl max-w-2xl mx-auto border-cyan-400/40 text-right space-y-4 glow-box">
       <div class="flex items-center justify-between gap-4">
         <div class="flex items-center gap-3">
@@ -93,14 +96,16 @@
     </div>
   </header>
 
+  <!-- Live Dual Multimodal HUD -->
   <section id="hud" class="max-w-5xl mx-auto px-4 py-8 w-full space-y-4">
     <div class="flex justify-between items-center px-1">
       <h2 class="text-xl font-bold text-white flex items-center gap-2">
         <span class="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-pulse"></span> قمرة القيادة والتحكم الحي (Live Multimodal HUD)
       </h2>
-      <span class="text-xs text-emerald-400 mono">ONLINE • DIALECT & CLI ACTIVE</span>
+      <span class="text-xs text-emerald-400 mono">ONLINE • NATURAL DIALECT ACTIVE</span>
     </div>
 
+    <!-- Live Telemetry Cards -->
     <div class="grid grid-cols-3 gap-3 text-center">
       <div class="hud-card p-3 rounded-xl border border-cyan-500/20">
         <div class="text-[11px] text-slate-400 font-bold">حرارة كارت الشاشة GPU</div>
@@ -116,11 +121,13 @@
       </div>
     </div>
 
+    <!-- Dual Layout: Chat + Live CLI Inspector -->
     <div class="grid md:grid-cols-2 gap-4">
+      <!-- Chat Interface -->
       <div class="hud-card rounded-2xl flex flex-col overflow-hidden border border-cyan-500/30 h-[460px]">
         <div class="bg-slate-950/90 px-4 py-2.5 border-b border-cyan-500/20 flex justify-between items-center text-xs font-mono">
-          <span class="text-cyan-400">[GENIO_CHAT_CORE]</span>
-          <span class="text-emerald-400 font-bold">TUNISIAN VOICE ON</span>
+          <span class="text-cyan-400">[GENIO_NATURAL_CHAT]</span>
+          <span class="text-emerald-400 font-bold">VOICE ACTIVE 🔊</span>
         </div>
 
         <div id="chat-stream" class="flex-1 overflow-y-auto p-4 space-y-3">
@@ -130,13 +137,15 @@
               <span class="text-slate-500">جاهز</span>
             </div>
             <p class="text-sm mt-1 text-slate-200 leading-relaxed">
-              أهلاً وسهلاً بيك! أنا Genio، المهندس الذاتي للبنية التحتية. احكي معايا في أي موضوع بالصوت (🎤)، وإلا اطلب مني نخدملك لاب وتيرمينال كاملة!
+              أهلاً وسهلاً بيك! أنا Genio، صاحبك ومهندس البنية التحتية. احكي معايا بالصوت (🎤) في أي موضوع، وإلا اطلب مني نخدملك لاب وسيرفر كامل ونوريك التيرمينال الحية!
             </p>
           </div>
         </div>
 
+        <!-- Attachment Preview -->
         <div id="attached-preview" class="hidden px-4 py-2 bg-slate-900/90 border-t border-slate-800 flex items-center justify-between text-xs text-cyan-300"></div>
 
+        <!-- Input Dock -->
         <div class="p-3 bg-slate-950/90 border-t border-cyan-500/20 flex gap-2 items-center">
           <button id="voice-btn" onclick="toggleVoice()" title="تحدث بالصوت" class="p-2.5 bg-slate-900 hover:bg-slate-800 text-cyan-400 border border-slate-700 rounded-xl transition shrink-0">
             <span class="text-lg">🎤</span>
@@ -145,7 +154,7 @@
             <span class="text-lg">📎</span>
           </button>
           <input type="file" id="file-input" class="hidden" onchange="handleFileSelect(event)">
-          <input id="prompt-input" type="text" placeholder="اكتب أمرك لهنا..." 
+          <input id="prompt-input" type="text" placeholder="احكي معاه بالدارجة لهنا..." 
                  class="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400"
                  onkeypress="if(event.key === 'Enter') submitPrompt();">
           <button onclick="submitPrompt()" class="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black px-5 py-2.5 rounded-xl text-sm transition shrink-0">
@@ -154,6 +163,7 @@
         </div>
       </div>
 
+      <!-- Live Terminal CLI Inspector -->
       <div class="terminal-box rounded-2xl flex flex-col overflow-hidden h-[460px]">
         <div class="bg-slate-900/90 px-4 py-2.5 border-b border-slate-800 flex justify-between items-center text-xs mono">
           <div class="flex items-center gap-2">
@@ -172,6 +182,7 @@
     </div>
   </section>
 
+  <!-- Core Capabilities Section -->
   <section id="features" class="max-w-5xl mx-auto px-4 py-12 space-y-6">
     <div class="text-center space-y-2">
       <h2 class="text-2xl sm:text-3xl font-black text-white">القدرات الأساسية للسيستيم</h2>
@@ -217,6 +228,7 @@
     </div>
   </section>
 
+  <!-- Architecture DAG Section -->
   <section id="architecture" class="max-w-5xl mx-auto px-4 py-12 space-y-6">
     <div class="text-center space-y-2">
       <h2 class="text-2xl sm:text-3xl font-black text-white">الهندسة التنفيذية (8-Node DAG)</h2>
@@ -251,6 +263,7 @@
     </div>
   </section>
 
+  <!-- Footer -->
   <footer class="hud-card text-center py-6 border-t border-slate-800 text-xs text-slate-400 space-y-2">
     <div class="mono text-cyan-400 font-bold">GENIO AUTONOMOUS AI LAB</div>
     <div>صُنع بكل فخر بواسطة <b>HiTech Lab 🇹🇳</b> — تونس</div>
@@ -300,25 +313,35 @@
     }
     setupSmartPlatformDetector();
 
-    // Tunisian Voice Smoothing & Clean Audio Synthesizer
-    function speakTunisianSmooth(text) {
+    // Natural Tunisian Voice Synthesizer with Phonetic Tech Mapping
+    function speakTunisianNatural(text) {
       if (!('speechSynthesis' in window)) return;
       window.speechSynthesis.cancel();
       
-      // تنظيف النص من علامات الترقيم التي تسبب وقفات مكسرة
-      let cleanText = text.replace(/[*_#`~]/g, '')
-                          .replace(/[!؟?]/g, '.')
-                          .replace(/\s+/g, ' ')
-                          .trim();
+      // تحويل الكلمات التقنية لنطقها التونسي الصوتي السلس
+      let spoken = text
+        .replace(/docker/gi, 'دوكر')
+        .replace(/server/gi, 'سيرفور')
+        .replace(/script/gi, 'سكريبت')
+        .replace(/linux/gi, 'لينكس')
+        .replace(/pipeline/gi, 'بايبلاين')
+        .replace(/terminal/gi, 'تيرمينال')
+        .replace(/gpu/gi, 'جي بي يو')
+        .replace(/vram/gi, 'في رام')
+        .replace(/wireguard/gi, 'واير غارد')
+        .replace(/[*_#`~]/g, '')
+        .replace(/[!؟?]/g, '.')
+        .replace(/\s+/g, ' ')
+        .trim();
 
-      const ut = new SpeechSynthesisUtterance(cleanText);
-      ut.lang = 'ar-XA';
-      ut.rate = 1.02;
-      ut.pitch = 1.05;
+      const ut = new SpeechSynthesisUtterance(spoken);
+      ut.lang = 'ar-TN';
+      ut.rate = 1.0;
+      ut.pitch = 1.0;
 
       const voices = window.speechSynthesis.getVoices();
-      const arVoice = voices.find(v => v.lang.startsWith('ar') || v.name.includes('Arabic'));
-      if (arVoice) ut.voice = arVoice;
+      const bestVoice = voices.find(v => v.lang.startsWith('ar') || v.name.toLowerCase().includes('tunisia') || v.name.toLowerCase().includes('arabic'));
+      if (bestVoice) ut.voice = bestVoice;
 
       window.speechSynthesis.speak(ut);
     }
@@ -392,7 +415,7 @@
               <p class="text-sm mt-1 text-slate-200 leading-relaxed">${data.message}</p>
             </div>`;
           chat.scrollTop = chat.scrollHeight;
-          speakTunisianSmooth(data.message);
+          speakTunisianNatural(data.message);
         } else if (data.type === 'terminal_open') {
           termStatus.innerText = 'EXECUTING WORKFLOW';
           termStatus.className = 'text-amber-400 font-bold animate-pulse';
@@ -457,7 +480,7 @@
             <p class="text-sm mt-1 text-slate-200">${d.message}</p>
           </div>`;
         chat.scrollTop = chat.scrollHeight;
-        speakTunisianSmooth(d.message);
+        speakTunisianNatural(d.message);
       }
     }
   </script>
