@@ -7,10 +7,8 @@ from __future__ import annotations
 
 import asyncio
 import argparse
-import re
 import sys
 import time
-import traceback
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
@@ -22,6 +20,7 @@ import sys as _sys
 _sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from config import get_config, GENIO_DIR, REPORTS_DIR
+from genio_executive_core import Remediation, SelfHealingExecutor as _SelfHealingExecutorBase  # noqa: E402  (canonical impl)
 
 
 # ── Re-export legacy modules for backward compatibility ── #
@@ -174,89 +173,14 @@ def dispatch(agent_name: str) -> BaseAgent:
     raise ValueError(f"Unknown agent: {agent_name}")
 
 
-# ── Remediation Engine ── #
+# ── Remediation & Self-Healing (unified, single source in genio_executive_core) ── #
 
-class Remediation:
-    PATTERNS = [
-        (r"regen:[\w,\s]+", "content_regen"),
-        (r"Connection refused on :9876|cinema.*down", "wait_for_services"),
-        (r"timed out|timeout", "escalate_timeout"),
-        (r"401|Unauthorized|invalid api token", "reload_secrets"),
-        (r"OperationalError.*database.*locked", "sqlite_backoff"),
-        (r"ffmpeg.*nvenc|encoder.*fail", "ffmpeg_fallback"),
-        (r"429|rate.limit|Too Many", "backoff_long"),
-    ]
+class SelfHealingExecutor(_SelfHealingExecutorBase):
+    """Canonical Genio self-healing executor, rebinding the agent registry to
+    the modular local dispatcher (see base `_dispatch` override point)."""
 
-    @classmethod
-    def classify(cls, error: str) -> str:
-        for pattern, strategy in cls.PATTERNS:
-            if re.search(pattern, error, re.IGNORECASE):
-                return strategy
-        return "generic_backoff"
-
-    @classmethod
-    def extract_regen_codes(cls, error: str) -> List[str]:
-        m = re.search(r"regen:([\w,\s]+)", error or "")
-        if m:
-            return [c.strip() for c in m.group(1).split(",") if c.strip()]
-        return []
-
-
-class SelfHealingExecutor:
-    def __init__(self, default_retries: int = 3):
-        self.default_retries = default_retries
-        self.recovery_trace: List[Dict[str, str]] = []
-
-    async def _apply_remediation(self, strategy: str, node: PlanNode,
-                                  attempt: int, failed_result=None, ctx=None):
-        import os
-        note = f"[recovery#{attempt}] {strategy} on node={node.id}"
-        if strategy == "escalate_timeout":
-            node.timeout_s = min(int(node.timeout_s * 2), 3600)
-            note += f" -> timeout={node.timeout_s}s"
-        elif strategy == "reload_secrets":
-            env_path = GENIO_DIR.parent / ".env"
-            if env_path.exists():
-                for line in env_path.read_text().splitlines():
-                    if "=" in line and not line.strip().startswith("#"):
-                        k, v = line.split("=", 1)
-                        os.environ.setdefault(k.strip(), v.strip())
-        elif strategy in ("sqlite_backoff", "generic_backoff"):
-            await asyncio.sleep(min(2 ** attempt, 15))
-        elif strategy == "backoff_long":
-            await asyncio.sleep(min(5 * attempt, 30))
-        elif strategy == "wait_for_services":
-            await asyncio.sleep(10)
-        logger.info(note)
-        self.recovery_trace.append({"node": node.id, "attempt": str(attempt),
-                                    "strategy": strategy})
-
-    async def execute_node(self, node: PlanNode, ctx: AgentContext,
-                           agent_override=None) -> NodeResult:
-        agent = agent_override or dispatch(node.agent)
-        retries = node.max_retries or self.default_retries
-        started = time.monotonic()
-        last = None
-        for attempt in range(1, retries + 1):
-            try:
-                result = await asyncio.wait_for(
-                    agent.run(node, ctx), timeout=node.timeout_s)
-            except asyncio.TimeoutError:
-                result = NodeResult(node.id, False, error="node timed out")
-            except Exception as exc:
-                logger.error(traceback.format_exc(limit=3))
-                result = NodeResult(node.id, False,
-                                    error=f"{type(exc).__name__}: {exc}")
-            result.duration_s = round(time.monotonic() - started, 2)
-            result.attempts = attempt
-            if result.ok:
-                return result
-            last = result
-            if attempt < retries:
-                strategy = Remediation.classify(result.error or "")
-                await self._apply_remediation(strategy, node, attempt,
-                                              failed_result=result, ctx=ctx)
-        return last or NodeResult(node.id, False, error="no attempts")
+    def _dispatch(self, agent_name: str) -> BaseAgent:
+        return dispatch(agent_name)
 
 
 # ── Report Generator ── #

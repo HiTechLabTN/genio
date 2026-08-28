@@ -32,7 +32,11 @@ from typing import Any, Awaitable, Callable, Dict, List, Optional, Tuple
 # --------------------------------------------------------------------------- #
 # Path bootstrap: expose shared HiTech Lab modules                            #
 # --------------------------------------------------------------------------- #
-ROOT = Path("/data/ai_tools")
+from config import GENIO_DIR  # noqa: E402
+import core.memory_engine as core_memory_engine  # noqa: E402  (canonical memory)
+
+_LEGACY_ROOT = Path("/data/ai_tools")
+ROOT = _LEGACY_ROOT if _LEGACY_ROOT.exists() else Path(__file__).resolve().parent
 BACKEND = ROOT / "webapp" / "backend"
 for _p in (str(ROOT), str(BACKEND)):
     if _p not in sys.path:
@@ -50,9 +54,14 @@ except ImportError:  # pragma: no cover
 
     logger = logging.getLogger("genio")
 
-from llm_utils import LLMRouter  # noqa: E402  (shared LLM router)
-import media_steps  # noqa: E402  (audio/video/cover/publish + gold gate)
-from ghost_utils import get_ghost_client  # noqa: E402
+try:
+    from llm_utils import LLMRouter  # noqa: E402  (shared LLM router)
+    import media_steps  # noqa: E402  (audio/video/cover/publish + gold gate)
+    from ghost_utils import get_ghost_client  # noqa: E402
+except ImportError:  # pragma: no cover — optional sibling modules in standalone deploys
+    LLMRouter = None  # type: ignore[assignment]
+    media_steps = None  # type: ignore[assignment]
+    get_ghost_client = None  # type: ignore[assignment]
 
 
 # =========================================================================== #
@@ -150,152 +159,14 @@ RIGMA_FEWSHOT = """Exemple de ton et d'esprit d'ingénieur à reproduire exactem
 """
 
 
-class MemoryEngine:
-    """Persistent self-learning memory: lessons become hard prompt rules."""
-
-    DEFAULT_RULES = [
-        "Toujours insérer un tableau comparatif technique Markdown/HTML.",
-        "Utiliser des callouts stylisés avec bordure droite et fond contrasté "
-        "pour la sécurité (au moins 2 par article).",
-        "Interdiction absolue de la traduction littérale mot-à-mot ; parler "
-        "comme un Senior Engineer tunisien (نركبو، نفعلو ديريكت).",
-        "Expliquer le mécanisme système 'Under The Hood' avant chaque bloc "
-        "de commande.",
-        # ---- Directives définitives v3.0 ----
-        "Interdiction d'exporter en PNG fixes ; toujours injecter du "
-        "HTML/SVG interactif Dark/Cyberpunk dans Ghost via cartes mobiledoc.",
-        "Chaque tutoriel doit obligatoirement inclure un enregistrement vidéo "
-        "réel des commandes avec voix off explicative en Darija Blanche.",
-        "Chaque production doit être automatiquement publiée sur Ghost et "
-        "dispatchée sur YouTube avec description et chapitres.",
-        # ---- Standard pédagogique IT-Connect v3.5 ----
-        "Tout lab réseau/infrastructure = scénario complet 2 nœuds "
-        "(Serveur + Client distant) avec échange des clés publiques et "
-        "directive AllowedIPs explicite.",
-        "Toujours définir un plan d'adressage chiffré : LAN local, sous-réseau "
-        "du tunnel, LAN distant + interfaces (wg0/eth0), IPs fixes et port "
-        "d'écoute (ex: 51820/UDP).",
-        "Le routage réel est INDISPENSABLE : net.ipv4.ip_forward=1 dans "
-        "sysctl.conf + NAT/Masquerading + règles de filtrage UFW/iptables "
-        "documentées.",
-        "Toujours finir par une phase de validation concrète : diagnostic "
-        "wg show, ping bidirectionnel à travers le tunnel et transfert de "
-        "fichier réel.",
-        "Style rédactionnel : expliquer le POURQUOI avant chaque commande "
-        "(pourquoi save_config=true, pourquoi cette règle évite de perdre "
-        "le SSH...) - zéro ligne de commande jetée sans mécanisme expliqué.",
-    ]
-
-    FINDING_LESSONS = {
-        "high_latin_ratio": "Tout paragraphe de prose doit être en Darija "
-                            "blanche technique - zéro phrase entière en anglais.",
-        "literal_translation": "Bannir les formulations passives/mot-à-mot "
-                               "(نحن نقوم بتثبيت) : utiliser نركبو / نفعلو ديريكت.",
-        "low_code_density": "Minimum 4 blocs de code complets, jamais tronqués.",
-        "weak_troubleshooting": "Toujours au moins 2 erreurs réelles avec "
-                                "commandes de diagnostic (wg show, tcpdump...).",
-        "missing_svg": "Le diagramme d'architecture SVG animé est OBLIGATOIRE.",
-        "invalid_svg": "Le SVG doit être du XML valide et autonome.",
-        "missing_table": "Un tableau comparatif technique est OBLIGATOIRE.",
-        "missing_callouts": "Au moins 2 callouts sécurité dir=rtl stylisés "
-                            "(⚠️ نقطة أمنية حساسة...).",
-        "gold:hero_box": "Commencer par une Hero Box 🎯 accrocheuse.",
-        "gold:architecture_section": "Toujours expliquer le 'Under the Hood'.",
-        # v3.5 pedagogical standards
-        "missing_client_config": "Configurer les DEUX côtés : Peer serveur ET "
-                                  "Peer client (clés croisées + AllowedIPs).",
-        "missing_routing_fw": "Inclure ip_forward=1 + NAT/Masquerade + filtrage "
-                              "réel (UFW/iptables) dans tout lab réseau.",
-        "missing_validation": "Terminer par validation concrète : wg show + "
-                              "ping bidirectionnel + transfert de fichier.",
-        "missing_addressing_plan": "Plan d'adressage explicite obligatoire "
-                                   "(LAN local / tunnel / LAN distant).",
-    }
-
-    def __init__(self, path: Optional[Path] = None):
-        self.path = Path(path or ROOT / "genio" / "feedback_memory.json")
-        self.data = self._load()
-
-    def _load(self) -> Dict[str, Any]:
-        if self.path.exists():
-            try:
-                return json.loads(self.path.read_text(encoding="utf-8"))
-            except json.JSONDecodeError:
-                logger.warning("feedback_memory.json corrupted -> reseeding")
-        data = {"version": 1, "rules": list(self.DEFAULT_RULES),
-                "lessons": [], "stats": {"runs": 0, "rejections": 0}}
-        self._write(data)
-        return data
-
-    def _write(self, data: Dict[str, Any]) -> None:
-        self.path.parent.mkdir(parents=True, exist_ok=True)
-        self.path.write_text(json.dumps(data, indent=2, ensure_ascii=False),
-                             encoding="utf-8")
-
-    # ------------------------------------------------------------------ #
-    def rules_text(self, limit: int = 24) -> str:
-        rules = self.data.get("rules", [])[:limit]
-        if not rules:
-            return ""
-        return "\n".join(f"{i}. {r}" for i, r in enumerate(rules, 1))
-
-    def inject_into(self, prompt: str) -> str:
-        """Append learned rules to any system/content prompt."""
-        block = self.rules_text()
-        if not block:
-            return prompt
-        return (prompt + "\n\nMEMORY RULES (learned from past rejections - "
-                "MUST be followed):\n" + block)
-
-    def record_rejection(self, codes: List[str], source: str = "auditor") -> List[str]:
-        """Synthesize auditor/user rejection codes into durable rules."""
-        added = []
-        existing = set(self.data.get("rules", []))
-        for code in codes:
-            rule = self.FINDING_LESSONS.get(code)
-            if not rule:
-                continue
-            rule = rule.strip()
-            if rule not in existing:
-                self.data["rules"].append(rule)
-                existing.add(rule)
-                added.append(rule)
-        self.data["lessons"].append({
-            "ts": datetime.utcnow().isoformat(),
-            "source": source,
-            "codes": codes,
-            "new_rules": added,
-        })
-        self.data["lessons"] = self.data["lessons"][-200:]
-        self.data["stats"]["rejections"] = \
-            self.data["stats"].get("rejections", 0) + 1
-        self._write(self.data)
-        return added
-
-    def record_feedback(self, rule: str, source: str = "user") -> str:
-        """Direct user feedback becomes a first-class rule."""
-        rule = rule.strip()
-        if rule and rule not in set(self.data.get("rules", [])):
-            self.data["rules"].append(rule)
-            self.data["lessons"].append({
-                "ts": datetime.utcnow().isoformat(),
-                "source": source, "codes": [], "new_rules": [rule]})
-            self._write(self.data)
-        return rule
-
-    def note_run(self) -> None:
-        self.data["stats"]["runs"] = self.data["stats"].get("runs", 0) + 1
-        self._write(self.data)
-
-
-_memory_singleton: Optional[MemoryEngine] = None
+# Canonical implementation lives in `core.memory_engine` (single source of
+# truth with file locking); re-exported here for backward compatibility so
+# the legacy pipeline and tests use ONE shared class + store.
+MemoryEngine = core_memory_engine.MemoryEngine  # noqa: N816
 
 
 def get_memory() -> MemoryEngine:
-    global _memory_singleton
-    if _memory_singleton is None:
-        _memory_singleton = MemoryEngine()
-    return _memory_singleton
+    return core_memory_engine.get_memory()
 
 
 # =========================================================================== #
@@ -1344,7 +1215,7 @@ class MediaDirectorAgent(BaseAgent):
 
         # v3.5: real 2-node topology (srv + cli containers)
         try:
-            plan = await recorder.setup_two_node()
+            plan = await recorder.setup_two_node_network()
             logger.info(f"[livetest] 2-node topology ready: "
                         f"srv={plan['srv_wan_ip']} cli={plan['cli_wan_ip']}")
         except Exception as exc:
@@ -1791,10 +1662,14 @@ class SelfHealingExecutor:
             node.timeout_s = min(int(node.timeout_s * 2), 3600)
             note += f" -> timeout={node.timeout_s}s"
         elif strategy == "reload_secrets":
-            for line in (Path("/data/ai_tools/.env").read_text()).splitlines():
-                if "=" in line and not line.strip().startswith("#"):
-                    k, v = line.split("=", 1)
-                    os.environ.setdefault(k.strip(), v.strip())
+            env_path = Path("/data/ai_tools/.env")
+            if not env_path.exists():
+                env_path = GENIO_DIR.parent / ".env"
+            if env_path.exists():
+                for line in env_path.read_text().splitlines():
+                    if "=" in line and not line.strip().startswith("#"):
+                        k, v = line.split("=", 1)
+                        os.environ.setdefault(k.strip(), v.strip())
         elif strategy == "ffmpeg_fallback":
             node.params["ffmpeg_simple"] = True
         elif strategy in ("sqlite_backoff", "generic_backoff"):
@@ -1805,9 +1680,13 @@ class SelfHealingExecutor:
         self.recovery_trace.append({"node": node.id, "attempt": str(attempt),
                                     "strategy": strategy})
 
+    def _dispatch(self, agent_name: str) -> BaseAgent:
+        """Agent factory hook — overridable by downstream orchestrators."""
+        return dispatch(agent_name)
+
     async def execute_node(self, node: PlanNode, ctx: AgentContext,
                            agent_override: Optional[BaseAgent] = None) -> NodeResult:
-        agent = agent_override or dispatch(node.agent)
+        agent = agent_override or self._dispatch(node.agent)
         retries = node.max_retries or self.default_retries
         started = time.monotonic()
 

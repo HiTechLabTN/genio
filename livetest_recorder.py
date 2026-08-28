@@ -169,11 +169,6 @@ class LiveLabRecorder:
                 logger.warning("sandbox provisioning slow, retrying")
         self.container_up = True
 
-    async def stop_sandbox(self) -> None:
-        if self.container_up:
-            await self._sh("docker", "rm", "-f", SANDBOX_NAME)
-            self.container_up = False
-
     def _is_safe(self, cmd: str) -> bool:
         low = cmd.strip().lower()
         if any(b in low for b in ("rm -rf /", "mkfs", ":(){", "dd if=")):
@@ -523,48 +518,6 @@ class LiveLabRecorder:
 # ---------------------------------------------------------------------- #
 # Chaptered pedagogical WireGuard lab (IT-Connect standard, v3.5)          #
 # ---------------------------------------------------------------------- #
-
-async def setup_two_node(self) -> Dict[str, str]:
-    """Create real 2-node topology: srv + cli on docker bridge networks."""
-    plan = {
-        "wan_net": "geniowan", "wan_subnet": "172.30.0.0/24",
-        "srv_wan_ip": "172.30.0.10", "cli_wan_ip": "172.30.0.20",
-        "lan_net": "geniolan", "lan_subnet": "192.168.100.0/24",
-        "srv_lan_ip": "192.168.100.10",
-        "tunnel": "10.8.0.0/24", "srv_wg": "10.8.0.1", "cli_wg": "10.8.0.2",
-        "port": "51820",
-    }
-    # cleanup
-    for cmd in [("docker", "network", "rm", "geniowan"),
-                ("docker", "network", "rm", "geniolan"),
-                ("docker", "rm", "-f", SANDBOX_NAME),
-                ("docker", "rm", "-f", "genio_client")]:
-        await self._sh(*cmd, timeout=30)
-
-    await self._sh("docker", "network", "create", "--subnet",
-                   plan["wan_subnet"], plan["wan_net"])
-    await self._sh("docker", "network", "create", "--subnet",
-                   plan["lan_subnet"], plan["lan_net"])
-
-    # Start server (sandbox)
-    await self.start_sandbox()
-    await self._sh("docker", "network", "connect", "--ip",
-                   plan["srv_lan_ip"], plan["lan_net"], SANDBOX_NAME)
-
-    # Start client container
-    await self._sh(
-        "docker", "run", "-d", "--name", "genio_client",
-        "--cap-add=NET_ADMIN", "--device=/dev/net/tun",
-        "--network", plan["wan_net"], "--ip", plan["cli_wan_ip"],
-        self.image, "sleep", "infinity", timeout=600)
-
-    # Install packages on both
-    for c in (SANDBOX_NAME, "genio_client"):
-        await self._bash_on(c, "apt-get update -qq && DEBIAN_FRONTEND=noninteractive "
-                            "apt-get install -y -qq wireguard-tools iproute2 "
-                            "iputils-ping python3 curl >/dev/null 2>&1", 420)
-    return plan
-
 
 def wireguard_lab_chapters() -> List[Dict]:
     """4 pedagogical chapters with REAL 2-node topology commands."""

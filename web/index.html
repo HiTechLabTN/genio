@@ -50,19 +50,19 @@
 
   <!-- ================= TAB 1: HUD & LIVE JARVIS ================= -->
   <section id="view-hud" class="flex-1 flex flex-col max-w-4xl mx-auto w-full p-4 space-y-4">
-    <!-- Telemetry -->
+    <!-- Telemetry (live, refreshed from /api/telemetry) -->
     <div class="grid grid-cols-3 gap-2.5 text-center text-xs">
       <div class="glass-hud p-2.5 rounded-2xl">
         <div class="text-gray-400 text-[10px]">حرارة كارت الشاشة GPU</div>
-        <div class="text-cyan-400 font-bold text-sm mt-0.5 mono">38°C</div>
+        <div id="tel-gpu-temp" class="text-cyan-400 font-bold text-sm mt-0.5 mono">--</div>
       </div>
       <div class="glass-hud p-2.5 rounded-2xl">
         <div class="text-gray-400 text-[10px]">ذاكرة VRAM الشاغرة</div>
-        <div class="text-emerald-400 font-bold text-sm mt-0.5 mono">6.9 GB</div>
+        <div id="tel-vram-free" class="text-emerald-400 font-bold text-sm mt-0.5 mono">--</div>
       </div>
       <div class="glass-hud p-2.5 rounded-2xl">
         <div class="text-gray-400 text-[10px]">حالة السيرفر</div>
-        <div class="text-cyan-300 font-bold text-sm mt-0.5 mono">Pop!_OS نشط</div>
+        <div id="tel-server-state" class="text-cyan-300 font-bold text-sm mt-0.5 mono">pop!_os نشط</div>
       </div>
     </div>
 
@@ -266,21 +266,68 @@
       document.getElementById('voice-state-text').innerText = "🎙️ تفضل احكي...";
     }
 
+    function appendChatMessage(role, text) {
+      const chat = document.getElementById('chat-stream');
+      const wrap = document.createElement('div');
+      wrap.className = 'glass-hud p-3.5 rounded-2xl ' +
+        (role === 'operator'
+          ? 'border-r-4 border-slate-400 text-left'
+          : 'border-l-4 border-cyan-400');
+      if (role === 'operator') wrap.setAttribute('dir', 'ltr');
+
+      const tag = document.createElement('span');
+      tag.className = 'text-[10px] mono ' +
+        (role === 'operator' ? 'text-slate-400' : 'text-cyan-400');
+      tag.textContent = role === 'operator' ? '[OPERATOR]' : '[GENIO]';
+
+      const body = document.createElement('p');
+      body.className = 'text-sm mt-1 leading-relaxed ' +
+        (role === 'operator' ? 'text-slate-100' : 'text-slate-200');
+      body.textContent = text;
+
+      wrap.appendChild(tag);
+      wrap.appendChild(body);
+      chat.appendChild(wrap);
+      chat.scrollTop = chat.scrollHeight;
+    }
+
+    async function refreshTelemetry() {
+      try {
+        const res = await fetch('/api/telemetry');
+        if (!res.ok) return;
+        const t = await res.json();
+        const temp = document.getElementById('tel-gpu-temp');
+        const vram = document.getElementById('tel-vram-free');
+        const state = document.getElementById('tel-server-state');
+
+        // GPU temperature (fall back to CPU load when no GPU is present)
+        if (t.gpu_temp) {
+          temp.textContent = t.gpu_temp;
+          temp.className = "text-cyan-400 font-bold text-sm mt-0.5 mono";
+        } else if (t.cpu_load_pct != null) {
+          temp.textContent = `CPU ${t.cpu_load_pct}%`;
+          temp.className = "text-slate-300 font-bold text-sm mt-0.5 mono";
+        } else {
+          temp.textContent = '--';
+        }
+
+        vram.textContent = t.vram_free ||
+          (t.memory_free ? `RAM ${t.memory_free}` : '--');
+        state.textContent = (t.state || 'READY') +
+          (t.node ? ` · ${t.node}` : '');
+      } catch (e) {
+        // keep last-known values on transient failures
+      }
+    }
+
     async function sendCommand(customText) {
       const input = document.getElementById('prompt-input');
       const val = customText || input.value.trim();
       if (!val || isProcessing) return;
 
       isProcessing = true;
-      const chat = document.getElementById('chat-stream');
-      chat.innerHTML += `
-        <div class="glass-hud p-3 rounded-2xl border-r-4 border-slate-400 text-left" dir="ltr">
-          <span class="text-[10px] text-slate-400 mono">[OPERATOR]</span>
-          <p class="text-sm mt-1 text-slate-100">${val}</p>
-        </div>`;
-      
+      appendChatMessage('operator', val);
       input.value = '';
-      chat.scrollTop = chat.scrollHeight;
 
       try {
         const res = await fetch('/api/command', {
@@ -289,22 +336,20 @@
           body: JSON.stringify({ prompt: val })
         });
         const data = await res.json();
-        const reply = data.reply;
-        
-        chat.innerHTML += `
-          <div class="glass-hud p-3.5 rounded-2xl border-l-4 border-cyan-400">
-            <span class="text-[10px] text-cyan-400 mono">[GENIO]</span>
-            <p class="text-sm mt-1 text-slate-200 leading-relaxed">${reply}</p>
-          </div>`;
-        chat.scrollTop = chat.scrollHeight;
+        const reply = data.reply || 'لم نتحصل على رد. حاول مرة أخرى.';
+        appendChatMessage('genio', reply);
         speakResponse(reply);
       } catch (err) {
         console.error(err);
+        appendChatMessage('genio', 'وقع خطأ في الربط مع الخادم.');
       } finally {
         isProcessing = false;
         document.getElementById('voice-state-text').innerText = wakeWordActive ? "NEURAL VOICE ACTIVE" : "GENIO IS STANDBY";
       }
     }
+
+    refreshTelemetry();
+    setInterval(refreshTelemetry, 5000);
   </script>
 </body>
 </html>

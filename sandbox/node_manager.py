@@ -48,8 +48,9 @@ class NodeManagerAgent:
         checks = {}
         try:
             import httpx
+            tts_url = get_config().cinema.tts_url
             async with httpx.AsyncClient(timeout=6.0) as client:
-                r = await client.get(f"{self.config.tts_url}/health")
+                r = await client.get(f"{tts_url}/health")
                 checks["cinema_engine"] = r.status_code == 200
         except Exception:
             checks["cinema_engine"] = False
@@ -80,9 +81,9 @@ class NodeManagerAgent:
 
     async def _setup_sandbox(self, node, ctx):
         from genio_executive_core import NodeResult
-        recorder = self._get_recorder()
+        recorder = await self._get_recorder()
         try:
-            plan = recorder.setup_two_node_network()
+            plan = await recorder.setup_two_node_network()
             ctx.scratch["sandbox_plan"] = plan
             return NodeResult(node.id, True,
                               output=f"2-node: srv={plan['srv_wan_ip']} cli={plan['cli_wan_ip']}")
@@ -91,6 +92,6 @@ class NodeManagerAgent:
 
     async def _teardown_sandbox(self, node, ctx):
         from genio_executive_core import NodeResult
-        recorder = self._get_recorder()
-        recorder.stop_sandbox()
+        recorder = await self._get_recorder()
+        await recorder.stop_sandbox()
         return NodeResult(node.id, True, output="sandbox torn down")
