@@ -3,484 +3,218 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Genio — أول مهندس ذكاء اصطناعي مستقل في تونس</title>
+  <title>Genio — المهندس الذاتي المستقل</title>
   <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="#00f0ff">
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
   <style>
-    body { background-color: #060911; color: #e2e8f0; font-family: 'Cairo', system-ui, sans-serif; scroll-behavior: smooth; }
+    body { background-color: #060911; color: #e2e8f0; font-family: 'Cairo', system-ui, sans-serif; }
     .mono { font-family: 'JetBrains Mono', monospace; }
-    .hud-card { background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(14px); border: 1px solid rgba(0, 240, 255, 0.2); }
-    .glow-cyan { text-shadow: 0 0 15px rgba(0, 240, 255, 0.5); }
-    .glow-box { box-shadow: 0 0 25px rgba(0, 240, 255, 0.15); }
-    .terminal-box { background: #030712; border: 1px solid rgba(0, 240, 255, 0.3); font-family: 'JetBrains Mono', monospace; }
-    .pulse-record { animation: prec 1.5s infinite; }
-    @keyframes prec { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.8); } 70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
+    .hud-card { background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(14px); border: 1px solid rgba(0, 240, 255, 0.25); }
+    .glow-cyan { text-shadow: 0 0 15px rgba(0, 240, 255, 0.6); }
+    .jarvis-listening { animation: pulse-cyan 1.5s infinite; }
+    @keyframes pulse-cyan {
+      0%, 100% { box-shadow: 0 0 10px rgba(0, 240, 255, 0.3); }
+      50% { box-shadow: 0 0 25px rgba(0, 240, 255, 0.8); }
+    }
   </style>
 </head>
 <body class="flex flex-col min-h-screen">
 
-  <!-- Navbar -->
-  <nav class="hud-card sticky top-0 z-50 border-b border-cyan-500/30 px-6 py-3.5 flex justify-between items-center">
+  <nav class="hud-card sticky top-0 z-50 border-b border-cyan-500/30 px-4 py-3 flex justify-between items-center">
     <div class="flex items-center gap-3">
-      <div class="w-3.5 h-3.5 rounded-full bg-cyan-400 animate-ping"></div>
+      <div id="status-orb" class="w-3.5 h-3.5 rounded-full bg-cyan-400 animate-ping"></div>
       <div>
         <span class="text-xl font-black text-cyan-400 tracking-wider glow-cyan mono">Genio .</span>
         <span class="text-[10px] text-cyan-500 font-bold block -mt-1">المهندس الذاتي المستقل</span>
       </div>
     </div>
-    
-    <div class="hidden md:flex items-center gap-6 text-xs font-bold text-slate-300">
-      <a href="#features" class="hover:text-cyan-400 transition">المميزات</a>
-      <a href="#hud" class="hover:text-cyan-400 transition text-cyan-400">قمرة القيادة (HUD)</a>
-      <a href="#architecture" class="hover:text-cyan-400 transition">الهندسة التنفيذية</a>
-      <a href="#tutorials" class="hover:text-cyan-400 transition">اللابات والدروس</a>
-      <a href="#docs" class="hover:text-cyan-400 transition">التوثيق</a>
-    </div>
-
-    <div class="flex items-center gap-3">
-      <button id="push-btn" onclick="subscribePush()" class="px-3 py-1.5 bg-cyan-950/80 hover:bg-cyan-900 border border-cyan-500/40 text-cyan-300 text-xs rounded-xl font-bold transition">
-        🔔 التنبيهات
+    <div class="flex items-center gap-2">
+      <button id="wake-toggle-btn" onclick="toggleWakeWord()" class="px-3 py-1.5 bg-cyan-950 border border-cyan-500/40 text-cyan-300 text-xs rounded-xl font-bold transition">
+        🎙️ استيقاظ: Hey Genio
       </button>
-      <a href="https://github.com/HiTechLabTN/genio" target="_blank" class="text-xs text-slate-400 hover:text-cyan-400 font-mono px-3 py-1.5 rounded-lg border border-slate-800 bg-slate-900/60">
-        GitHub ↗
-      </a>
+      <button id="tts-btn" onclick="toggleTTS()" class="px-2.5 py-1.5 bg-slate-900 border border-slate-700 text-slate-300 text-xs rounded-xl">
+        🔊
+      </button>
     </div>
   </nav>
 
-  <!-- Hero Section -->
-  <header class="max-w-5xl mx-auto px-4 pt-12 pb-8 text-center space-y-5">
-    <div class="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-cyan-950/60 border border-cyan-500/30 text-cyan-400 text-xs font-bold mono">
-      <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> النسخة v4.0 — أوتونوموس 100%
+  <section class="max-w-4xl mx-auto px-4 pt-3 pb-1 w-full grid grid-cols-3 gap-2 text-center text-xs">
+    <div class="hud-card p-2 rounded-xl">
+      <div class="text-gray-400 text-[10px]">حرارة كارت الشاشة</div>
+      <div class="text-cyan-400 font-bold text-sm mono">38°C</div>
     </div>
-
-    <h1 class="text-4xl sm:text-6xl font-black text-white leading-tight">
-      أول مهندس ذكاء اصطناعي <br>
-      <span class="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-teal-300 to-blue-500 glow-cyan">
-        يصلّح كودو وحدو، يطوّر روحو، ويفهمك بالدارجة
-      </span>
-    </h1>
-
-    <p class="text-slate-300 text-sm sm:text-lg max-w-3xl mx-auto leading-relaxed">
-      منظومة متكاملة تدير السيرفرات والعتاد، تختار الموديلات الأنسب حسب حرارة كارت الشاشة والـ VRAM، وتنتج محتوى تقني كامل بدقة 1080p بصوت تونسي وتنشر مباشرة دون أي تدخل يدوي.
-    </p>
-
-    <!-- Smart OS Download Box -->
-    <div class="mt-8 hud-card p-5 rounded-2xl max-w-2xl mx-auto border-cyan-400/40 text-right space-y-4 glow-box">
-      <div class="flex items-center justify-between gap-4">
-        <div class="flex items-center gap-3">
-          <span class="text-3xl" id="os-icon">⚡</span>
-          <div>
-            <div class="text-[11px] text-slate-400">النظام المكتشف لجهازك:</div>
-            <div class="text-base font-bold text-cyan-300" id="detected-os-text">جاري الفحص...</div>
-          </div>
-        </div>
-        <a id="primary-dl-btn" href="https://github.com/HiTechLabTN/genio/releases/latest" 
-           class="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 text-slate-950 font-black px-6 py-3 rounded-xl text-xs sm:text-sm transition shadow-lg shadow-cyan-500/25 shrink-0">
-          تحميل وتثبيت 🚀
-        </a>
-      </div>
-
-      <div class="pt-3 border-t border-slate-800 text-[11px] space-y-2">
-        <div class="text-slate-400 font-bold">متوفر لكل المنصات:</div>
-        <div class="flex flex-wrap gap-2">
-          <a href="https://github.com/HiTechLabTN/genio/releases/latest/download/genio-desktop-linux.deb" class="bg-slate-900/90 hover:border-cyan-500 text-slate-300 px-2.5 py-1.5 rounded-lg border border-slate-700 mono">🐧 Linux (.deb)</a>
-          <a href="https://github.com/HiTechLabTN/genio/releases/latest/download/genio-mobile.apk" class="bg-slate-900/90 hover:border-cyan-500 text-slate-300 px-2.5 py-1.5 rounded-lg border border-slate-700 mono">📱 Android (APK)</a>
-          <a href="https://github.com/HiTechLabTN/genio/releases/latest/download/genio-setup-windows.exe" class="bg-slate-900/90 hover:border-cyan-500 text-slate-300 px-2.5 py-1.5 rounded-lg border border-slate-700 mono">🪟 Windows (.exe)</a>
-          <a href="https://github.com/HiTechLabTN/genio/releases/latest/download/genio-desktop-linux.AppImage" class="bg-slate-900/90 hover:border-cyan-500 text-slate-300 px-2.5 py-1.5 rounded-lg border border-slate-700 mono">📦 AppImage</a>
-        </div>
-      </div>
+    <div class="hud-card p-2 rounded-xl">
+      <div class="text-gray-400 text-[10px]">ذاكرة VRAM الفارغة</div>
+      <div class="text-emerald-400 font-bold text-sm mono">6.9 GB</div>
     </div>
-  </header>
-
-  <!-- Live Dual Multimodal HUD -->
-  <section id="hud" class="max-w-5xl mx-auto px-4 py-8 w-full space-y-4">
-    <div class="flex justify-between items-center px-1">
-      <h2 class="text-xl font-bold text-white flex items-center gap-2">
-        <span class="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-pulse"></span> قمرة القيادة والتحكم الحي (Live Multimodal HUD)
-      </h2>
-      <span class="text-xs text-emerald-400 mono">ONLINE • NATURAL DIALECT ACTIVE</span>
-    </div>
-
-    <!-- Live Telemetry Cards -->
-    <div class="grid grid-cols-3 gap-3 text-center">
-      <div class="hud-card p-3 rounded-xl border border-cyan-500/20">
-        <div class="text-[11px] text-slate-400 font-bold">حرارة كارت الشاشة GPU</div>
-        <div id="gpu-temp" class="text-cyan-400 font-black text-base mt-1 mono">38°C</div>
-      </div>
-      <div class="hud-card p-3 rounded-xl border border-cyan-500/20">
-        <div class="text-[11px] text-slate-400 font-bold">ذاكرة VRAM المتاحة</div>
-        <div id="vram-free" class="text-emerald-400 font-black text-base mt-1 mono">6.9 GB</div>
-      </div>
-      <div class="hud-card p-3 rounded-xl border border-cyan-500/20">
-        <div class="text-[11px] text-slate-400 font-bold">حالة السيرفر</div>
-        <div id="sys-status" class="text-cyan-300 font-black text-base mt-1">Pop!_OS (RTX 3060)</div>
-      </div>
-    </div>
-
-    <!-- Dual Layout: Chat + Live CLI Inspector -->
-    <div class="grid md:grid-cols-2 gap-4">
-      <!-- Chat Interface -->
-      <div class="hud-card rounded-2xl flex flex-col overflow-hidden border border-cyan-500/30 h-[460px]">
-        <div class="bg-slate-950/90 px-4 py-2.5 border-b border-cyan-500/20 flex justify-between items-center text-xs font-mono">
-          <span class="text-cyan-400">[GENIO_NATURAL_CHAT]</span>
-          <span class="text-emerald-400 font-bold">VOICE ACTIVE 🔊</span>
-        </div>
-
-        <div id="chat-stream" class="flex-1 overflow-y-auto p-4 space-y-3">
-          <div class="hud-card p-3.5 rounded-xl border-l-4 border-cyan-400">
-            <div class="flex justify-between items-center text-[11px] text-cyan-400 mono">
-              <span>[GENIO]</span>
-              <span class="text-slate-500">جاهز</span>
-            </div>
-            <p class="text-sm mt-1 text-slate-200 leading-relaxed">
-              أهلاً وسهلاً بيك! أنا Genio، صاحبك ومهندس البنية التحتية. احكي معايا بالصوت (🎤) في أي موضوع، وإلا اطلب مني نخدملك لاب وسيرفر كامل ونوريك التيرمينال الحية!
-            </p>
-          </div>
-        </div>
-
-        <!-- Attachment Preview -->
-        <div id="attached-preview" class="hidden px-4 py-2 bg-slate-900/90 border-t border-slate-800 flex items-center justify-between text-xs text-cyan-300"></div>
-
-        <!-- Input Dock -->
-        <div class="p-3 bg-slate-950/90 border-t border-cyan-500/20 flex gap-2 items-center">
-          <button id="voice-btn" onclick="toggleVoice()" title="تحدث بالصوت" class="p-2.5 bg-slate-900 hover:bg-slate-800 text-cyan-400 border border-slate-700 rounded-xl transition shrink-0">
-            <span class="text-lg">🎤</span>
-          </button>
-          <button onclick="document.getElementById('file-input').click()" title="إرفاق ملف أو رابط" class="p-2.5 bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-cyan-400 border border-slate-700 rounded-xl transition shrink-0">
-            <span class="text-lg">📎</span>
-          </button>
-          <input type="file" id="file-input" class="hidden" onchange="handleFileSelect(event)">
-          <input id="prompt-input" type="text" placeholder="احكي معاه بالدارجة لهنا..." 
-                 class="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400"
-                 onkeypress="if(event.key === 'Enter') submitPrompt();">
-          <button onclick="submitPrompt()" class="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black px-5 py-2.5 rounded-xl text-sm transition shrink-0">
-            ابعث
-          </button>
-        </div>
-      </div>
-
-      <!-- Live Terminal CLI Inspector -->
-      <div class="terminal-box rounded-2xl flex flex-col overflow-hidden h-[460px]">
-        <div class="bg-slate-900/90 px-4 py-2.5 border-b border-slate-800 flex justify-between items-center text-xs mono">
-          <div class="flex items-center gap-2">
-            <span class="w-3 h-3 rounded-full bg-red-500"></span>
-            <span class="w-3 h-3 rounded-full bg-yellow-500"></span>
-            <span class="w-3 h-3 rounded-full bg-emerald-500"></span>
-            <span class="text-slate-400 font-bold ml-2">GENIO_LIVE_INSPECTOR</span>
-          </div>
-          <span id="term-status" class="text-cyan-400 text-[11px]">IDLE</span>
-        </div>
-        <div id="terminal-stream" class="flex-1 overflow-y-auto p-4 space-y-1.5 text-xs text-left" dir="ltr">
-          <div class="text-slate-500">[SYSTEM] Genio autonomous execution daemon listening on port 8000...</div>
-          <div class="text-slate-500">[GPU] NVIDIA RTX 3060 12GB VRAM initialized. Ready for workload.</div>
-        </div>
-      </div>
+    <div class="hud-card p-2 rounded-xl">
+      <div class="text-gray-400 text-[10px]">حالة السيرفر</div>
     </div>
   </section>
 
-  <!-- Core Capabilities Section -->
-  <section id="features" class="max-w-5xl mx-auto px-4 py-12 space-y-6">
-    <div class="text-center space-y-2">
-      <h2 class="text-2xl sm:text-3xl font-black text-white">القدرات الأساسية للسيستيم</h2>
-      <p class="text-slate-400 text-xs sm:text-sm">مبني ليدير بنية تحتية هندسية كاملة بأقصى استقلالية وبدون تدخل بشري</p>
-    </div>
-
-    <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-      <div class="hud-card p-5 rounded-2xl border border-cyan-500/20 space-y-2">
-        <div class="text-2xl">🧠</div>
-        <h3 class="text-base font-bold text-cyan-300">توجيه الموديلات الذكي (Model Router)</h3>
-        <p class="text-xs text-slate-300 leading-relaxed">يوزع المهام ديناميكياً بين الموديلات المحلية على Ollama والسحاب حسب تعقيد المهمة وذاكرة الـ VRAM وحرارة الكارت.</p>
+  <main class="max-w-4xl mx-auto px-4 py-3 w-full flex-1 flex flex-col space-y-3">
+    <div id="chat-container" class="hud-card rounded-2xl flex-1 flex flex-col overflow-hidden border border-cyan-500/30 min-h-[420px]">
+      <div class="bg-slate-950 px-4 py-2 border-b border-cyan-500/20 text-xs text-cyan-400 font-mono flex items-center justify-between">
+        <span class="flex items-center gap-2">
+          <span class="w-2 h-2 rounded-full bg-cyan-400"></span> JARVIS_ENGINE [ONLINE]
+        </span>
+        <span id="wake-status" class="text-slate-400 text-[11px]">قل: 'Hey Genio' أو 'يا جينيو'</span>
       </div>
 
-      <div class="hud-card p-5 rounded-2xl border border-cyan-500/20 space-y-2">
-        <div class="text-2xl">🛡️</div>
-        <h3 class="text-base font-bold text-cyan-300">الإصلاح والترقيع الذاتي (Self-Healing)</h3>
-        <p class="text-xs text-slate-300 leading-relaxed">يكتشف أخطاء الران تايم والأوامر المكسورة، يحلل الـ Traceback، يستشير نماذج الكودينغ العميقة، ويصلح السكريبت ذاتياً ويعاود التنفيذ.</p>
+      <div id="chat-stream" class="flex-1 overflow-y-auto p-4 space-y-3">
+        <div class="hud-card p-3 rounded-xl border-l-4 border-cyan-400">
+          <span class="text-[10px] text-cyan-400 font-mono">[GENIO]</span>
+          <p class="text-sm mt-1 text-slate-200">
+            على سلامتك يا عزمي! أنا جينيو مهندس الـ AI والبنية التحتية متاعك. احكي معايا ديريكت بالصوت وإلا ناديني 'Hey Genio' وتو نجاوبك في البلاصة!
+          </p>
+        </div>
       </div>
 
-      <div class="hud-card p-5 rounded-2xl border border-cyan-500/20 space-y-2">
-        <div class="text-2xl">🎬</div>
-        <h3 class="text-base font-bold text-cyan-300">توليد الفيديو والميديا بدقة 1080p</h3>
-        <p class="text-xs text-slate-300 leading-relaxed">يسجل التيرمينال الحية، يركب تعليق صوتي متزامن بالدارجة التونسية، يدمج صور الشرح، ويخرج فيديو كامل جاهز للنشر.</p>
-      </div>
-
-      <div class="hud-card p-5 rounded-2xl border border-cyan-500/20 space-y-2">
-        <div class="text-2xl">🔄</div>
-        <h3 class="text-base font-bold text-cyan-300">الذاكرة المتطورة (Evolving Memory)</h3>
-        <p class="text-xs text-slate-300 leading-relaxed">يتعلم من كل محاولة وكل تقييم تدقيق، يحقن القواعد المستخلصة في البرومبت التالي ولا يكرر نفس الخطأ مرتين.</p>
-      </div>
-
-      <div class="hud-card p-5 rounded-2xl border border-cyan-500/20 space-y-2">
-        <div class="text-2xl">🐳</div>
-        <h3 class="text-base font-bold text-cyan-300">بيئات اختبار Docker معزولة</h3>
-        <p class="text-xs text-slate-300 leading-relaxed">ينشئ بيئات Docker لحظية مع شبكات VPN حقيقية و NAT Masquerading لاختبار الخدمات والاتصال قبل التثبيت الفعلي.</p>
-      </div>
-
-      <div class="hud-card p-5 rounded-2xl border border-cyan-500/20 space-y-2">
-        <div class="text-2xl">📡</div>
-        <h3 class="text-base font-bold text-cyan-300">نشر آلي على Ghost و YouTube</h3>
-        <p class="text-xs text-slate-300 leading-relaxed">ينشر مقالات مفصلة ببطاقات Mobiledoc HTML على المدونة، ويرفع الفيديوهات على YouTube مع التقسيم الزمني والفصول عبر n8n.</p>
+      <div class="p-3 bg-slate-950 border-t border-cyan-500/20 flex gap-2">
+        <input id="prompt-input" type="text" placeholder="احكي معاه بالدارجة لهنا أو ناديه صوتياً..." 
+               class="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-cyan-400"
+               onkeypress="if(event.key==='Enter') sendCommand()">
+        <button id="manual-mic" onclick="startManualVoice()" class="px-3.5 bg-slate-900 border border-slate-700 hover:border-cyan-400 rounded-xl text-slate-300">
+          🎙️
+        </button>
+        <button onclick="sendCommand()" class="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold px-5 py-2 rounded-xl text-sm transition">
+          ابعث
+        </button>
       </div>
     </div>
-  </section>
-
-  <!-- Architecture DAG Section -->
-  <section id="architecture" class="max-w-5xl mx-auto px-4 py-12 space-y-6">
-    <div class="text-center space-y-2">
-      <h2 class="text-2xl sm:text-3xl font-black text-white">الهندسة التنفيذية (8-Node DAG)</h2>
-      <p class="text-slate-400 text-xs sm:text-sm">مخطط تنفيذ المهمة خطوة بخطوة مع نقاط تصحيح ذاتية في كل مرحلة</p>
-    </div>
-
-    <div class="hud-card p-6 rounded-2xl border border-cyan-500/20 text-center overflow-x-auto mono text-xs sm:text-sm text-cyan-300 leading-loose">
-      <pre class="inline-block text-left" dir="ltr">
-    ┌─────────────┐
-    │  env_check   │ ← فحص Docker و ffmpeg وموديلات Ollama
-    └──────┬──────┘
-           │
-    ┌──────▼──────┐
-    │   content    │ ← كتابة المقال والسيناريو بالدارجة التونسية
-    └──────┬──────┘
-           │
-     ┌─────┼─────┬──────────┐
-     │     │     │          │
-  ┌──▼──┐┌─▼─┐┌──▼──┐┌─────▼─────┐
-  │video││aud ││cover││livetest    │ ← تسجيل تيرمينال ومونتاج وتوليد صوت
-  └──┬──┘└─┬─┘└──┬──┘│recording   │
-     │     │     │   └─────┬─────┘
-     │     │     │         │
-  ┌──▼─────▼─────▼─────────▼──┐
-  │        audit + publish     │ ← تدقيق الجودة والأمان والنشر المباشر
-  └────────────┬───────────────┘
-               │
-        ┌──────▼──────┐
-        │   youtube    │ ← رفع الفيديو مع الفصول والوصف عبر n8n
-        └─────────────┘
-      </pre>
-    </div>
-  </section>
-
-  <!-- Footer -->
-  <footer class="hud-card text-center py-6 border-t border-slate-800 text-xs text-slate-400 space-y-2">
-    <div class="mono text-cyan-400 font-bold">GENIO AUTONOMOUS AI LAB</div>
-    <div>صُنع بكل فخر بواسطة <b>HiTech Lab 🇹🇳</b> — تونس</div>
-  </footer>
+  </main>
 
   <script>
-    // Live Hardware Telemetry
-    async function updateLiveTelemetry() {
-      try {
-        const res = await fetch('/api/telemetry');
-        if (res.ok) {
-          const data = await res.json();
-          document.getElementById('gpu-temp').innerText = data.gpu_temp || '38°C';
-          document.getElementById('vram-free').innerText = data.vram_free || '6.9 GB';
-          document.getElementById('sys-status').innerText = data.node_status || 'Pop!_OS شغال';
-        }
-      } catch (e) {}
-    }
-    setInterval(updateLiveTelemetry, 3000);
-    updateLiveTelemetry();
-
-    // OS Auto Detector
-    function setupSmartPlatformDetector() {
-      const ua = navigator.userAgent.toLowerCase();
-      const osText = document.getElementById('detected-os-text');
-      const osIcon = document.getElementById('os-icon');
-      const btn = document.getElementById('primary-dl-btn');
-      const base = "https://github.com/HiTechLabTN/genio/releases/latest/download";
-
-      if (/android/i.test(ua)) {
-        osIcon.innerText = "📱";
-        osText.innerText = "Android (تطبيق APK المباشر)";
-        btn.href = `${base}/genio-mobile.apk`;
-      } else if (/linux/i.test(ua)) {
-        osIcon.innerText = "🐧";
-        osText.innerText = "Linux (Pop!_OS / Ubuntu / Debian)";
-        btn.href = `${base}/genio-desktop-linux.deb`;
-      } else if (/win/i.test(ua)) {
-        osIcon.innerText = "🪟";
-        osText.innerText = "Windows 10 / 11";
-        btn.href = `${base}/genio-setup-windows.exe`;
-      } else {
-        osIcon.innerText = "🌐";
-        osText.innerText = "Web Universal";
-        btn.href = `${base}/genio-desktop-linux.AppImage`;
-      }
-    }
-    setupSmartPlatformDetector();
-
-    // Natural Tunisian Voice Synthesizer with Phonetic Tech Mapping
-    function speakTunisianNatural(text) {
-      if (!('speechSynthesis' in window)) return;
-      window.speechSynthesis.cancel();
-      
-      // تحويل الكلمات التقنية لنطقها التونسي الصوتي السلس
-      let spoken = text
-        .replace(/docker/gi, 'دوكر')
-        .replace(/server/gi, 'سيرفور')
-        .replace(/script/gi, 'سكريبت')
-        .replace(/linux/gi, 'لينكس')
-        .replace(/pipeline/gi, 'بايبلاين')
-        .replace(/terminal/gi, 'تيرمينال')
-        .replace(/gpu/gi, 'جي بي يو')
-        .replace(/vram/gi, 'في رام')
-        .replace(/wireguard/gi, 'واير غارد')
-        .replace(/[*_#`~]/g, '')
-        .replace(/[!؟?]/g, '.')
-        .replace(/\s+/g, ' ')
-        .trim();
-
-      const ut = new SpeechSynthesisUtterance(spoken);
-      ut.lang = 'ar-TN';
-      ut.rate = 1.0;
-      ut.pitch = 1.0;
-
-      const voices = window.speechSynthesis.getVoices();
-      const bestVoice = voices.find(v => v.lang.startsWith('ar') || v.name.toLowerCase().includes('tunisia') || v.name.toLowerCase().includes('arabic'));
-      if (bestVoice) ut.voice = bestVoice;
-
-      window.speechSynthesis.speak(ut);
-    }
-
-    // Voice Recognition
-    let isRecording = false;
+    let ttsEnabled = true;
+    let wakeWordActive = false;
     let recognition = null;
-    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-      const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
-      recognition = new SpeechRec();
-      recognition.lang = 'ar-TN';
-      recognition.onresult = (e) => {
-        document.getElementById('prompt-input').value = e.results[0][0].transcript;
-        toggleVoice();
-        submitPrompt();
-      };
-      recognition.onerror = () => toggleVoice();
+    let isProcessing = false;
+
+    function toggleTTS() {
+      document.getElementById('tts-btn').innerText = ttsEnabled ? '🔊' : '🔇';
     }
 
-    function toggleVoice() {
-      const btn = document.getElementById('voice-btn');
-      if (!recognition) return alert('المتصفح لا يدعم التسجيل الصوتي');
-      if (!isRecording) {
-        recognition.start();
-        isRecording = true;
-        btn.classList.add('bg-red-500', 'text-white', 'pulse-record');
-      } else {
-        recognition.stop();
-        isRecording = false;
-        btn.classList.remove('bg-red-500', 'text-white', 'pulse-record');
-      }
+    function speakResponse(text) {
+      window.speechSynthesis.cancel();
+      const utter = new SpeechSynthesisUtterance(text);
+      utter.lang = 'ar-XA';
+      utter.rate = 1.05;
+      window.speechSynthesis.speak(utter);
     }
 
-    // Attachment
-    let attachedFile = null;
-    function handleFileSelect(e) {
-      const file = e.target.files[0];
-      if (file) {
-        attachedFile = file;
-        const prev = document.getElementById('attached-preview');
-        prev.classList.remove('hidden');
-        prev.innerHTML = `<span>📎 مرفق: <b>${file.name}</b> (${Math.round(file.size/1024)} KB)</span>
-                         <button onclick="clearAttachment()" class="text-red-400 font-bold">✕ حذف</button>`;
-      }
-    }
-    function clearAttachment() {
-      attachedFile = null;
-      document.getElementById('file-input').value = '';
-      document.getElementById('attached-preview').classList.add('hidden');
-    }
+    // Wake Word Engine (Hey Genio / يا جينيو / جينيو)
+    function initSpeechEngine() {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
-    // WebSocket Live Dual Terminal
-    let ws = null;
-    function connectSocket() {
-      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      ws = new WebSocket(`${protocol}//${window.location.host}/ws/pipeline`);
-      
-      ws.onmessage = (event) => {
-        const data = JSON.parse(event.data);
-        const chat = document.getElementById('chat-stream');
-        const term = document.getElementById('terminal-stream');
-        const termStatus = document.getElementById('term-status');
-        
-        if (data.type === 'chat_reply') {
-          chat.innerHTML += `
-            <div class="hud-card p-3.5 rounded-xl border-l-4 border-emerald-400">
-              <div class="flex justify-between items-center text-[10px] text-emerald-400 mono">
-                <span>[GENIO]</span>
-                <span class="text-slate-500">الآن</span>
-              </div>
-              <p class="text-sm mt-1 text-slate-200 leading-relaxed">${data.message}</p>
-            </div>`;
-          chat.scrollTop = chat.scrollHeight;
-          speakTunisianNatural(data.message);
-        } else if (data.type === 'terminal_open') {
-          termStatus.innerText = 'EXECUTING WORKFLOW';
-          termStatus.className = 'text-amber-400 font-bold animate-pulse';
-          term.innerHTML += `<div class="text-cyan-400 font-bold mt-2">=== ${data.title} ===</div>`;
-        } else if (data.type === 'terminal_log') {
-          term.innerHTML += `
-            <div class="flex items-start gap-2">
-              <span class="text-cyan-400 font-bold">[${data.prefix}]</span>
-              <span class="text-slate-200">${data.line}</span>
-            </div>`;
-          term.scrollTop = term.scrollHeight;
-        } else if (data.type === 'finished') {
-          termStatus.innerText = 'SUCCESS (0 ERRORS)';
-          termStatus.className = 'text-emerald-400 font-bold';
-          term.innerHTML += `<div class="text-emerald-400 font-bold mt-2">✔ PIPELINE COMPLETE: 8/8 NODES PASSED</div>`;
+      const rec = new SpeechRecognition();
+      rec.continuous = true;
+      rec.interimResults = false;
+      rec.lang = 'ar-TN';
+
+      rec.onresult = (event) => {
+        if (isProcessing) return;
+        const lastResult = event.results[event.results.length - 1][0].transcript.trim();
+        console.log("Heard:", lastResult);
+
+        const lower = lastResult.toLowerCase();
+        // Check Wake Word Triggers
+        if (lower.includes("genio") || lower.includes("جينيو") || lower.includes("جنيو") || lower.includes("جونيور") || lower.includes("وينك")) {
+          // Trigger visual feedback
+          document.getElementById('chat-container').classList.add('jarvis-listening');
+          document.getElementById('wake-status').innerText = '⚡ جينيو يسمع فيك توا...';
           
-          chat.innerHTML += `
-            <div class="hud-card p-4 rounded-xl border-l-4 border-cyan-400 bg-cyan-950/20">
-              <div class="text-[11px] text-cyan-400 font-bold mono">🎉 [PIPELINE_COMPLETE]</div>
-              <p class="text-sm mt-1 text-white font-bold">${data.message}</p>
-              <div class="mt-2 pt-2 border-t border-slate-800 flex gap-2">
-                <span class="text-xs bg-slate-900 px-2 py-1 rounded text-cyan-300 mono">📄 article.md</span>
-                <span class="text-xs bg-slate-900 px-2 py-1 rounded text-emerald-300 mono">🎬 video_1080p.mp4</span>
-              </div>
-            </div>`;
-          chat.scrollTop = chat.scrollHeight;
+          // Clean prompt from wake word
+          let cleanPrompt = lastResult
+            .replace(/hey genio/gi, '')
+            .replace(/يا جينيو/gi, '')
+            .replace(/جينيو/gi, '')
+            .replace(/جنيو/gi, '')
+            .replace(/جونيور/gi, '')
+            .replace(/وينك/gi, '')
+            .trim();
+
+          document.getElementById('prompt-input').value = cleanPrompt;
+          sendCommand(cleanPrompt);
+        } else if (wakeWordActive) {
+          // Direct speech mode
+          document.getElementById('prompt-input').value = lastResult;
+          sendCommand(lastResult);
         }
       };
 
-      ws.onclose = () => setTimeout(connectSocket, 2000);
+      rec.onerror = (e) => console.warn("Speech rec error:", e);
+      rec.onend = () => {
+        if (wakeWordActive) {
+          try { rec.start(); } catch(e) {}
+        }
+      };
+      return rec;
     }
-    connectSocket();
 
-    async function submitPrompt() {
+    function toggleWakeWord() {
+
+      const btn = document.getElementById('wake-toggle-btn');
+
+      if (wakeWordActive) {
+        btn.classList.remove('bg-cyan-950');
+        btn.classList.add('bg-emerald-600', 'text-black');
+        btn.innerText = '🟢 الاستماع نشط (ناديني)';
+        try { recognition.start(); } catch(e) {}
+      } else {
+        btn.classList.remove('bg-emerald-600', 'text-black');
+        btn.classList.add('bg-cyan-950', 'text-cyan-300');
+        btn.innerText = '🎙️ استيقاظ: Hey Genio';
+        try { recognition.stop(); } catch(e) {}
+      }
+    }
+
+    function startManualVoice() {
+      try { recognition.start(); } catch(e) {}
+      document.getElementById('wake-status').innerText = '🎙️ تفضل احكي...';
+    }
+
+    async function sendCommand(customText) {
       const input = document.getElementById('prompt-input');
-      const val = input.value.trim();
-      if (!val && !attachedFile) return;
+      const val = customText || input.value.trim();
 
+      isProcessing = true;
       const chat = document.getElementById('chat-stream');
       chat.innerHTML += `
         <div class="hud-card p-3 rounded-xl border-r-4 border-slate-400 text-left" dir="ltr">
           <span class="text-[10px] text-slate-400 mono">[OPERATOR]</span>
-          <p class="text-sm mt-1 text-slate-100">${val || attachedFile.name}</p>
+          <p class="text-sm mt-1 text-slate-100">${val}</p>
         </div>`;
       
       input.value = '';
-      clearAttachment();
       chat.scrollTop = chat.scrollHeight;
 
-      if (ws && ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify({ prompt: val || 'Task Execution' }));
-      } else {
+      try {
         const res = await fetch('/api/command', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ prompt: val, source: 'web_hud' })
+          body: JSON.stringify({ prompt: val })
         });
-        const d = await res.json();
+        const data = await res.json();
+        const reply = data.reply;
+        
         chat.innerHTML += `
           <div class="hud-card p-3.5 rounded-xl border-l-4 border-emerald-400">
             <span class="text-[10px] text-emerald-400 mono">[GENIO]</span>
-            <p class="text-sm mt-1 text-slate-200">${d.message}</p>
+            <p class="text-sm mt-1 text-slate-200 leading-relaxed">${reply}</p>
           </div>`;
         chat.scrollTop = chat.scrollHeight;
-        speakTunisianNatural(d.message);
+        
+        speakResponse(reply);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        isProcessing = false;
+        document.getElementById('chat-container').classList.remove('jarvis-listening');
+        document.getElementById('wake-status').innerText = 'قل: 'Hey Genio' أو 'يا جينيو'';
       }
     }
   </script>
