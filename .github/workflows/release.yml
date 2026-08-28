@@ -16,12 +16,16 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Setup Java 17 & Node.js
+        uses: actions/setup-java@v4
         with:
-          node-version: 20
+          distribution: 'zulu'
+          java-version: '17'
 
-      - name: Package Universal Multi-Platform Artifacts
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Package Multi-Platform Release Assets
         run: |
           chmod +x scripts/package_release.sh
           ./scripts/package_release.sh

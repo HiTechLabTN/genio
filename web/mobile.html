@@ -3,85 +3,134 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Genio — المهندس الذاتي المستقل</title>
+  <title>Genio — قمرة قيادة الذكاء الاصطناعي</title>
   <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="#00f0ff">
   <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
   <style>
-    body { background-color: #060911; color: #e2e8f0; font-family: 'Cairo', system-ui, sans-serif; }
+    body { background-color: #030712; color: #f8fafc; font-family: 'Cairo', system-ui, sans-serif; overflow-x: hidden; }
     .mono { font-family: 'JetBrains Mono', monospace; }
-    .hud-card { background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(14px); border: 1px solid rgba(0, 240, 255, 0.25); }
-    .glow-cyan { text-shadow: 0 0 15px rgba(0, 240, 255, 0.6); }
-    .jarvis-listening { animation: pulse-cyan 1.5s infinite; }
-    @keyframes pulse-cyan {
-      0%, 100% { box-shadow: 0 0 10px rgba(0, 240, 255, 0.3); }
-      50% { box-shadow: 0 0 25px rgba(0, 240, 255, 0.8); }
+    .glass-hud { background: rgba(15, 23, 42, 0.75); backdrop-filter: blur(16px); border: 1px solid rgba(0, 240, 255, 0.25); box-shadow: 0 0 20px rgba(0, 240, 255, 0.1); }
+    .glow-cyan { text-shadow: 0 0 16px rgba(0, 240, 255, 0.8); }
+    .glow-purple { text-shadow: 0 0 16px rgba(168, 85, 247, 0.8); }
+    
+    /* Radar & Core Animations */
+    @keyframes rotateCore {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
     }
+    @keyframes pulseGlow {
+      0%, 100% { transform: scale(1); opacity: 0.8; }
+      50% { transform: scale(1.08); opacity: 1; filter: drop-shadow(0 0 35px #00f0ff); }
+    }
+    .core-ring { animation: rotateCore 12s linear infinite; }
+    .core-pulse { animation: pulseGlow 3s ease-in-out infinite; }
   </style>
 </head>
-<body class="flex flex-col min-h-screen">
+<body class="flex flex-col min-h-screen relative selection:bg-cyan-500 selection:text-black">
 
-  <nav class="hud-card sticky top-0 z-50 border-b border-cyan-500/30 px-4 py-3 flex justify-between items-center">
+  <!-- Background Cyber Grid -->
+  <div class="fixed inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-cyan-950/20 via-[#030712] to-[#010309] -z-10 pointer-events-none"></div>
+
+  <!-- Intro Spaceship Boot Loader Overlay -->
+  <div id="intro-screen" class="fixed inset-0 bg-[#020617] z-50 flex flex-col items-center justify-center p-4 transition-all duration-700">
+    <div class="relative w-32 h-32 flex items-center justify-center">
+      <div class="absolute inset-0 rounded-full border-2 border-dashed border-cyan-400 core-ring"></div>
+      <div class="absolute inset-2 rounded-full border border-purple-500/50 core-ring" style="animation-direction: reverse; animation-duration: 8s;"></div>
+      <div class="w-16 h-16 rounded-full bg-gradient-to-tr from-cyan-500 to-blue-600 core-pulse flex items-center justify-center shadow-lg shadow-cyan-500/50">
+        <span class="text-xl">🤖</span>
+      </div>
+    </div>
+    <h2 class="text-xl font-black text-cyan-400 mt-6 mono tracking-widest glow-cyan">GENIO_SYSTEM_ONLINE</h2>
+    <p class="text-xs text-slate-400 mt-2 mono" id="boot-status">INITIALIZING NEURAL REASONING ENGINE...</p>
+  </div>
+
+  <!-- Top HUD Bar -->
+  <nav class="glass-hud sticky top-0 z-40 px-4 py-3 flex justify-between items-center border-b border-cyan-500/30">
     <div class="flex items-center gap-3">
-      <div id="status-orb" class="w-3.5 h-3.5 rounded-full bg-cyan-400 animate-ping"></div>
+      <div class="w-3 h-3 rounded-full bg-cyan-400 animate-ping"></div>
       <div>
-        <span class="text-xl font-black text-cyan-400 tracking-wider glow-cyan mono">Genio .</span>
-        <span class="text-[10px] text-cyan-500 font-bold block -mt-1">المهندس الذاتي المستقل</span>
+        <span class="text-lg font-black tracking-wider text-cyan-400 glow-cyan mono">Genio .</span>
+        <span class="text-[10px] text-cyan-500 block -mt-1 mono">AUTONOMOUS ENGINEER HUD</span>
       </div>
     </div>
     <div class="flex items-center gap-2">
-      <button id="wake-toggle-btn" onclick="toggleWakeWord()" class="px-3 py-1.5 bg-cyan-950 border border-cyan-500/40 text-cyan-300 text-xs rounded-xl font-bold transition">
-        🎙️ استيقاظ: Hey Genio
+      <button id="wake-toggle-btn" onclick="toggleWakeWord()" class="px-3 py-1.5 bg-cyan-950/80 hover:bg-cyan-900 border border-cyan-400/50 text-cyan-300 text-xs rounded-xl font-bold transition flex items-center gap-1.5 shadow-lg shadow-cyan-950">
+        <span>🎙️</span> <span id="wake-btn-label">استيقاظ: Hey Genio</span>
       </button>
-      <button id="tts-btn" onclick="toggleTTS()" class="px-2.5 py-1.5 bg-slate-900 border border-slate-700 text-slate-300 text-xs rounded-xl">
-        🔊
-      </button>
+      <a href="https://github.com/HiTechLabTN/genio/releases/latest/download/genio-mobile.apk" class="px-3 py-1.5 bg-gradient-to-r from-cyan-500 to-blue-600 text-slate-950 text-xs rounded-xl font-black transition">
+        صبّ التطبيق 📲
+      </a>
     </div>
   </nav>
 
-  <section class="max-w-4xl mx-auto px-4 pt-3 pb-1 w-full grid grid-cols-3 gap-2 text-center text-xs">
-    <div class="hud-card p-2 rounded-xl">
-      <div class="text-gray-400 text-[10px]">حرارة كارت الشاشة</div>
-      <div class="text-cyan-400 font-bold text-sm mono">38°C</div>
+  <!-- Live Telemetry Matrix -->
+  <section class="max-w-4xl mx-auto px-4 pt-4 pb-2 w-full grid grid-cols-3 gap-2.5 text-center text-xs">
+    <div class="glass-hud p-2.5 rounded-2xl border-cyan-500/20">
+      <div class="text-gray-400 text-[10px]">حرارة كارت الشاشة GPU</div>
+      <div id="gpu-temp" class="text-cyan-400 font-bold text-sm mt-0.5 mono">38°C</div>
     </div>
-    <div class="hud-card p-2 rounded-xl">
-      <div class="text-gray-400 text-[10px]">ذاكرة VRAM الفارغة</div>
-      <div class="text-emerald-400 font-bold text-sm mono">6.9 GB</div>
+    <div class="glass-hud p-2.5 rounded-2xl border-cyan-500/20">
+      <div class="text-gray-400 text-[10px]">ذاكرة VRAM الشاغرة</div>
+      <div id="vram-free" class="text-emerald-400 font-bold text-sm mt-0.5 mono">6.9 GB</div>
     </div>
-    <div class="hud-card p-2 rounded-xl">
+    <div class="glass-hud p-2.5 rounded-2xl border-cyan-500/20">
       <div class="text-gray-400 text-[10px]">حالة السيرفر</div>
+      <div class="text-purple-300 font-bold text-sm mt-0.5 mono">Pop!_OS نشط</div>
     </div>
   </section>
 
-  <main class="max-w-4xl mx-auto px-4 py-3 w-full flex-1 flex flex-col space-y-3">
-    <div id="chat-container" class="hud-card rounded-2xl flex-1 flex flex-col overflow-hidden border border-cyan-500/30 min-h-[420px]">
-      <div class="bg-slate-950 px-4 py-2 border-b border-cyan-500/20 text-xs text-cyan-400 font-mono flex items-center justify-between">
-        <span class="flex items-center gap-2">
-          <span class="w-2 h-2 rounded-full bg-cyan-400"></span> JARVIS_ENGINE [ONLINE]
-        </span>
-        <span id="wake-status" class="text-slate-400 text-[11px]">قل: 'Hey Genio' أو 'يا جينيو'</span>
+  <!-- Main Jarvis Visualizer & Interactive Core -->
+  <main class="max-w-4xl mx-auto px-4 py-3 w-full flex-1 flex flex-col space-y-4">
+    
+    <!-- Holographic Voice Core Reactor -->
+    <div class="glass-hud rounded-3xl p-6 flex flex-col items-center justify-center relative overflow-hidden border-cyan-500/30">
+      <div class="absolute inset-0 bg-gradient-to-b from-cyan-500/5 via-transparent to-purple-500/5 pointer-events-none"></div>
+
+      <!-- Arc Reactor Visualizer -->
+      <div class="relative w-44 h-44 flex items-center justify-center cursor-pointer" onclick="toggleWakeWord()">
+        <div id="outer-glow" class="absolute inset-0 rounded-full border border-cyan-500/30 core-ring"></div>
+        <div id="mid-glow" class="absolute inset-3 rounded-full border-2 border-dashed border-cyan-400/60 core-ring" style="animation-duration: 9s; animation-direction: reverse;"></div>
+        <div id="center-orb" class="w-24 h-24 rounded-full bg-gradient-to-tr from-cyan-400 via-blue-500 to-purple-600 core-pulse flex items-center justify-center shadow-2xl shadow-cyan-400/50">
+          <span class="text-3xl text-white select-none">⚡</span>
+        </div>
+      </div>
+
+      <div class="mt-4 text-center">
+        <div id="voice-state-text" class="text-sm font-bold text-cyan-300 mono glow-cyan">GENIO IS STANDBY</div>
+        <p class="text-[11px] text-slate-400 mt-0.5">انقر على النواة أو ناديه صوتياً: <span class="text-cyan-400 mono">"Hey Genio"</span> أو <span class="text-cyan-400">"يا جينيو"</span></p>
+      </div>
+
+      <!-- Live Audio Wave Spectrum Canvas -->
+      <canvas id="audio-wave" class="w-full h-12 mt-3 max-w-md"></canvas>
+    </div>
+
+    <!-- Terminal Chat Stream -->
+    <div class="glass-hud rounded-3xl flex-1 flex flex-col overflow-hidden border-cyan-500/20 min-h-[300px]">
+      <div class="bg-slate-950/90 px-4 py-2 border-b border-cyan-500/20 text-xs text-cyan-400 mono flex justify-between items-center">
+        <span>[NEURAL_CONVERSATION_STREAM]</span>
+        <span class="text-emerald-400 text-[10px]">● Ollama Qwen Active</span>
       </div>
 
       <div id="chat-stream" class="flex-1 overflow-y-auto p-4 space-y-3">
-        <div class="hud-card p-3 rounded-xl border-l-4 border-cyan-400">
-          <span class="text-[10px] text-cyan-400 font-mono">[GENIO]</span>
-          <p class="text-sm mt-1 text-slate-200">
-            على سلامتك يا عزمي! أنا جينيو مهندس الـ AI والبنية التحتية متاعك. احكي معايا ديريكت بالصوت وإلا ناديني 'Hey Genio' وتو نجاوبك في البلاصة!
+        <div class="glass-hud p-3.5 rounded-2xl border-l-4 border-cyan-400">
+          <span class="text-[10px] text-cyan-400 mono">[GENIO]</span>
+          <p class="text-sm mt-1 text-slate-200 leading-relaxed">
+            على سلامتك يا عزمي! قمرة القيادة في الخدمة، والـ AI Engine مربوط بماكينة Pop!_OS. ناديني بالصوت وإلا اكتبلي أي لاب تحب نركلوه توا!
           </p>
         </div>
       </div>
 
-      <div class="p-3 bg-slate-950 border-t border-cyan-500/20 flex gap-2">
-        <input id="prompt-input" type="text" placeholder="احكي معاه بالدارجة لهنا أو ناديه صوتياً..." 
-               class="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-cyan-400"
+      <!-- Input Dock -->
+      <div class="p-3 bg-slate-950/95 border-t border-cyan-500/20 flex gap-2">
+        <input id="prompt-input" type="text" placeholder="اكتب بالدارجة أو ناديه صوتياً..." 
+               class="flex-1 bg-slate-900 border border-slate-700/80 rounded-2xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-cyan-400"
                onkeypress="if(event.key==='Enter') sendCommand()">
-        <button id="manual-mic" onclick="startManualVoice()" class="px-3.5 bg-slate-900 border border-slate-700 hover:border-cyan-400 rounded-xl text-slate-300">
+        <button id="mic-btn" onclick="startManualVoice()" class="px-4 bg-slate-900 border border-slate-700 hover:border-cyan-400 rounded-2xl text-slate-300">
           🎙️
         </button>
-        <button onclick="sendCommand()" class="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold px-5 py-2 rounded-xl text-sm transition">
+        <button onclick="sendCommand()" class="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-black px-6 py-2.5 rounded-2xl text-sm transition">
           ابعث
         </button>
       </div>
@@ -89,28 +138,64 @@
   </main>
 
   <script>
-    let ttsEnabled = true;
+    // 1. Intro Screen Dismiss
+    setTimeout(() => {
+      document.getElementById('boot-status').innerText = 'NEURAL NETWORK SYNC COMPLETE.';
+      setTimeout(() => {
+        const intro = document.getElementById('intro-screen');
+        intro.style.opacity = '0';
+        setTimeout(() => intro.style.display = 'none', 700);
+      }, 600);
+    }, 1200);
+
+    // 2. Audio Wave Canvas Animation
+    const canvas = document.getElementById('audio-wave');
+    const ctx = canvas.getContext('2d');
+    let waveOffset = 0;
+    let isSpeakingOrListening = false;
+
+    function drawWave() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = isSpeakingOrListening ? '#00f0ff' : '#334155';
+      ctx.beginPath();
+      
+      const sliceWidth = canvas.width / 50;
+      let x = 0;
+      for (let i = 0; i < 50; i++) {
+        const amp = isSpeakingOrListening ? 15 : 3;
+        const y = (canvas.height / 2) + Math.sin(i * 0.3 + waveOffset) * amp;
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+        x += sliceWidth;
+      }
+      ctx.stroke();
+      waveOffset += isSpeakingOrListening ? 0.2 : 0.04;
+      requestAnimationFrame(drawWave);
+    }
+    drawWave();
+
+    // 3. Speech & TTS System
     let wakeWordActive = false;
     let recognition = null;
     let isProcessing = false;
 
-    function toggleTTS() {
-      document.getElementById('tts-btn').innerText = ttsEnabled ? '🔊' : '🔇';
-    }
-
     function speakResponse(text) {
+      if (!('speechSynthesis' in window)) return;
       window.speechSynthesis.cancel();
       const utter = new SpeechSynthesisUtterance(text);
       utter.lang = 'ar-XA';
       utter.rate = 1.05;
+      utter.onstart = () => { isSpeakingOrListening = true; };
+      utter.onend = () => { isSpeakingOrListening = false; };
       window.speechSynthesis.speak(utter);
     }
 
-    // Wake Word Engine (Hey Genio / يا جينيو / جينيو)
     function initSpeechEngine() {
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRec) return null;
 
-      const rec = new SpeechRecognition();
+      const rec = new SpeechRec();
       rec.continuous = true;
       rec.interimResults = false;
       rec.lang = 'ar-TN';
@@ -118,35 +203,25 @@
       rec.onresult = (event) => {
         if (isProcessing) return;
         const lastResult = event.results[event.results.length - 1][0].transcript.trim();
-        console.log("Heard:", lastResult);
-
         const lower = lastResult.toLowerCase();
-        // Check Wake Word Triggers
-        if (lower.includes("genio") || lower.includes("جينيو") || lower.includes("جنيو") || lower.includes("جونيور") || lower.includes("وينك")) {
-          // Trigger visual feedback
-          document.getElementById('chat-container').classList.add('jarvis-listening');
-          document.getElementById('wake-status').innerText = '⚡ جينيو يسمع فيك توا...';
-          
-          // Clean prompt from wake word
-          let cleanPrompt = lastResult
-            .replace(/hey genio/gi, '')
-            .replace(/يا جينيو/gi, '')
-            .replace(/جينيو/gi, '')
-            .replace(/جنيو/gi, '')
-            .replace(/جونيور/gi, '')
-            .replace(/وينك/gi, '')
-            .trim();
 
+        if (lower.includes("genio") || lower.includes("جينيو") || lower.includes("جنيو") || lower.includes("جونيور") || lower.includes("وينك")) {
+          document.getElementById('voice-state-text').innerText = "⚡ GENIO IS LISTENING...";
+          isSpeakingOrListening = true;
+
+          let cleanPrompt = lastResult
+            .replace(/hey genio/gi, '').replace(/يا جينيو/gi, '').replace(/جينيو/gi, '')
+            .replace(/جنيو/gi, '').replace(/جونيور/gi, '').replace(/وينك/gi, '').trim();
+
+          if (!cleanPrompt) cleanPrompt = "شنوة تنجم تعاوني؟";
           document.getElementById('prompt-input').value = cleanPrompt;
           sendCommand(cleanPrompt);
         } else if (wakeWordActive) {
-          // Direct speech mode
           document.getElementById('prompt-input').value = lastResult;
           sendCommand(lastResult);
         }
       };
 
-      rec.onerror = (e) => console.warn("Speech rec error:", e);
       rec.onend = () => {
         if (wakeWordActive) {
           try { rec.start(); } catch(e) {}
@@ -156,35 +231,46 @@
     }
 
     function toggleWakeWord() {
+      if (!recognition) recognition = initSpeechEngine();
+      if (!recognition) return alert("المتصفح لا يدعم الميكروفون المباشر");
 
+      wakeWordActive = !wakeWordActive;
       const btn = document.getElementById('wake-toggle-btn');
+      const label = document.getElementById('wake-btn-label');
+      const stateText = document.getElementById('voice-state-text');
 
       if (wakeWordActive) {
-        btn.classList.remove('bg-cyan-950');
-        btn.classList.add('bg-emerald-600', 'text-black');
-        btn.innerText = '🟢 الاستماع نشط (ناديني)';
+        btn.classList.replace('bg-cyan-950/80', 'bg-emerald-500');
+        btn.classList.add('text-black');
+        label.innerText = "🟢 الاستماع نشط (ناديني)";
+        stateText.innerText = "NEURAL VOICE ACTIVE — SAY 'HEY GENIO'";
         try { recognition.start(); } catch(e) {}
       } else {
-        btn.classList.remove('bg-emerald-600', 'text-black');
-        btn.classList.add('bg-cyan-950', 'text-cyan-300');
-        btn.innerText = '🎙️ استيقاظ: Hey Genio';
+        btn.classList.replace('bg-emerald-500', 'bg-cyan-950/80');
+        btn.classList.remove('text-black');
+        label.innerText = "استيقاظ: Hey Genio";
+        stateText.innerText = "GENIO IS STANDBY";
         try { recognition.stop(); } catch(e) {}
       }
     }
 
     function startManualVoice() {
+      if (!recognition) recognition = initSpeechEngine();
       try { recognition.start(); } catch(e) {}
-      document.getElementById('wake-status').innerText = '🎙️ تفضل احكي...';
+      document.getElementById('voice-state-text').innerText = "🎙️ تفضل احكي...";
+      isSpeakingOrListening = true;
     }
 
     async function sendCommand(customText) {
       const input = document.getElementById('prompt-input');
       const val = customText || input.value.trim();
+      if (!val || isProcessing) return;
 
       isProcessing = true;
+      isSpeakingOrListening = true;
       const chat = document.getElementById('chat-stream');
       chat.innerHTML += `
-        <div class="hud-card p-3 rounded-xl border-r-4 border-slate-400 text-left" dir="ltr">
+        <div class="glass-hud p-3 rounded-2xl border-r-4 border-slate-400 text-left" dir="ltr">
           <span class="text-[10px] text-slate-400 mono">[OPERATOR]</span>
           <p class="text-sm mt-1 text-slate-100">${val}</p>
         </div>`;
@@ -202,8 +288,8 @@
         const reply = data.reply;
         
         chat.innerHTML += `
-          <div class="hud-card p-3.5 rounded-xl border-l-4 border-emerald-400">
-            <span class="text-[10px] text-emerald-400 mono">[GENIO]</span>
+          <div class="glass-hud p-3.5 rounded-2xl border-l-4 border-cyan-400">
+            <span class="text-[10px] text-cyan-400 mono">[GENIO]</span>
             <p class="text-sm mt-1 text-slate-200 leading-relaxed">${reply}</p>
           </div>`;
         chat.scrollTop = chat.scrollHeight;
@@ -213,8 +299,7 @@
         console.error(err);
       } finally {
         isProcessing = false;
-        document.getElementById('chat-container').classList.remove('jarvis-listening');
-        document.getElementById('wake-status').innerText = 'قل: 'Hey Genio' أو 'يا جينيو'';
+        document.getElementById('voice-state-text').innerText = wakeWordActive ? "NEURAL VOICE ACTIVE" : "GENIO IS STANDBY";
       }
     }
   </script>
