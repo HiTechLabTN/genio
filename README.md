@@ -1,30 +1,34 @@
-# Genio — Autonomous Multimodal AI Systems Engineer 🇹🇳
+<div align="center">
 
-<p align="center">
-  <img src="genio-logo.svg" width="180" alt="Genio Logo"/>
-  <br>
-  <b>أول مهندس ذكاء اصطناعي مستقل في تونس والعالم العربي (v4.0)</b>
-  <br>
-  منظومة مستقلة بالكامل: تخدم وحدها، تصلّح كودها وحدها، وتتكلم بالدارجة التونسية والعربية البيضاء.
-  <br><br>
-  <a href="https://genio.hitech.tn"><b>🌐 قمرة القيادة الحية: genio.hitech.tn</b></a> | 
-  <a href="https://github.com/HiTechLabTN/genio/releases/latest"><b>📦 تحميل التطبيقات (Releases)</b></a>
-</p>
+# 🇹🇳 Genio — Autonomous Multimodal AI Systems Engineer
+
+<img src="genio-logo.svg" width="180" alt="Genio 3D Mascot"/>
+
+### أول مهندس ذكاء اصطناعي مستقل في تونس والعالم العربي (v4.0)
+**منظومة أوتونوموس كاملة • تخدم وحدها، تصلّح كودها وحدها، وتتكلم بالدارجة التونسية والعربية البيضاء**
+
+[🌐 قمرة القيادة الحية (genio.hitech.tn)](https://genio.hitech.tn) &nbsp;|&nbsp; [📦 تحميل التطبيقات (Releases)](https://github.com/HiTechLabTN/genio/releases/latest)
 
 ---
 
-## 📌 شنوة هو Genio؟
+</div>
 
-**Genio** هو مهندس بنية تحتية وذكاء اصطناعي مستقل بالكامل (Autonomous AI Systems Engineer):
+<div dir="rtl" align="right">
 
-* 🧠 **اتخاذ القرار وتوجيه الموديلات (Dynamic Model Routing):** يراقب حرارة كارت الشاشة (RTX 3060) والـ VRAM ويختار تلقائياً بين الموديلات المحلية على Ollama أو السحابية.
-* 🛡️ **الإصلاح البرمجي الذاتي (Self-Healing Pipeline):** يكتشف أخطاء الران تايم والأوامر المكسورة، يحلل الـ Traceback، يستشير نماذج الكودينغ، ويصلح السكريبت ذاتياً ويعيد التنفيذ.
-* 🎬 **إنتاج ومونتاج الميديا بدقة 1080p (Full Media Pipeline):** يسجل لقطات التيرمينال الحية، يركب تعليقاً صوتياً بالدارجة التونسية، وينشر أوتوماتيكياً على Ghost و YouTube عبر n8n.
-* 🔄 **الذاكرة التراكمية (Evolving Memory):** يحفظ الأخطاء السابقة كقواعد برمجية ويحقنها في كل عملية تشغيل لمنع تكرار الخطأ.
+### 🚀 شنوة هو Genio بالضبط؟
+
+منظومة **Genio** هي **مهندس بنية تحتية وذكاء اصطناعي مستقل (Autonomous AI Systems Engineer)** مبنية لإدارة السيرفرات وصناعة المحتوى التقني:
+
+* 🧠 **اتخاذ القرار وتوجيه النماذج (<bdi>Dynamic Model Routing</bdi>):** يراقب حرارة كارت الشاشة (<bdi>RTX 3060</bdi>) والـ <bdi>VRAM</bdi> ويقرر تلقائياً وقتاش يخدم بالموديلات المحلية على <bdi>Ollama</bdi> ووقت الذروة يخدم بالسحاب.
+* 🛡️ **الإصلاح والترقيع الذاتي (<bdi>Self-Healing Pipeline</bdi>):** يكتشف أخطاء الران تايم، يحلل الـ <bdi>Traceback</bdi>، يستشير نماذج الكودينغ، ويصلح السكريبت في البلاصة ويعاود يخدم.
+* 🎬 **إنتاج الميديا والفيديو 1080p (<bdi>Full Media Pipeline</bdi>):** يسجل لقطات التيرمينال الحية، يركب تعليقاً صوتياً بالدارجة التونسية، وينشر أوتوماتيكياً على <bdi>Ghost</bdi> و <bdi>YouTube</bdi> عبر <bdi>n8n</bdi>.
+* 🔄 **الذاكرة التراكمية (<bdi>Evolving Memory</bdi>):** يحفظ الأخطاء السابقة كقواعد برمجية ويحقنها في كل تشغيل لمنع تكرار الخطأ.
 
 ---
 
-## 📲 تحميل التطبيقات لجميع الأنظمة (Download Universal Clients)
+### 📲 تحميل التطبيقات لجميع الأنظمة (Download Universal Clients)
+
+<div align="center">
 
 | المنصة والنظام | نوع الحزمة | رابط التحميل المباشر |
 | :--- | :--- | :--- |
@@ -34,12 +38,14 @@
 | 📦 **Linux Standalone** | حزمة محمولة `.AppImage` | [تحميل genio-desktop-linux.AppImage](https://github.com/HiTechLabTN/genio/releases/latest/download/genio-desktop-linux.AppImage) |
 | 🍎 **iOS / iPhone** | تطبيق ويب PWA | افتح [genio.hitech.tn](https://genio.hitech.tn) واضغط **Add to Home Screen** |
 
+</div>
+
 ---
 
-## ⚡ التثبيت السريع عبر المساعد التفاعلي (Interactive Setup)
+### ⚡ التثبيت التفاعلي السريع (Interactive Setup)
 
 ```bash
-git clone [https://github.com/HiTechLabTN/genio.git](https://github.com/HiTechLabTN/genio.git)
+git clone https://github.com/HiTechLabTN/genio.git
 cd genio
 chmod +x bootstrap.sh
 ./bootstrap.sh
@@ -47,7 +53,7 @@ chmod +x bootstrap.sh
 
 ---
 
-## 🏗️ البنية التنفيذية للسيستيم (8-Node Autonomous DAG)
+### 🏗️ البنية التنفيذية للسيستيم (8-Node Autonomous DAG)
 
 ```text
     ┌─────────────┐
@@ -55,7 +61,7 @@ chmod +x bootstrap.sh
     └──────┬──────┘
            │
     ┌──────▼──────┐
-    │   content    │ ← كتابة المقال والسيناريو بالدارجة التونسية
+    │   content    │ ← توليد المقال والسيناريو بالدارجة التونسية
     └──────┬──────┘
            │
      ┌─────┼─────┬──────────┐
@@ -76,7 +82,7 @@ chmod +x bootstrap.sh
 
 ---
 
-## 🧩 دليل الوحدات البرمجية الأساسية (Core Modules)
+### 🧩 دليل الوحدات البرمجية الأساسية (Core Modules)
 
 | المسار البرمجي | الوظيفة التقنية |
 | :--- | :--- |
@@ -86,8 +92,10 @@ chmod +x bootstrap.sh
 | `media/voice_synth.py` | توليد الصوت التونسي المتزامن مع خطوات الشرح والتطبيق. |
 | `sandbox/livetest_recorder.py` | تسجيل شاشة التيرمينال الحية بدقة 1080p داخل بيئة دوكر. |
 
+</div>
+
 ---
 
-<p align="center">
+<div align="center">
   صُنع بكل فخر بواسطة <b>HiTech Lab 🇹🇳</b> — تونس
-</p>
+</div>
