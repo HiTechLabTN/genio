@@ -2,7 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Genio — أول مهندس ذكاء اصطناعي مستقل في تونس</title>
   <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="#00f0ff">
@@ -16,11 +16,12 @@
     .hud-card { background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(14px); border: 1px solid rgba(0, 240, 255, 0.2); }
     .glow-cyan { text-shadow: 0 0 15px rgba(0, 240, 255, 0.5); }
     .glow-box { box-shadow: 0 0 25px rgba(0, 240, 255, 0.15); }
+    .pulse-record { animation: prec 1.5s infinite; }
+    @keyframes prec { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.8); } 70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
   </style>
 </head>
 <body class="flex flex-col min-h-screen">
 
-  <!-- Navbar -->
   <nav class="hud-card sticky top-0 z-50 border-b border-cyan-500/30 px-6 py-3.5 flex justify-between items-center">
     <div class="flex items-center gap-3">
       <div class="w-3.5 h-3.5 rounded-full bg-cyan-400 animate-ping"></div>
@@ -32,7 +33,7 @@
     
     <div class="hidden md:flex items-center gap-6 text-xs font-bold text-slate-300">
       <a href="#features" class="hover:text-cyan-400 transition">المميزات</a>
-      <a href="#playground" class="hover:text-cyan-400 transition text-cyan-400">قمرة القيادة (HUD)</a>
+      <a href="#hud" class="hover:text-cyan-400 transition text-cyan-400">قمرة القيادة (HUD)</a>
       <a href="#architecture" class="hover:text-cyan-400 transition">الهندسة التنفيذية</a>
       <a href="#tutorials" class="hover:text-cyan-400 transition">اللابات والدروس</a>
       <a href="#docs" class="hover:text-cyan-400 transition">التوثيق</a>
@@ -48,7 +49,6 @@
     </div>
   </nav>
 
-  <!-- Hero Section -->
   <header class="max-w-5xl mx-auto px-4 pt-12 pb-8 text-center space-y-5">
     <div class="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-cyan-950/60 border border-cyan-500/30 text-cyan-400 text-xs font-bold mono">
       <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> النسخة v4.0 — أوتونوموس 100%
@@ -65,7 +65,6 @@
       منظومة متكاملة تدير السيرفرات والعتاد، تختار الموديلات الأنسب حسب حرارة كارت الشاشة والـ VRAM، وتنتج محتوى تقني كامل بدقة 1080p بصوت تونسي وتنشر مباشرة دون أي تدخل يدوي.
     </p>
 
-    <!-- Smart OS Detection & Universal Download -->
     <div class="mt-8 hud-card p-5 rounded-2xl max-w-2xl mx-auto border-cyan-400/40 text-right space-y-4 glow-box">
       <div class="flex items-center justify-between gap-4">
         <div class="flex items-center gap-3">
@@ -93,67 +92,71 @@
     </div>
   </header>
 
-  <!-- Live HUD & Jarvis Console -->
-  <section id="playground" class="max-w-5xl mx-auto px-4 py-8 w-full space-y-4">
+  <section id="hud" class="max-w-5xl mx-auto px-4 py-8 w-full space-y-4">
     <div class="flex justify-between items-center px-1">
       <h2 class="text-xl font-bold text-white flex items-center gap-2">
-        <span class="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-pulse"></span> قمرة القيادة والتحكم الحي (Live HUD)
+        <span class="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-pulse"></span> قمرة القيادة وبث التنفيذ الحي (Live Execution HUD)
       </h2>
-      <span class="text-xs text-cyan-400 mono">SYSTEM READY</span>
+      <span id="live-indicator" class="text-xs text-emerald-400 mono">CONNECTED</span>
     </div>
 
-    <!-- Telemetry Cards -->
     <div class="grid grid-cols-3 gap-3 text-center">
       <div class="hud-card p-3 rounded-xl border border-cyan-500/20">
         <div class="text-[11px] text-slate-400 font-bold">حرارة كارت الشاشة GPU</div>
         <div id="gpu-temp" class="text-cyan-400 font-black text-base mt-1 mono">38°C</div>
       </div>
       <div class="hud-card p-3 rounded-xl border border-cyan-500/20">
-        <div class="text-[11px] text-slate-400 font-bold">ذاكرة VRAM الفارغة</div>
+        <div class="text-[11px] text-slate-400 font-bold">ذاكرة VRAM المتاحة</div>
         <div id="vram-free" class="text-emerald-400 font-black text-base mt-1 mono">6.9 GB</div>
       </div>
       <div class="hud-card p-3 rounded-xl border border-cyan-500/20">
-        <div class="text-[11px] text-slate-400 font-bold">حالة العقدة Node</div>
-        <div id="sys-status" class="text-cyan-300 font-black text-base mt-1">Pop!_OS شغال</div>
+        <div class="text-[11px] text-slate-400 font-bold">حالة السيرفر</div>
+        <div id="sys-status" class="text-cyan-300 font-black text-base mt-1">Pop!_OS (RTX 3060)</div>
       </div>
     </div>
 
-    <!-- Multimodal Jarvis Console -->
-    <div class="hud-card rounded-2xl flex flex-col overflow-hidden border border-cyan-500/30 min-h-[380px]">
+    <div class="hud-card rounded-2xl flex flex-col overflow-hidden border border-cyan-500/30 min-h-[420px]">
       <div class="bg-slate-950/90 px-4 py-2.5 border-b border-cyan-500/20 flex justify-between items-center text-xs font-mono">
-        <span class="text-cyan-400">[GENIO_CORE_MULTIMODAL]</span>
-        <span class="text-emerald-400 font-bold">ONLINE</span>
+        <span class="text-cyan-400 flex items-center gap-2">
+          <span class="w-2 h-2 rounded-full bg-cyan-400"></span> [GENIO_AUTONOMOUS_PIPELINE]
+        </span>
+        <span class="text-emerald-400 font-bold">READY TO EXECUTE</span>
       </div>
 
       <div id="chat-stream" class="flex-1 overflow-y-auto p-4 space-y-3">
         <div class="hud-card p-3.5 rounded-xl border-l-4 border-cyan-400">
           <div class="flex justify-between items-center text-[11px] text-cyan-400 mono">
-            <span>[GENIO]</span>
+            <span>[GENIO_CORE]</span>
             <span class="text-slate-500">جاهز للخدمة</span>
           </div>
           <p class="text-sm mt-1 text-slate-200 leading-relaxed">
-            أهلاً بيك! أنا Genio، المهندس الذاتي للبنية التحتية والذكاء الاصطناعي. الموديلات المحلية والسحابية جاهزة، تنجم تكتبلي أمرك، تتكلم بالصوت، وإلا تبعثلي ملف وسكريبت نحلو ونصلحو.
+            أهلاً بيك! أنا Genio، المهندس الذاتي للبنية التحتية والذكاء الاصطناعي. النماذج والعتاد في حالة استعداد تام. اكتب أمرك، تحدث بالصوت (🎤)، أو أرفق ملفات ومستندات (📎) وسأقوم بتشغيل دورة الـ DAG الحية أمامك مباشرة.
           </p>
         </div>
       </div>
 
-      <!-- Multimodal Input Dock -->
-      <div class="p-3 bg-slate-950/90 border-t border-cyan-500/20 flex gap-2 items-center">
-        <button id="voice-btn" onclick="toggleVoice()" title="تحدث بالصوت" class="p-2.5 bg-slate-900 hover:bg-slate-800 text-cyan-400 border border-slate-700 rounded-xl transition">🎤</button>
-        <button onclick="document.getElementById('file-input').click()" title="إرفاق ملف أو رابط" class="p-2.5 bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-cyan-400 border border-slate-700 rounded-xl transition">📎</button>
-        <input type="file" id="file-input" class="hidden" onchange="handleFile(event)">
+      <div id="attached-preview" class="hidden px-4 py-2 bg-slate-900/90 border-t border-slate-800 flex items-center justify-between text-xs text-cyan-300"></div>
 
-        <input id="prompt-input" type="text" placeholder="اكتب أمرك بالدارجة التونسية أو العربية..." 
+      <div class="p-3 bg-slate-950/90 border-t border-cyan-500/20 flex gap-2 items-center">
+        <button id="voice-btn" onclick="toggleVoice()" title="تحدث بالصوت" class="p-2.5 bg-slate-900 hover:bg-slate-800 text-cyan-400 border border-slate-700 rounded-xl transition flex items-center justify-center shrink-0">
+          <span class="text-lg">🎤</span>
+        </button>
+
+        <button onclick="document.getElementById('file-input').click()" title="إرفاق ملف أو مستند أو فيديو" class="p-2.5 bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-cyan-400 border border-slate-700 rounded-xl transition flex items-center justify-center shrink-0">
+          <span class="text-lg">📎</span>
+        </button>
+        <input type="file" id="file-input" class="hidden" onchange="handleFileSelect(event)">
+
+        <input id="prompt-input" type="text" placeholder="اكتب أمرك لهنا (مثلاً: اخدم لاب WireGuard أو حلل كود...)" 
                class="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400">
         
-        <button onclick="sendCommand()" class="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black px-6 py-2.5 rounded-xl text-sm transition">
-          ابعث
+        <button onclick="submitPipelineCommand()" class="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black px-6 py-2.5 rounded-xl text-sm transition shrink-0">
+          تشغيل الـ DAG 🚀
         </button>
       </div>
     </div>
   </section>
 
-  <!-- Core Capabilities Section -->
   <section id="features" class="max-w-5xl mx-auto px-4 py-12 space-y-6">
     <div class="text-center space-y-2">
       <h2 class="text-2xl sm:text-3xl font-black text-white">القدرات الأساسية للسيستيم</h2>
@@ -199,7 +202,6 @@
     </div>
   </section>
 
-  <!-- Architecture DAG Section -->
   <section id="architecture" class="max-w-5xl mx-auto px-4 py-12 space-y-6">
     <div class="text-center space-y-2">
       <h2 class="text-2xl sm:text-3xl font-black text-white">الهندسة التنفيذية (8-Node DAG)</h2>
@@ -234,11 +236,10 @@
     </div>
   </section>
 
-  <!-- Tutorials & Deep Dives -->
   <section id="tutorials" class="max-w-5xl mx-auto px-4 py-12 space-y-6">
     <div class="text-center space-y-2">
       <h2 class="text-2xl sm:text-3xl font-black text-white">اللابات والدروس المنجزة ذاتياً</h2>
-      <p class="text-slate-400 text-xs sm:text-sm">أمثلة حقيقية لمشاريع قام Genio بإنشائها واختبارها وتصويرها ونشرها بالكامل</p>
+      <p class="text-slate-400 text-xs sm:text-sm">مشاريع حقيقية قام Genio بإنشائها واختبارها وتصويرها ونشرها بالكامل</p>
     </div>
 
     <div class="grid sm:grid-cols-3 gap-4">
@@ -260,7 +261,6 @@
     </div>
   </section>
 
-  <!-- Documentation & Quick Start -->
   <section id="docs" class="max-w-5xl mx-auto px-4 py-12 space-y-6">
     <div class="text-center space-y-2">
       <h2 class="text-2xl sm:text-3xl font-black text-white">دليل البدء والتطوير</h2>
@@ -277,25 +277,28 @@ python3 core/executive_director.py --auto --prompt "WireGuard VPN Lab"
     </div>
   </section>
 
-  <!-- Footer -->
   <footer class="hud-card text-center py-6 border-t border-slate-800 text-xs text-slate-400 space-y-2">
     <div class="mono text-cyan-400 font-bold">GENIO AUTONOMOUS AI LAB</div>
     <div>صُنع بكل فخر بواسطة <b>HiTech Lab 🇹🇳</b> — تونس</div>
   </footer>
 
   <script>
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js').catch(console.error);
+    // Live Hardware Telemetry Polling
+    async function updateLiveTelemetry() {
+      try {
+        const res = await fetch('/api/telemetry');
+        if (res.ok) {
+          const data = await res.json();
+          document.getElementById('gpu-temp').innerText = data.gpu_temp || '38°C';
+          document.getElementById('vram-free').innerText = data.vram_free || '6.9 GB';
+          document.getElementById('sys-status').innerText = data.node_status || 'Pop!_OS شغال';
+        }
+      } catch (e) {}
     }
+    setInterval(updateLiveTelemetry, 3000);
+    updateLiveTelemetry();
 
-    async function subscribePush() {
-      if (!('Notification' in window)) return alert('المتصفح لا يدعم التنبيهات');
-      const perm = await Notification.requestPermission();
-      if (perm === 'granted') {
-        document.getElementById('push-btn').innerText = '✅ مفعّلة';
-      }
-    }
-
+    // OS Auto Detector
     function setupSmartPlatformDetector() {
       const ua = navigator.userAgent.toLowerCase();
       const osText = document.getElementById('detected-os-text');
@@ -323,16 +326,17 @@ python3 core/executive_director.py --auto --prompt "WireGuard VPN Lab"
     }
     setupSmartPlatformDetector();
 
+    // Voice Recognition
     let isRecording = false;
     let recognition = null;
     if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
       const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
       recognition = new SpeechRec();
       recognition.lang = 'ar-TN';
-      recognition.onresult = (event) => {
-        document.getElementById('prompt-input').value = event.results[0][0].transcript;
+      recognition.onresult = (e) => {
+        document.getElementById('prompt-input').value = e.results[0][0].transcript;
         toggleVoice();
-        sendCommand();
+        submitPipelineCommand();
       };
       recognition.onerror = () => toggleVoice();
     }
@@ -343,50 +347,108 @@ python3 core/executive_director.py --auto --prompt "WireGuard VPN Lab"
       if (!isRecording) {
         recognition.start();
         isRecording = true;
-        btn.classList.add('bg-red-500/40', 'border-red-500');
+        btn.classList.add('bg-red-500', 'text-white', 'pulse-record');
       } else {
         recognition.stop();
         isRecording = false;
-        btn.classList.remove('bg-red-500/40', 'border-red-500');
+        btn.classList.remove('bg-red-500', 'text-white', 'pulse-record');
       }
     }
 
-    function handleFile(e) {
+    // Attachment
+    let attachedFile = null;
+    function handleFileSelect(e) {
       const file = e.target.files[0];
       if (file) {
-        const chat = document.getElementById('chat-stream');
-        chat.innerHTML += `<div class="hud-card p-3 rounded-xl border-r-4 border-amber-400 text-left" dir="ltr"><p class="text-sm text-slate-200">📁 ${file.name} (${Math.round(file.size/1024)} KB)</p></div>`;
-        chat.scrollTop = chat.scrollHeight;
+        attachedFile = file;
+        const prev = document.getElementById('attached-preview');
+        prev.classList.remove('hidden');
+        prev.innerHTML = `<span>📎 مرفق: <b>${file.name}</b> (${Math.round(file.size/1024)} KB)</span>
+                         <button onclick="clearAttachment()" class="text-red-400 font-bold">✕ حذف</button>`;
       }
     }
+    function clearAttachment() {
+      attachedFile = null;
+      document.getElementById('file-input').value = '';
+      document.getElementById('attached-preview').classList.add('hidden');
+    }
 
-    async function sendCommand() {
+    // Real WebSocket Live Pipeline Execution
+    let ws = null;
+    function connectPipelineSocket() {
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      ws = new WebSocket(`${protocol}//${window.location.host}/ws/pipeline`);
+      
+      ws.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        const chat = document.getElementById('chat-stream');
+        
+        if (data.type === 'step') {
+          const icon = data.status === 'completed' ? '✅' : '⏳';
+          const color = data.status === 'completed' ? 'border-emerald-400' : 'border-amber-400 animate-pulse';
+          
+          let stepEl = document.getElementById(`step-${data.tag}`);
+          if (!stepEl) {
+            chat.innerHTML += `
+              <div id="step-${data.tag}" class="hud-card p-3 rounded-xl border-l-4 ${color}">
+                <div class="flex justify-between items-center text-[10px] text-cyan-400 mono">
+                  <span>${data.tag}</span>
+                  <span>${icon}</span>
+                </div>
+                <p class="text-xs mt-1 text-slate-200">${data.text}</p>
+              </div>`;
+          } else {
+            stepEl.className = `hud-card p-3 rounded-xl border-l-4 ${color}`;
+            stepEl.querySelector('span:last-child').innerText = icon;
+          }
+        } else if (data.type === 'finished') {
+          chat.innerHTML += `
+            <div class="hud-card p-4 rounded-xl border-l-4 border-cyan-400 bg-cyan-950/20">
+              <div class="text-[11px] text-cyan-400 font-bold mono">🎉 [PIPELINE_COMPLETE]</div>
+              <p class="text-sm mt-1 text-white font-bold">${data.message}</p>
+              <div class="mt-2 pt-2 border-t border-slate-800 flex gap-2">
+                <span class="text-xs bg-slate-900 px-2 py-1 rounded text-cyan-300 mono">📄 article.md</span>
+                <span class="text-xs bg-slate-900 px-2 py-1 rounded text-emerald-300 mono">🎬 video_1080p.mp4</span>
+              </div>
+            </div>`;
+          
+          if ('speechSynthesis' in window) {
+            const ut = new SpeechSynthesisUtterance("تمت المهمة بنجاح، الفيديو والمقال جاهزين!");
+            ut.lang = 'ar';
+            window.speechSynthesis.speak(ut);
+          }
+        }
+        chat.scrollTop = chat.scrollHeight;
+      };
+
+      ws.onclose = () => setTimeout(connectPipelineSocket, 2000);
+    }
+    connectPipelineSocket();
+
+    async function submitPipelineCommand() {
       const input = document.getElementById('prompt-input');
       const val = input.value.trim();
-      if (!val) return;
+      if (!val && !attachedFile) return;
 
       const chat = document.getElementById('chat-stream');
-      chat.innerHTML += `<div class="hud-card p-3 rounded-xl border-r-4 border-slate-400 text-left" dir="ltr"><span class="text-[10px] text-slate-400 mono">[OPERATOR]</span><p class="text-sm mt-1 text-slate-100">${val}</p></div>`;
+      chat.innerHTML += `
+        <div class="hud-card p-3 rounded-xl border-r-4 border-slate-400 text-left" dir="ltr">
+          <span class="text-[10px] text-slate-400 mono">[OPERATOR]</span>
+          <p class="text-sm mt-1 text-slate-100">${val || attachedFile.name}</p>
+        </div>`;
+      
       input.value = '';
+      clearAttachment();
       chat.scrollTop = chat.scrollHeight;
 
-      try {
-        const res = await fetch('/api/command', {
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ prompt: val || 'Task Execution' }));
+      } else {
+        await fetch('/api/command', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ prompt: val, source: 'web_hud' })
         });
-        const data = await res.json();
-        chat.innerHTML += `<div class="hud-card p-3.5 rounded-xl border-l-4 border-emerald-400"><span class="text-[10px] text-emerald-400 mono">[GENIO]</span><p class="text-sm mt-1 text-slate-200">${data.message}</p></div>`;
-        chat.scrollTop = chat.scrollHeight;
-
-        if ('speechSynthesis' in window) {
-          const ut = new SpeechSynthesisUtterance(data.message);
-          ut.lang = 'ar';
-          window.speechSynthesis.speak(ut);
-        }
-      } catch (err) {
-        console.error(err);
       }
     }
   </script>
