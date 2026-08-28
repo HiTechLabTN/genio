@@ -2,179 +2,125 @@
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Genio — قمرة القيادة والتحكم الذاتي</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Genio — أول مهندس ذكاء اصطناعي مستقل في تونس</title>
   <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="#00f0ff">
   <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
   <style>
-    body { background-color: #060911; color: #e2e8f0; font-family: system-ui, -apple-system, sans-serif; }
-    .hud-card { background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(14px); border: 1px solid rgba(0, 240, 255, 0.25); }
-    .glow-cyan { text-shadow: 0 0 12px rgba(0, 240, 255, 0.6); }
+    body { background-color: #060911; color: #e2e8f0; font-family: 'Cairo', system-ui, sans-serif; scroll-behavior: smooth; }
+    .mono { font-family: 'JetBrains Mono', monospace; }
+    .hud-card { background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(14px); border: 1px solid rgba(0, 240, 255, 0.2); }
+    .glow-cyan { text-shadow: 0 0 15px rgba(0, 240, 255, 0.5); }
   </style>
 </head>
-<body class="flex flex-col h-screen overflow-hidden">
-
-  <!-- Header HUD -->
-  <header class="hud-card p-3 flex justify-between items-center border-b border-cyan-500/30">
+<body class="flex flex-col min-h-screen">
+  <nav class="hud-card sticky top-0 z-50 border-b border-cyan-500/30 px-6 py-3.5 flex justify-between items-center">
     <div class="flex items-center gap-3">
-      <div class="w-3 h-3 rounded-full bg-cyan-400 animate-ping"></div>
+      <div class="w-3.5 h-3.5 rounded-full bg-cyan-400 animate-ping"></div>
       <div>
-        <h1 class="text-base font-black tracking-widest text-cyan-400 glow-cyan">GENIO COMMAND</h1>
-        <p class="text-[10px] text-cyan-500 font-mono">المهندس الذاتي المستقل</p>
+        <span class="text-xl font-black text-cyan-400 tracking-wider glow-cyan mono">Genio .</span>
+        <span class="text-[10px] text-cyan-500 font-bold block -mt-1">المهندس الذاتي المستقل</span>
       </div>
     </div>
-    <button id="push-btn" onclick="subscribePush()" class="px-2.5 py-1 bg-cyan-950 text-cyan-300 border border-cyan-500/40 rounded-lg text-xs font-semibold">
-      🔔 التنبيهات
-    </button>
+    <div class="flex items-center gap-3">
+      <button onclick="subscribePush()" class="px-3 py-1.5 bg-cyan-950/80 hover:bg-cyan-900 border border-cyan-500/40 text-cyan-300 text-xs rounded-xl font-bold">🔔 التنبيهات</button>
+      <a href="https://github.com/HiTechLabTN/genio" target="_blank" class="text-xs text-slate-400 hover:text-cyan-400 font-mono px-3 py-1.5 rounded-lg border border-slate-800 bg-slate-900/60">GitHub ↗</a>
+    </div>
+  </nav>
+
+  <header class="max-w-4xl mx-auto px-4 pt-10 pb-6 text-center space-y-4">
+    <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-950/60 border border-cyan-500/30 text-cyan-400 text-xs font-bold mono">
+      النسخة v4.0 — أوتونوموس 100%
+    </div>
+    <h1 class="text-3xl sm:text-5xl font-black text-white leading-tight">
+      أول مهندس ذكاء اصطناعي <br>
+      <span class="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500 glow-cyan">
+        يصلّح كودو وحدو، يطوّر روحو، ويفهمك بالدارجة
+      </span>
+    </h1>
+
+    <div class="hud-card p-5 rounded-2xl max-w-xl mx-auto border-cyan-400/40 text-right space-y-4">
+      <div class="flex items-center justify-between gap-2">
+        <div>
+          <div class="text-[11px] text-slate-400">النظام المكتشف في جهازك:</div>
+          <div class="text-base font-bold text-cyan-300" id="detected-os-text">جاري الفحص...</div>
+        </div>
+        <a id="primary-dl-btn" href="https://github.com/HiTechLabTN/genio/releases/latest" 
+           class="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 text-slate-950 font-black px-5 py-2.5 rounded-xl text-xs sm:text-sm transition">
+          تحميل وتثبيت 🚀
+        </a>
+      </div>
+      <div class="pt-3 border-t border-slate-800 text-[11px] flex flex-wrap gap-2">
+        <a href="https://github.com/HiTechLabTN/genio/releases/latest/download/genio-desktop-linux.deb" class="bg-slate-900 px-2 py-1 rounded border border-slate-700">🐧 Linux (.deb)</a>
+        <a href="https://github.com/HiTechLabTN/genio/releases/latest/download/genio-mobile.apk" class="bg-slate-900 px-2 py-1 rounded border border-slate-700">📱 Android (APK)</a>
+        <a href="https://github.com/HiTechLabTN/genio/releases/latest/download/genio-setup-windows.exe" class="bg-slate-900 px-2 py-1 rounded border border-slate-700">🪟 Windows (.exe)</a>
+        <a href="https://github.com/HiTechLabTN/genio/releases/latest/download/genio-desktop-linux.AppImage" class="bg-slate-900 px-2 py-1 rounded border border-slate-700">📦 AppImage</a>
+      </div>
+    </div>
   </header>
 
-  <!-- Smart Download Center (Auto Detection) -->
-  <section class="bg-gradient-to-b from-slate-900 to-[#080c14] border-b border-cyan-500/20 p-3">
-    <div class="hud-card p-2.5 rounded-xl flex items-center justify-between border-cyan-400/40 bg-cyan-950/30">
-      <div class="flex items-center gap-2">
-        <span class="text-lg" id="os-icon">⚡</span>
-        <div>
-          <div class="text-[11px] text-gray-400">النظام المكتشف لجهازك:</div>
-          <div class="text-xs font-bold text-cyan-300" id="detected-os-text">جاري الفحص...</div>
+  <main class="max-w-4xl mx-auto px-4 py-6 w-full flex-1 flex flex-col space-y-4">
+    <div class="grid grid-cols-3 gap-3 text-center">
+      <div class="hud-card p-3 rounded-xl border border-cyan-500/20">
+        <div class="text-[11px] text-slate-400 font-bold">حرارة الـ GPU</div>
+        <div class="text-cyan-400 font-black text-base mt-1 mono">38°C</div>
+      </div>
+      <div class="hud-card p-3 rounded-xl border border-cyan-500/20">
+        <div class="text-[11px] text-slate-400 font-bold">VRAM المتاحة</div>
+        <div class="text-emerald-400 font-black text-base mt-1 mono">6.9 GB</div>
+      </div>
+      <div class="hud-card p-3 rounded-xl border border-cyan-500/20">
+        <div class="text-[11px] text-slate-400 font-bold">حالة الـ Node</div>
+        <div class="text-cyan-300 font-black text-base mt-1">Pop!_OS شغال</div>
+      </div>
+    </div>
+
+    <div class="hud-card rounded-2xl flex-1 flex flex-col overflow-hidden border border-cyan-500/30 min-h-[350px]">
+      <div id="chat-stream" class="flex-1 overflow-y-auto p-4 space-y-3">
+        <div class="hud-card p-3.5 rounded-xl border-l-4 border-cyan-400">
+          <div class="text-[11px] text-cyan-400 mono">[GENIO_READY]</div>
+          <p class="text-sm mt-1 text-slate-200">أهلاً بيك! أنا Genio، المهندس الذاتي للبنية التحتية والذكاء الاصطناعي. كيفاش نجم نعاونك اليوم؟</p>
         </div>
       </div>
-      <a id="primary-dl-btn" href="https://github.com/HiTechLabTN/genio/releases/latest" 
-         class="bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 text-slate-950 font-black px-4 py-2 rounded-lg text-xs transition shadow-lg shadow-cyan-500/20">
-        تحميل مباشر 🚀
-      </a>
-    </div>
-
-    <!-- All Other Platforms Download Links -->
-    <div class="mt-2 pt-2 border-t border-slate-800/60 flex items-center justify-between text-[11px] text-slate-400 overflow-x-auto gap-2">
-      <span class="text-gray-500 shrink-0">كل المنصات:</span>
-      <a href="https://github.com/HiTechLabTN/genio/releases/latest/download/genio-mobile.apk" class="hover:text-cyan-400 bg-slate-900 px-2 py-1 rounded border border-slate-800 shrink-0">📱 Android (APK)</a>
-      <a href="https://github.com/HiTechLabTN/genio/releases/latest/download/genio-desktop-linux.deb" class="hover:text-cyan-400 bg-slate-900 px-2 py-1 rounded border border-slate-800 shrink-0">🐧 Linux (.deb)</a>
-      <a href="https://github.com/HiTechLabTN/genio/releases/latest/download/genio-desktop-linux.AppImage" class="hover:text-cyan-400 bg-slate-900 px-2 py-1 rounded border border-slate-800 shrink-0">📦 AppImage</a>
-      <a href="https://github.com/HiTechLabTN/genio/releases/latest/download/genio-setup-windows.exe" class="hover:text-cyan-400 bg-slate-900 px-2 py-1 rounded border border-slate-800 shrink-0">🪟 Windows (.exe)</a>
-      <a href="https://github.com/HiTechLabTN/genio/releases/latest/download/genio-web-bundle.tar.gz" class="hover:text-cyan-400 bg-slate-900 px-2 py-1 rounded border border-slate-800 shrink-0">🌐 Web Bundle</a>
-    </div>
-  </section>
-
-  <!-- Realtime Telemetry Grid -->
-  <section class="grid grid-cols-3 gap-2 p-3 text-center text-xs">
-    <div class="hud-card p-2 rounded-xl">
-      <div class="text-gray-400 text-[10px]">حرارة الـ GPU</div>
-      <div id="gpu-temp" class="text-cyan-400 font-bold text-sm">38°C</div>
-    </div>
-    <div class="hud-card p-2 rounded-xl">
-      <div class="text-gray-400 text-[10px]">VRAM الفارغة</div>
-      <div id="vram-free" class="text-emerald-400 font-bold text-sm">6.9 GB</div>
-    </div>
-    <div class="hud-card p-2 rounded-xl">
-      <div class="text-gray-400 text-[10px]">حالة السيستيم</div>
-      <div id="sys-status" class="text-cyan-300 font-bold text-sm">جاهز للخدمة</div>
-    </div>
-  </section>
-
-  <!-- Live Chat Stream in Tunisian Darija -->
-  <main id="chat-stream" class="flex-1 overflow-y-auto p-4 space-y-3">
-    <div class="hud-card p-3 rounded-xl border-l-4 border-cyan-400">
-      <div class="flex justify-between items-center text-[10px] text-cyan-400 font-mono">
-        <span>[GENIO_CORE]</span>
-        <span>نشط</span>
+      <div class="p-3 bg-slate-950/90 border-t border-cyan-500/20 flex gap-2">
+        <input id="prompt-input" type="text" placeholder="اكتب أمرك لهنا..." class="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-cyan-400">
+        <button onclick="sendCmd()" class="bg-cyan-500 text-slate-950 font-black px-6 py-2.5 rounded-xl text-sm">ابعث</button>
       </div>
-      <p class="text-sm mt-1 text-slate-200 leading-relaxed">
-        أهلاً بك عزمي! كل شي مريڤل والعتاد على Pop!_OS شغال 100%. الذكاء الاصطناعي والموديلات في وضع الاستعداد التام، قلي شنوة تحبنا نخدمو توة؟
-      </p>
     </div>
   </main>
 
-  <!-- Command Input Area -->
-  <footer class="hud-card p-3 border-t border-cyan-500/30 flex gap-2 items-center">
-    <input id="prompt-input" type="text" placeholder="اكتب أمرك لهنا وإلا فكرة مقال/فيديو..." 
-           class="flex-1 bg-slate-900/90 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-cyan-400">
-    <button onclick="sendCommand()" class="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold px-4 py-2 rounded-xl text-sm transition">
-      ابعث
-    </button>
-  </footer>
-
   <script>
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js');
+    const ua = navigator.userAgent.toLowerCase();
+    const osText = document.getElementById("detected-os-text");
+    const btn = document.getElementById("primary-dl-btn");
+    const base = "https://github.com/HiTechLabTN/genio/releases/latest/download";
+
+    if (/android/i.test(ua)) {
+      osText.innerText = "Android (تطبيق APK المباشر)";
+      btn.href = `${base}/genio-mobile.apk`;
+    } else if (/linux/i.test(ua)) {
+      osText.innerText = "Linux (Pop!_OS / Ubuntu / Debian)";
+      btn.href = `${base}/genio-desktop-linux.deb`;
+    } else if (/win/i.test(ua)) {
+      osText.innerText = "Windows 10 / 11";
+      btn.href = `${base}/genio-setup-windows.exe`;
+    } else {
+      osText.innerText = "Web Universal";
+      btn.href = `${base}/genio-desktop-linux.AppImage`;
     }
 
-    async function subscribePush() {
-      if (!('Notification' in window)) return alert('المتصفح لا يدعم التنبيهات');
-      const perm = await Notification.requestPermission();
-      if (perm === 'granted') {
-        document.getElementById('push-btn').innerText = '✅ مفعّلة';
-      }
-    }
-
-    function setupSmartPlatformDetector() {
-      const ua = navigator.userAgent.toLowerCase();
-      const osText = document.getElementById('detected-os-text');
-      const osIcon = document.getElementById('os-icon');
-      const btn = document.getElementById('primary-dl-btn');
-      const base = "https://github.com/HiTechLabTN/genio/releases/latest/download";
-
-      if (/android/i.test(ua)) {
-        osIcon.innerText = "📱";
-        osText.innerText = "Android (تطبيق APK الأصلي)";
-        btn.href = `${base}/genio-mobile.apk`;
-        btn.innerText = "تحميل تطبيق APK 🚀";
-      } else if (/linux/i.test(ua)) {
-        osIcon.innerText = "🐧";
-        osText.innerText = "Linux (Debian / Ubuntu / Pop!_OS)";
-        btn.href = `${base}/genio-desktop-linux.deb`;
-        btn.innerText = "تحميل حزمة DEB 🚀";
-      } else if (/win/i.test(ua)) {
-        osIcon.innerText = "🪟";
-        osText.innerText = "Windows 10 / 11";
-        btn.href = `${base}/genio-setup-windows.exe`;
-        btn.innerText = "تحميل مثبت EXE 🚀";
-      } else if (/iphone|ipad|ipod/i.test(ua)) {
-        osIcon.innerText = "🍎";
-        osText.innerText = "iOS / Safari (تثبيت PWA)";
-        btn.href = "#";
-        btn.innerText = "إضافة للشاشة الرئيسية 📲";
-        btn.onclick = () => alert("على نظام iOS: اضغط على زر المشاركة (Share) في المتصفح ثم اختر 'Add to Home Screen' لتثبيت التطبيق مباشرة!");
-      } else {
-        osIcon.innerText = "🌐";
-        osText.innerText = "تطبيق الويب الشامل";
-        btn.href = `${base}/genio-web-bundle.tar.gz`;
-        btn.innerText = "تحميل Web Bundle 🚀";
-      }
-    }
-    setupSmartPlatformDetector();
-
-    async function sendCommand() {
-      const input = document.getElementById('prompt-input');
-      const val = input.value.trim();
+    function sendCmd() {
+      const inp = document.getElementById("prompt-input");
+      const val = inp.value.trim();
       if (!val) return;
-
-      const chat = document.getElementById('chat-stream');
-      chat.innerHTML += `
-        <div class="hud-card p-3 rounded-xl border-r-4 border-slate-400 text-left" dir="ltr">
-          <span class="text-[10px] text-slate-400 font-mono">[OPERATOR]</span>
-          <p class="text-sm mt-1 text-slate-100">${val}</p>
-        </div>`;
-      
-      input.value = '';
+      const chat = document.getElementById("chat-stream");
+      chat.innerHTML += `<div class="hud-card p-3 rounded-xl border-r-4 border-slate-400 text-left" dir="ltr"><p class="text-sm text-slate-100">${val}</p></div>`;
+      inp.value = "";
       chat.scrollTop = chat.scrollHeight;
-
-      try {
-        const res = await fetch('/api/command', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ prompt: val, source: 'mobile_hud' })
-        });
-        const data = await res.json();
-        chat.innerHTML += `
-          <div class="hud-card p-3 rounded-xl border-l-4 border-emerald-400">
-            <span class="text-[10px] text-emerald-400 font-mono">[GENIO_REPLY]</span>
-            <p class="text-sm mt-1 text-slate-200">${data.message}</p>
-          </div>`;
-        chat.scrollTop = chat.scrollHeight;
-      } catch (err) {
-        console.error(err);
-      }
     }
   </script>
 </body>
