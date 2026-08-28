@@ -8,7 +8,7 @@
   <meta name="theme-color" content="#00f0ff">
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://fonts.gstatic.com">
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
   <style>
     body { background-color: #060911; color: #e2e8f0; font-family: 'Cairo', system-ui, sans-serif; scroll-behavior: smooth; }
@@ -22,6 +22,7 @@
 </head>
 <body class="flex flex-col min-h-screen">
 
+  <!-- Navbar -->
   <nav class="hud-card sticky top-0 z-50 border-b border-cyan-500/30 px-6 py-3.5 flex justify-between items-center">
     <div class="flex items-center gap-3">
       <div class="w-3.5 h-3.5 rounded-full bg-cyan-400 animate-ping"></div>
@@ -49,6 +50,7 @@
     </div>
   </nav>
 
+  <!-- Hero Section -->
   <header class="max-w-5xl mx-auto px-4 pt-12 pb-8 text-center space-y-5">
     <div class="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-cyan-950/60 border border-cyan-500/30 text-cyan-400 text-xs font-bold mono">
       <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> النسخة v4.0 — أوتونوموس 100%
@@ -65,6 +67,7 @@
       منظومة متكاملة تدير السيرفرات والعتاد، تختار الموديلات الأنسب حسب حرارة كارت الشاشة والـ VRAM، وتنتج محتوى تقني كامل بدقة 1080p بصوت تونسي وتنشر مباشرة دون أي تدخل يدوي.
     </p>
 
+    <!-- Smart OS Download Box -->
     <div class="mt-8 hud-card p-5 rounded-2xl max-w-2xl mx-auto border-cyan-400/40 text-right space-y-4 glow-box">
       <div class="flex items-center justify-between gap-4">
         <div class="flex items-center gap-3">
@@ -92,14 +95,16 @@
     </div>
   </header>
 
+  <!-- Live Multimodal HUD & Execution Terminal -->
   <section id="hud" class="max-w-5xl mx-auto px-4 py-8 w-full space-y-4">
     <div class="flex justify-between items-center px-1">
       <h2 class="text-xl font-bold text-white flex items-center gap-2">
-        <span class="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-pulse"></span> قمرة القيادة وبث التنفيذ الحي (Live Execution HUD)
+        <span class="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-pulse"></span> قمرة القيادة والتحكم الحي (Live Multimodal HUD)
       </h2>
-      <span id="live-indicator" class="text-xs text-emerald-400 mono">CONNECTED</span>
+      <span class="text-xs text-emerald-400 mono">ONLINE • DIALECT ENABLED</span>
     </div>
 
+    <!-- Live Telemetry Cards -->
     <div class="grid grid-cols-3 gap-3 text-center">
       <div class="hud-card p-3 rounded-xl border border-cyan-500/20">
         <div class="text-[11px] text-slate-400 font-bold">حرارة كارت الشاشة GPU</div>
@@ -115,12 +120,13 @@
       </div>
     </div>
 
+    <!-- Chat & Pipeline Stream Box -->
     <div class="hud-card rounded-2xl flex flex-col overflow-hidden border border-cyan-500/30 min-h-[420px]">
       <div class="bg-slate-950/90 px-4 py-2.5 border-b border-cyan-500/20 flex justify-between items-center text-xs font-mono">
         <span class="text-cyan-400 flex items-center gap-2">
-          <span class="w-2 h-2 rounded-full bg-cyan-400"></span> [GENIO_AUTONOMOUS_PIPELINE]
+          <span class="w-2 h-2 rounded-full bg-cyan-400"></span> [GENIO_AUTONOMOUS_CORE]
         </span>
-        <span class="text-emerald-400 font-bold">READY TO EXECUTE</span>
+        <span class="text-emerald-400 font-bold">LLM & PIPELINE READY</span>
       </div>
 
       <div id="chat-stream" class="flex-1 overflow-y-auto p-4 space-y-3">
@@ -130,13 +136,15 @@
             <span class="text-slate-500">جاهز للخدمة</span>
           </div>
           <p class="text-sm mt-1 text-slate-200 leading-relaxed">
-            أهلاً بيك! أنا Genio، المهندس الذاتي للبنية التحتية والذكاء الاصطناعي. النماذج والعتاد في حالة استعداد تام. اكتب أمرك، تحدث بالصوت (🎤)، أو أرفق ملفات ومستندات (📎) وسأقوم بتشغيل دورة الـ DAG الحية أمامك مباشرة.
+            أهلاً بيك! أنا Genio، المهندس الذاتي للبنية التحتية والذكاء الاصطناعي. احكي معايا في أي موضوع بالدارجة، اسألني، تكلم بالصوت (🎤)، وإلا اطلب مني نخدملك لاب وسيرفر ونخرجو فيديو كامل!
           </p>
         </div>
       </div>
 
+      <!-- Attachment Preview -->
       <div id="attached-preview" class="hidden px-4 py-2 bg-slate-900/90 border-t border-slate-800 flex items-center justify-between text-xs text-cyan-300"></div>
 
+      <!-- Input Dock -->
       <div class="p-3 bg-slate-950/90 border-t border-cyan-500/20 flex gap-2 items-center">
         <button id="voice-btn" onclick="toggleVoice()" title="تحدث بالصوت" class="p-2.5 bg-slate-900 hover:bg-slate-800 text-cyan-400 border border-slate-700 rounded-xl transition flex items-center justify-center shrink-0">
           <span class="text-lg">🎤</span>
@@ -147,16 +155,18 @@
         </button>
         <input type="file" id="file-input" class="hidden" onchange="handleFileSelect(event)">
 
-        <input id="prompt-input" type="text" placeholder="اكتب أمرك لهنا (مثلاً: اخدم لاب WireGuard أو حلل كود...)" 
-               class="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400">
+        <input id="prompt-input" type="text" placeholder="احكي معاه وإلا اكتب أمرك بالدارجة..." 
+               class="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400"
+               onkeypress="if(event.key === 'Enter') submitPrompt();">
         
-        <button onclick="submitPipelineCommand()" class="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black px-6 py-2.5 rounded-xl text-sm transition shrink-0">
-          تشغيل الـ DAG 🚀
+        <button onclick="submitPrompt()" class="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black px-6 py-2.5 rounded-xl text-sm transition shrink-0">
+          ابعث 🚀
         </button>
       </div>
     </div>
   </section>
 
+  <!-- Core Capabilities Section -->
   <section id="features" class="max-w-5xl mx-auto px-4 py-12 space-y-6">
     <div class="text-center space-y-2">
       <h2 class="text-2xl sm:text-3xl font-black text-white">القدرات الأساسية للسيستيم</h2>
@@ -202,6 +212,7 @@
     </div>
   </section>
 
+  <!-- Architecture DAG Section -->
   <section id="architecture" class="max-w-5xl mx-auto px-4 py-12 space-y-6">
     <div class="text-center space-y-2">
       <h2 class="text-2xl sm:text-3xl font-black text-white">الهندسة التنفيذية (8-Node DAG)</h2>
@@ -236,54 +247,14 @@
     </div>
   </section>
 
-  <section id="tutorials" class="max-w-5xl mx-auto px-4 py-12 space-y-6">
-    <div class="text-center space-y-2">
-      <h2 class="text-2xl sm:text-3xl font-black text-white">اللابات والدروس المنجزة ذاتياً</h2>
-      <p class="text-slate-400 text-xs sm:text-sm">مشاريع حقيقية قام Genio بإنشائها واختبارها وتصويرها ونشرها بالكامل</p>
-    </div>
-
-    <div class="grid sm:grid-cols-3 gap-4">
-      <div class="hud-card p-5 rounded-2xl border border-cyan-500/20 space-y-2">
-        <div class="text-xl">🔐</div>
-        <h3 class="text-sm font-bold text-cyan-300">WireGuard VPN Multi-Node Lab</h3>
-        <p class="text-xs text-slate-300 leading-relaxed">لاب كامل بشبكة معزولة واختبار Ping وتسجيل 1080p تم نشره على Ghost و YouTube.</p>
-      </div>
-      <div class="hud-card p-5 rounded-2xl border border-cyan-500/20 space-y-2">
-        <div class="text-xl">🐳</div>
-        <h3 class="text-sm font-bold text-cyan-300">Docker Reverse Proxy Auto-Gen</h3>
-        <p class="text-xs text-slate-300 leading-relaxed">تجهيز Nginx مع شهادات Let's Encrypt وفحص الصحة أوتوماتيكياً.</p>
-      </div>
-      <div class="hud-card p-5 rounded-2xl border border-cyan-500/20 space-y-2">
-        <div class="text-xl">🌐</div>
-        <h3 class="text-sm font-bold text-cyan-300">Tailscale Mesh Network Config</h3>
-        <p class="text-xs text-slate-300 leading-relaxed">ربط شبكات Mesh مع سياسات الأمان والتوجيه الداخلي دون إعدادات يدوية معقدة.</p>
-      </div>
-    </div>
-  </section>
-
-  <section id="docs" class="max-w-5xl mx-auto px-4 py-12 space-y-6">
-    <div class="text-center space-y-2">
-      <h2 class="text-2xl sm:text-3xl font-black text-white">دليل البدء والتطوير</h2>
-      <p class="text-slate-400 text-xs sm:text-sm">كيفاش تثبت وتطور وتزيد Custom Agents في المنظومة</p>
-    </div>
-
-    <div class="hud-card p-6 rounded-2xl border border-cyan-500/20 space-y-4 text-xs sm:text-sm text-slate-300 mono text-left" dir="ltr">
-      <div class="text-cyan-400 font-bold"># Quick Setup & Execution:</div>
-      <pre class="bg-slate-950 p-4 rounded-xl border border-slate-800 overflow-x-auto text-slate-200">
-git clone https://github.com/HiTechLabTN/genio.git
-cd genio && ./bootstrap.sh
-python3 core/executive_director.py --auto --prompt "WireGuard VPN Lab"
-      </pre>
-    </div>
-  </section>
-
+  <!-- Footer -->
   <footer class="hud-card text-center py-6 border-t border-slate-800 text-xs text-slate-400 space-y-2">
     <div class="mono text-cyan-400 font-bold">GENIO AUTONOMOUS AI LAB</div>
     <div>صُنع بكل فخر بواسطة <b>HiTech Lab 🇹🇳</b> — تونس</div>
   </footer>
 
   <script>
-    // Live Hardware Telemetry Polling
+    // Live Hardware Telemetry
     async function updateLiveTelemetry() {
       try {
         const res = await fetch('/api/telemetry');
@@ -336,7 +307,7 @@ python3 core/executive_director.py --auto --prompt "WireGuard VPN Lab"
       recognition.onresult = (e) => {
         document.getElementById('prompt-input').value = e.results[0][0].transcript;
         toggleVoice();
-        submitPipelineCommand();
+        submitPrompt();
       };
       recognition.onerror = () => toggleVoice();
     }
@@ -373,9 +344,9 @@ python3 core/executive_director.py --auto --prompt "WireGuard VPN Lab"
       document.getElementById('attached-preview').classList.add('hidden');
     }
 
-    // Real WebSocket Live Pipeline Execution
+    // WebSocket Live Conversational & DAG Execution
     let ws = null;
-    function connectPipelineSocket() {
+    function connectSocket() {
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
       ws = new WebSocket(`${protocol}//${window.location.host}/ws/pipeline`);
       
@@ -383,10 +354,24 @@ python3 core/executive_director.py --auto --prompt "WireGuard VPN Lab"
         const data = JSON.parse(event.data);
         const chat = document.getElementById('chat-stream');
         
-        if (data.type === 'step') {
+        if (data.type === 'chat_reply') {
+          chat.innerHTML += `
+            <div class="hud-card p-3.5 rounded-xl border-l-4 border-emerald-400">
+              <div class="flex justify-between items-center text-[10px] text-emerald-400 mono">
+                <span>[GENIO]</span>
+                <span class="text-slate-500">الآن</span>
+              </div>
+              <p class="text-sm mt-1 text-slate-200 leading-relaxed">${data.message}</p>
+            </div>`;
+          
+          if ('speechSynthesis' in window) {
+            const ut = new SpeechSynthesisUtterance(data.message);
+            ut.lang = 'ar';
+            window.speechSynthesis.speak(ut);
+          }
+        } else if (data.type === 'step') {
           const icon = data.status === 'completed' ? '✅' : '⏳';
           const color = data.status === 'completed' ? 'border-emerald-400' : 'border-amber-400 animate-pulse';
-          
           let stepEl = document.getElementById(`step-${data.tag}`);
           if (!stepEl) {
             chat.innerHTML += `
@@ -411,21 +396,15 @@ python3 core/executive_director.py --auto --prompt "WireGuard VPN Lab"
                 <span class="text-xs bg-slate-900 px-2 py-1 rounded text-emerald-300 mono">🎬 video_1080p.mp4</span>
               </div>
             </div>`;
-          
-          if ('speechSynthesis' in window) {
-            const ut = new SpeechSynthesisUtterance("تمت المهمة بنجاح، الفيديو والمقال جاهزين!");
-            ut.lang = 'ar';
-            window.speechSynthesis.speak(ut);
-          }
         }
         chat.scrollTop = chat.scrollHeight;
       };
 
-      ws.onclose = () => setTimeout(connectPipelineSocket, 2000);
+      ws.onclose = () => setTimeout(connectSocket, 2000);
     }
-    connectPipelineSocket();
+    connectSocket();
 
-    async function submitPipelineCommand() {
+    async function submitPrompt() {
       const input = document.getElementById('prompt-input');
       const val = input.value.trim();
       if (!val && !attachedFile) return;
@@ -444,11 +423,18 @@ python3 core/executive_director.py --auto --prompt "WireGuard VPN Lab"
       if (ws && ws.readyState === WebSocket.OPEN) {
         ws.send(JSON.stringify({ prompt: val || 'Task Execution' }));
       } else {
-        await fetch('/api/command', {
+        const res = await fetch('/api/command', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ prompt: val, source: 'web_hud' })
         });
+        const d = await res.json();
+        chat.innerHTML += `
+          <div class="hud-card p-3.5 rounded-xl border-l-4 border-emerald-400">
+            <span class="text-[10px] text-emerald-400 mono">[GENIO]</span>
+            <p class="text-sm mt-1 text-slate-200">${d.message}</p>
+          </div>`;
+        chat.scrollTop = chat.scrollHeight;
       }
     }
   </script>
