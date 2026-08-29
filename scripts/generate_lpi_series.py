@@ -265,12 +265,16 @@ def split_sections(markdown: str) -> Dict[str, str]:
 
 
 def voiceover_line(section_body: str, default: str, max_len: int = 220) -> str:
-    """Pick the first plausible sentence (non code) from a section as voiceover."""
+    """Pick the first plausible sentence from a section as voiceover.
+
+    Backticked inline code is kept as plain text (backticks removed) so
+    commands stay readable in the voiceover instead of being stripped.
+    """
     lines = [ln.strip() for ln in section_body.splitlines()
              if ln.strip() and not ln.lstrip().startswith("```")
              and not ln.lstrip().startswith("#") and not ln.lstrip().startswith("~")]
     for ln in lines:
-        cleaned = re.sub(r"`[^`]*`", "", ln).strip()
+        cleaned = re.sub(r"`([^`]*)`", r"\1", ln).strip()
         if cleaned:
             return cleaned[:max_len]
     return default
