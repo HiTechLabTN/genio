@@ -41,6 +41,8 @@ REQUEST_TIMEOUT_S = int(os.getenv("GENIO_TIMEOUT_S", "900"))
 BACKOFF_BASE_S = float(os.getenv("GENIO_BACKOFF_S", "5"))
 TEMPERATURE = float(os.getenv("GENIO_TEMPERATURE", "0.7"))
 NUM_CTX = int(os.getenv("GENIO_NUM_CTX", "8192"))
+MIN_CHARS = int(os.getenv("GENIO_MIN_CHARS", "600"))
+REQUIRED_SECTIONS = ["1", "2", "3", "4"]
 
 PALETTE = {
     "background": "#030712",
@@ -179,8 +181,30 @@ def modules_available() -> List[str]:
         return []
 
 
-def call_generate(prompt: str, module_title: str) -> str:
-    """POST /api/generate with retry + exponential backoff and jitter."""
+def module_available_now(model: str, available: List[str]) -> bool:
+    return (model in available) or any(
+        m.startswith(model.split(":")[0] + ":") for m in available
+    )
+
+
+def validate_tutorial(text: str, module: Dict[str, Any]) -> tuple[bool, str]:
+    """Reject truncated or structurally incomplete tutorials."""
+    if len(text) < MIN_CHARS:
+        return False, f"too short ({len(text)} chars < {MIN_CHARS})"
+    sections = split_sections(text)
+    missing = [s for s in REQUIRED_SECTIONS if s not in sections]
+    if missing:
+        return False, f"missing sections {missing} (found: {sorted(sections.keys())})"
+    fenced = re.search(r"```(?:bash)?", text)
+    inline = re.findall(r"`[^`\n]{2,}`", text)
+    if not fenced and len(inline) < 3:
+        return False, "almost no code (no fenced block, < 3 inline code spans)"
+    return True, ""
+
+
+def call_generate(prompt: str, module: Dict[str, Any]) -> str:
+    """POST /api/generate with retry + exponential backoff + jitter + quality gate."""
+    module_title = module["title"]
     payload = {
         "model": MODEL,
         "prompt": prompt,
@@ -199,6 +223,10 @@ def call_generate(prompt: str, module_title: str) -> str:
                 text = (data.get("response") or "").strip()
             if not text:
                 raise ValueError("ollama returned an empty response")
+
+            ok, reason = validate_tutorial(text, module)
+            if not ok:
+                raise ValueError(f"quality gate rejected output: {reason}")
 
             elapsed = (now_ms() - started) / 1000.0
             logger.info("[%s] attempt %d OK in %.1fs (%d chars)",
@@ -353,7 +381,7 @@ def main() -> int:
     args = parser.parse_args()
 
     available = modules_available()
-    if available and MODEL not in available:
+    if available and not module_available_now(MODEL, available):
         logger.warning("Model '%s' not in Ollama tags (%s) — generation may fail.",
                        MODEL, ", ".join(available))
     else:
@@ -376,7 +404,7 @@ def main() -> int:
 
         prompt = PROMPT_TEMPLATE.format(title=module["title"], keywords=module["keywords"])
         try:
-            markdown = call_generate(prompt, module["title"])
+            markdown = call_generate(prompt, module)
         except Exception as exc:  # noqa: BLE001
             logger.error("[%d/%d] module %02d FAILED after retries: %s", i, total, idx, exc)
             failed.append({"idx": idx, "title": module["title"], "error": str(exc)})
