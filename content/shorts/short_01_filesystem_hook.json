@@ -1,0 +1,89 @@
+{
+  "schema": "genio.shorts.motion_v1",
+  "title": "short_01_filesystem_hook",
+  "series": "HiTech Lab — Genio LPI Series",
+  "source_module": "Linux Filesystem Hierarchy & Navigation",
+  "source_storyboard": "reports/lpi_series/module_01_storyboard.json",
+  "slug": "linux-filesystem-hierarchy-navigation",
+  "lang": "ar-TN",
+  "orientation": "vertical",
+  "resolution": "1080x1920",
+  "fps": 30,
+  "total_duration_s": 45,
+  "palette": {
+    "background": "#030712",
+    "surface": "#0f172a",
+    "primary": "#00f0ff",
+    "accent": "#00ff87",
+    "warn": "#f43f5e",
+    "text": "#f8fafc",
+    "gold": "#f59e0b"
+  },
+  "motion": {
+    "transition_between_acts": "fade_120ms",
+    "typeface": {
+      "font": "Cairo",
+      "mono": "JetBrains Mono",
+      "direction": "rtl"
+    },
+    "audio_hooks": ["glitch", "count_up", "zap", "impact_chime"]
+  },
+  "acts": {
+    "HOOK": {
+      "name": "HOOK",
+      "time_range_s": [0, 8],
+      "time_code": "00:00 - 00:08",
+      "title_ar": "إدا disk عندك FULL؟",
+      "visual": "full-disk alert: gauge 100% red flashing + terminal line `Permission denied`",
+      "terminal_lines": [
+        "$ df -h /",
+        "/dev/sda1  100%  52G  0  100%  /",
+        "app.log: Permission denied (os error 13)"
+      ],
+      "sfx": ["glitch x2", "impact"],
+      "warn": true
+    },
+    "DIAG": {
+      "name": "DIAG",
+      "time_range_s": [8, 22],
+      "time_code": "00:08 - 00:22",
+      "title_ar": "وين اشّدّي الفضاء؟ begin بـ tree",
+      "visual": "filesystem tree walkthrough then /var/log inspection",
+      "terminal_lines": [
+        "$ du -xhd1 / 2>/dev/null | sort -h",
+        "4.6G  /var",
+        " 3.1G  /var/log",
+        " 2.8G  /var/log/journal/",
+        "$ ls -lh /var/log",
+        "-rw-r-----  syslog  1.2G",
+        "-rw-r-----  journal  huge"
+      ],
+      "sfx": ["count_up", "whoosh"]
+    },
+    "SOLVE": {
+      "name": "SOLVE",
+      "time_range_s": [22, 40],
+      "time_code": "00:22 - 00:40",
+      "title_ar": "الحل الجذري فـ جملة واحدة",
+      "command": "$ journalctl --vacuum-size=200M",
+      "visual": "typed command + green confirmation + disk gauge drops to safe",
+      "terminal_lines": [
+        "Vacuuming done, freed 2.6G of archived journals from /var/log/journal/",
+        "$ df -h /",
+        "/dev/sda1  68%  usage OK",
+        "✓ disk healthy again"
+      ],
+      "sfx": ["tap", "zap", "chime"]
+    },
+    "CTA": {
+      "name": "CTA",
+      "time_range_s": [40, 45],
+      "time_code": "00:40 - 00:45",
+      "title_ar": "سلسلة LPI كاملة — HiTech Lab",
+      "visual": "white flash zoom-punch to neon brand card",
+      "link": "https://lab.hitech.tn/linux-filesystem-hierarchy-navigation/",
+      "cta": "lab.hitech.tn",
+      "sfx": ["impact", "chime"]
+    }
+  }
+}
