@@ -1,0 +1,195 @@
+{
+  "ran_at": "2026-08-30T03:16:52",
+  "models": [
+    "gemma4:12b",
+    "qwen2.5vl:7b"
+  ],
+  "image": "/data/ai_tools/genio/reports/vision_benchmark/test_sample.png",
+  "gemma4:12b": {
+    "model": "gemma4:12b",
+    "quant": "?",
+    "vram_after_load_mb": 8733,
+    "warmup": {
+      "latency_s": 22.023,
+      "eval_count": 606,
+      "prompt_eval_count": 25,
+      "load_duration_ms": 5174.8,
+      "eval_duration_ms": 16674.5,
+      "tokens_per_s": 36.34,
+      "done_reason": "stop"
+    },
+    "vision_terminal": {
+      "latency_s": 56.244,
+      "eval_count": 1921,
+      "prompt_eval_count": 344,
+      "load_duration_ms": 547.1,
+      "eval_duration_ms": 54938.1,
+      "tokens_per_s": 34.97,
+      "done_reason": "stop",
+      "vram": {
+        "start_mb": 8733,
+        "end_mb": 8765,
+        "peak_mb": 8765,
+        "samples": 179
+      },
+      "kw_hits": [
+        "502",
+        "bad gateway",
+        "systemctl",
+        "app-worker",
+        "permission",
+        "chmod",
+        "systemctl restart",
+        "upstream"
+      ],
+      "kw_score": "8/11",
+      "response": "أهلاً بك، معك Genio. كمهندس DevOps في HiTech Lab، قمت بتحليل اللقطة (Screenshot) اللي بعثتها. المشكل واضح جداً تقنياً، والـ \"Chain of failure\" واضحة من الـ Nginx وصولاً للـ Systemd.\n\nإليك التحليل التقني الدقيق والحلول المطلوبة:\n\n### 1. التشخيص التقني (Diagnostic Analysis):\n*   **المشكلة الظاهرة (Symptom):** الـ `curl` يعطي **502 Bad Gateway**. هذا يعني أن Nginx شغال، لكنه مش قادر يوصل للـ \"Upstream\" (اللي هو الـ Python Worker) على المنفذ 8080.\n*   **السبب الحقيقي (Root Cause):** بالنظر لخدمة `app-worker.service` في الجهة اليمنى، نلاحظ أن الحالة هي **failed**. السطر الأخير في اللوج يقول: `Permission denied`.\n*   **الاستنتاج:** الـ Worker سقط لأن الـ User اللي شغال بيه (غالباً مستخدم خاص بالـ App) ما عندوش صلاحيات للوصول للملفات في المسار `/opt/app/...` أو ما عندوش صلاحية لفتح المنفذ 8080.\n\n---\n\n### 2. خطوات الـ Self-Healing (الإصلاح السريع والآلي):\nهذه الخطوات هدفها \"ترقيع\" المشكلة فوراً وإعادة الخدمة للعمل (Quick Fix):\n\n*   **Restart Service:** أول حاجة لازم نعملوها هي إعادة تشغيل الخدمة للتأكد من استقرارها:\n    `sudo systemctl restart app-worker.service`\n*   **Auto-Restart Policy:** باش نضمنوا \"Self-healing\" في حالة الـ Crash، لازم نعدلوا ملف الـ `.service` ونزيدو خاصية إعادة التشغيل التلقائي:\n    ```ini\n    [Service]\n    Restart=always\n    RestartSec=5s\n    ```\n*   **Check Logs Live:** متابعة اللوجات في الوقت الحقيقي للتأكد من أن الخدمة ما عادش تطيح:\n    `journalctl -u app-worker.service -f`\n\n---\n\n### 3. الإصلاح الجذري (Root Cause Fix) بالدارجة التونسية التقنية:\n\nباهي، باش نحلو المشكل من جذوره وما عادش يرجع، لازمنا نصلحوا الـ Permissions والـ Ownership:\n\n**أولاً: تصليح الصلاحيات (Permissions Fix):**\nالمشكلة هي \"Permission denied\"، يعني الـ User اللي شغال بيه الـ Worker ما عندوش الحق يدخل للـ Folder. لازمنا نعملو `chown` للمجلدات الخاصة بالتطبيق:\n> *\"لازمنا نثبتوا في الـ User اللي مكتوب في ملف الـ systemd، ونعملوا `chown -R` لـ folder الـ `/opt/app` باش الـ user يولي عنده الحق يقرأ ويكتب الملفات.\"*\n`sudo chown -R genio:genio /opt/app` (بافتراض أن المستخدم هو genio).\n\n**ثانياً: التأكد من الـ Permissions على الـ Port:**\nإذا كان الـ Worker يحاول يخدم على port أقل من 1024، لازم صلاحيات خاصة، لكن بما أنه 8080، المشكلة غالباً في ملفات الـ Python أو الـ Virtual Environment.\n> *\"لازمنا نثبتوا اللي الـ `chmod` متع الملفات الأساسية والـ `.py` files تسمح للـ worker يقرأهم.\"*\n\n**ثالثاً: التحقق من الـ Path:**\n> *\"لازم نتأكدوا اللي الـ path المكتوب في الـ Environment Variables داخل ملف الـ service صحيح وموجود فعلياً، باش الـ Python ما يلقاش مشكلة وهو يحاول يعمل Load للـ Modules.\"*\n\n---\n\n### الخلاصة (Summary for the Team):\n**المشكل هو \"Permission Denied\" على مستوى الـ Systemd Service.**\n1.  **الآن:** نعملوا `systemctl restart` باش نرجعو الـ API يخدم (Quick Fix).\n2.  **جذرياً:** لازمنا نصلحوا الـ Ownership والـ Permissions لـ `/opt/app` ونثبتوا في الـ Service File باش الـ Worker يقعد \"Stable\".\n\n**Status: Ready to deploy the fix.**"
+    },
+    "docker_text": {
+      "latency_s": 52.063,
+      "eval_count": 1799,
+      "prompt_eval_count": 109,
+      "load_duration_ms": 444.8,
+      "eval_duration_ms": 51205.3,
+      "tokens_per_s": 35.13,
+      "done_reason": "stop",
+      "vram": {
+        "start_mb": 8765,
+        "end_mb": 8765,
+        "peak_mb": 8765,
+        "samples": 166
+      },
+      "kw_hits": [
+        "docker",
+        "socket",
+        "group",
+        "usermod",
+        "sudo",
+        "restart"
+      ],
+      "kw_score": "6/11",
+      "response": "### Diagnosis (Tahlil el Mochla)\nEl mochla fiha zouz hwayej:\n1. **Crash Loop:** El `dockerd` mouch 3ala khidma (crash-looping). Hatha ya3ni ennou fama error fil configuration (f'el fichier `/etc/docker/daemon.json`) wala f'el system elli makhallatou mayet'hatch.\n2. **Permissions:** L'user mouch fiha \"permission\" bech t'accessi el socket, khater mouch fil groupe `docker`.\n\n---\n\n### Self-Healing Commands (Tawfiq el Mochla)\n\nBech tsalla7 el mochla, lazmek t'fixi l'permissions w t'rebooti el service. Executé hadhom:\n\n```bash\n# 1. Zid l'user fil groupe 'docker' bech yel3abou m3a l-socket\nsudo usermod -aG docker $USER\n\n# 2. Fixi ay mochla fi l'configuration (re-check configuration)\n# Hadha el command ychedd el service w yfasserlek ken fama error fil config\nsudo systemctl daemon-reload\nsudo systemctl restart docker\n\n# 3. Refresh l'group membership lel session l'hadhira (bech may3adsh testa3mel sudo)\nnewgrp docker\n\n# 4. Testi el command bech tchouf kenha makhdma\ndocker ps\n```\n\n**Tafsirat (Explanation):**\n*   `usermod -aG docker $USER`: Bech tzid l'user fi \"l'groupe\" s'hih.\n*   `systemctl restart docker`: Bech t'rebooti el daemon elli ken yetfarreq (crash-loop).\n*   `newgrp docker`: Bech t'applyer l'permissions fil terminal mte3ek dorka bédoun ma t'tala3."
+    },
+    "bilingual": {
+      "latency_s": 52.488,
+      "eval_count": 1819,
+      "prompt_eval_count": 85,
+      "load_duration_ms": 511.6,
+      "eval_duration_ms": 51588.8,
+      "tokens_per_s": 35.26,
+      "done_reason": "stop",
+      "vram": {
+        "start_mb": 8765,
+        "end_mb": 8817,
+        "peak_mb": 8817,
+        "samples": 167
+      },
+      "kw_hits": [
+        "nginx",
+        "413",
+        "upload",
+        "uwsgi",
+        "backend",
+        "client_max_body_size",
+        "body_size",
+        "journald",
+        "journalctl",
+        "fix"
+      ],
+      "kw_score": "10/10",
+      "response": "المشكلة واضحة، الـ **413 Request Entity Too Large** تعني أن حجم الملف اللي قاعد تحاول تبعثو (Upload) أكبر من الحجم المسموح به في الإعدادات (Configuration).\n\nبما أنك تستعمل في Nginx كـ Reverse Proxy و uWSGI كـ Backend، فما زوز بلايص ينجموا يكونوا هوما السبب، لكن **الأرجح هو Nginx**.\n\n### 1. الـ Root Cause الأرجح:\nNginx يجي \"بشكل افتراضي\" (Default) مع حجم محدود جداً للـ Body متاع الـ Request (غالباً **1MB**). أي حاجة أكبر من هكا، Nginx يرفضها قبل ما توصل حتى لـ uWSGI.\n\n### 2. الحل المباشر (The Exact Fix):\n\nلازمك تزيد/تعدل الـ `client_max_body_size` في ملف إعدادات Nginx.\n\n**الخطوات:**\n1. حل ملف الـ configuration متاع الموقع بتاعك (مثلاً: `/etc/nginx/sites-available/your_site` أو الملف العام `/etc/nginx/nginx.conf`).\n2. زيد السطر هذا داخل الـ `http` block أو الـ `server` block (أو الـ `location` الخاص بالـ API):\n\n```nginx\n# حدد حجم مسموح به، مثلاً 100 ميجا (حسب احتياجك)\nclient_max_body_size 100M;\n```\n\n**مثال كيفاش يولي الـ block:**\n```nginx\nserver {\n    listen 80;\n    server_name yourdomain.com;\n\n    # هذا هو السطر اللي ناقصك\n    client_max_body_size 100M;\n\n    location /api/ {\n        include proxy_params;\n        proxy_pass http://unix:/path/to/your.sock;\n    }\n}\n```\n\n3. بعد ما تحفظ الملف، أعمل **Reload** لـ Nginx:\n```bash\nsudo nginx -t  # باش تتأكد اللي الـ syntax صحيح\nsudo systemctl reload nginx\n```\n\n---\n\n### 3. وإذا المشكلة فعلاً من uWSGI (الحالة الثانية):\nإذا عدلت في Nginx ومازالك تاخذ 413، وقتها المشكلة هي في إعدادات uWSGI نفسه (أقل شيوعاً لكن ممكنة). لازم تزيد الـ `http-max-request-size` في ملف الـ `.ini` متاع uWSGI:\n\n```ini\n[uwsgi]\nhttp-max-request-size = 104857600  # القيمة بالبايت (هنا تعادل 100MB)\n```\n\n---\n\n### 4. شنوة تحكي في الـ `journald`؟\nباش تعرف بالضبط وين \"القفلة\" (Bottleneck)، لازمك تشوف السجلات (Logs).\n\n**أولاً، شوف Nginx Error Log:**\nهذا أهم بلاصة باش تعرف إذا Nginx هو اللي رفض الطلب:\n```bash\ntail -f /var/log/nginx/error.log\n```\n*(لو لقيت \"client intended to send too large body\"، يعني المشكلة في `client_max_body_size`)*\n\n**ثانياً، شوف الـ Journald لخدمة uWSGI:**\nباش تشوف إذا الطلب وصل لـ uWSGI و uWSGI هو اللي رفضه أو طاح (Crash):\n```bash\njournalctl -u uwsgi -f\n# أو حسب اسم الخدمة اللي عندك، مثلاً:\njournalctl -u gunicorn --since \"10 minutes ago\"\n```\n\n**نصيحة:** ابدأ بـ **Nginx `client_max_body_size`**، في 95% من الحالات هي السبب."
+    }
+  },
+  "qwen2.5vl:7b": {
+    "model": "qwen2.5vl:7b",
+    "quant": "?",
+    "vram_after_load_mb": 7205,
+    "warmup": {
+      "latency_s": 7.559,
+      "eval_count": 214,
+      "prompt_eval_count": 29,
+      "load_duration_ms": 4092.7,
+      "eval_duration_ms": 3360.1,
+      "tokens_per_s": 63.69,
+      "done_reason": "stop"
+    },
+    "vision_terminal": {
+      "latency_s": 11.905,
+      "eval_count": 631,
+      "prompt_eval_count": 1284,
+      "load_duration_ms": 203.9,
+      "eval_duration_ms": 10133.8,
+      "tokens_per_s": 62.27,
+      "done_reason": "stop",
+      "vram": {
+        "start_mb": 7205,
+        "end_mb": 7273,
+        "peak_mb": 7273,
+        "samples": 40
+      },
+      "kw_hits": [
+        "502",
+        "bad gateway",
+        "systemctl",
+        "app-worker",
+        "exit-code",
+        "systemctl restart"
+      ],
+      "kw_score": "6/11",
+      "response": "الشوية جيتشا تانيت، مشكلك ده بيشوف فيه خلاص في الخدمة دي \"app-worker.service\" وبيقول إنها فاشلة بسبب مسائل أمان. هاد الشيء بيسبب لك رجاء 502 Bad Gateway عند إجراء الـ `curl` على موقعك.\n\n### تحليل مشكلة:\n\n1. **الخدمة فاشلة**: الخدمة \"app-worker.service\" فاشلة، وبيقول إنها فاشلت بسبب مسائل أمان.\n2. **رقم الملف`: 4012`:**: هذا الرقم بيظهر في حالة الخطأ ويشير إلى رقم الملف الخاص بالخدمة.\n3. **الحالة: `exit-code=1 status=1/FAILURE`**: يعني أن الخدمة فاشلت بسبب خروج معيار (exit code) واحد، وبيقول إن الحالة هي \"failure\".\n\n### خطوات الإصلاح:\n\n#### 1. التحقق من الإعدادات الأمنية:\n- **تحقق من الملف الخاص بالخدمة**: تأكد من أن الملف الخاص بالخدمة \"app-worker.service\" موجود ومستقر.\n- **تحقق من الصلاحيات**: تأكد من أن الصلاحيات الخاصة بالملف والمسار الصحيحين. يمكن استخدام الأمر `ls -l` لرؤية الصلاحيات.\n\n#### 2. التحقق من خطة التشغيل:\n- **تأكد من أن الخدمة مسجلة بشكل صحيح**: استخدم الأمر `systemctl status app-worker.service` لتأكيد ذلك.\n- **تحقق من الملف الخاص بالخدمة**: تأكد من أن الملف الخاص بالخدمة موجود ومستقر.\n\n#### 3. إعادة تشغيل الخدمة:\nإذا كانت الصلاحيات والخطة الصحيحة، يمكنك إعادة تشغيل الخدمة باستخدام الأمر التالي:\n\n```bash\nsudo systemctl restart app-worker.service\n```\n\n### خطوات Self-Healing:\n\n1. **تحقق من الملفات والمستندات**: تأكد من أن الملفات والمستندات الخاصة بالخدمة موجودة ومستقرة.\n2. **تحقق من الصلاحيات**: تأكد من أن الصلاحيات المناسبة مطبقة على الملفات والمسارات.\n3. **إعادة تشغيل الخدمة**: إذا كانت الصلاحيات والخطة الصحيحة، يمكنك إعادة تشغيل الخدمة.\n\n### النص بالدارجة التونسية التقنية:\n\nالخدمة \"app-worker.service\" فاشلة بسبب مسائل أمان. يمكن إعادة تشغيل الخدمة باستخدام الأمر `sudo systemctl restart app-worker.service`. تأكد من أن الملفات والمستندات الخاصة بالخدمة موجودة ومستقرة، وأن الصلاحيات المناسبة مطبقة على الملفات والمسارات.\n\nإذا كان المشكلة مستمرة، يمكنك التحقق من خطة التشغيل للتأكد من أنها مسجلة بشكل صحيح."
+    },
+    "docker_text": {
+      "latency_s": 12.47,
+      "eval_count": 762,
+      "prompt_eval_count": 109,
+      "load_duration_ms": 208.7,
+      "eval_duration_ms": 12122.9,
+      "tokens_per_s": 62.86,
+      "done_reason": "stop",
+      "vram": {
+        "start_mb": 7273,
+        "end_mb": 7273,
+        "peak_mb": 7273,
+        "samples": 42
+      },
+      "kw_hits": [
+        "docker",
+        "permission denied",
+        "socket",
+        "/var/run/docker.sock",
+        "group",
+        "usermod",
+        "chmod",
+        "sudo",
+        "restart"
+      ],
+      "kw_score": "9/11",
+      "response": "**Problème détecté**: La commande `docker ps` échoue sur l'hôte avec le message : \"Got permission denied while trying to connect to the Docker daemon socket at unix:///var/run/docker.sock\". L'utilisateur fait partie du groupe `devops` mais pas du groupe `docker`. Le service systemd indique que containerd fonctionne correctement, tandis que dockerd est en boucle de crash avec un code d'arrêt 1.\n\n**Diagnostiquer la cause racine et écrire les commandes de guérison exactes en arabe tunisien.**\n\nPour résoudre ce problème, vous devez suivre ces étapes :\n\n1. **Vérifier si le groupe `docker` existe :**\n   ```bash\n   getent group docker\n   ```\n   \n2. **Si le groupe `docker` n'existe pas, créez-le et ajoutez-y l'utilisateur :**\n   ```bash\n   sudo groupadd docker\n   sudo usermod -aG docker $USER\n   ```\n   \n3. **Redémarrer les services Docker pour appliquer les changements de groupe :**\n   ```bash\n   sudo systemctl restart docker\n   ```\n\n4. **Si le problème persiste, vérifiez si le fichier `/var/run/docker.sock` a les permissions correctes et est accessible par l'utilisateur :**\n   ```bash\n   ls -l /var/run/docker.sock\n   ```\n   \n5. **Si le fichier n'a pas les permissions nécessaires, modifiez-les avec :**\n   ```bash\n   sudo chmod 660 /var/run/docker.sock\n   sudo chown root:docker /var/run/docker.sock\n   ```\n\n6. **Redémarrer Docker pour appliquer ces changements de permission :**\n   ```bash\n   sudo systemctl restart docker\n   ```\n\n7. **Si le problème persiste, vous pouvez essayer de désinstaller et de réinstaller Docker :**\n   ```bash\n   sudo apt-get remove --purge docker-ce docker-ce-cli containerd.io\n   sudo rm -rf /var/lib/docker\n   sudo rm -rf /etc/docker\n   sudo rm -rf ~/.docker\n   sudo apt-get update && sudo apt-get install docker-ce=5:20.10.3~3-0~ubuntu-bionic docker-ce-cli=5:20.10.3~3-0~ubuntu-bionic containerd.io=1.4.2~3-0~ubuntu-bionic\n   ```\n\n8. **Redémarrer Docker après l'installation :**\n   ```bash\n   sudo systemctl restart docker\n   ```\n\n9. **Si le problème persiste, vérifiez si containerd est correctement configuré et s'il n'y a pas de conflit avec dockerd. Vous pouvez essayer de désinstaller et de réinstaller containerd :**\n   ```bash\n   sudo apt-get remove --purge containerd.io\n   sudo rm -rf /var/run/containerd.sock\n   sudo rm -rf ~/.config/containerd\n   sudo apt-get update && sudo apt-get install containerd.io=1.4.2~3-0~ubuntu-bionic\n   ```\n\n10. **Redémarrer containerd après l'installation :**\n    ```bash\n    sudo systemctl restart containerd\n    ```\n\n**Ces étapes devraient résoudre le problème. Si vous rencontrez toujours des problèmes, il est recommandé de consulter la documentation officielle de Docker ou de contacter un administrateur système pour obtenir plus d'aide.**"
+    },
+    "bilingual": {
+      "latency_s": 11.558,
+      "eval_count": 704,
+      "prompt_eval_count": 93,
+      "load_duration_ms": 212.3,
+      "eval_duration_ms": 11237.3,
+      "tokens_per_s": 62.65,
+      "done_reason": "stop",
+      "vram": {
+        "start_mb": 7273,
+        "end_mb": 7273,
+        "peak_mb": 7273,
+        "samples": 39
+      },
+      "kw_hits": [
+        "nginx",
+        "413",
+        "uwsgi",
+        "client_max_body_size",
+        "body_size",
+        "journalctl"
+      ],
+      "kw_score": "6/10",
+      "response": "المشكلة التي تواجهك تتعلق بحجم الملفات التي تُرفع عبر الـ POST في/nginx، حيث تظهر رسالة الخطأ 413 \"Request Entity Too Large\" والتي تعني أن الحجم الذي تم إرساله أكبر من الحد الأقصى المسموح به.\n\n### الأسباب المحتملة:\n1. **حجم الملفات المسموح به**: قد يكون هناك حد أقصى محدد لحجم الملفات التي يمكن رفعها عبر الـ POST في/nginx.\n2. **إعدادات nginx غير صحيحة**: قد تكون هناك إعدادات خاطئة في ملف `nginx.conf` أو ملفات التكوين الأخرى تؤدي إلى هذا الخطأ.\n3. **مشكلة في uwsgi**: إذا كان uWSGI هو الخادم الذي يستقبل الطلب، فقد يكون هناك مشكلة داخل uWSGI نفسه.\n\n### كيفية فحص وإصلاح المشكلة:\n1. **فحص إعدادات nginx**:\n   - افتح ملف `nginx.conf` أو أي ملف التكوين الخاص بـ nginx.\n   - قم ببحث عن الإعدادات المتعلقة بالحجم، خاصة في قسم `http` و/أو `server`.\n   - تحقق من وجود إعدادات مثل `client_max_body_size` والتي تحدد الحد الأقصى لحجم الطلب.\n\n   مثلاً:\n   ```nginx\n   http {\n       client_max_body_size 10M;  # حدد حجم الملف الذي يمكن رفعه\n   }\n   ```\n\n2. **تحقق من إعدادات uWSGI**:\n   - افتح ملف `uwsgi.ini` أو أي ملف تكوين uWSGI.\n   - تأكد من أن الإعدادات الخاصة بـ `limitRequestBody` و/أو `maxRequestBodySize` لا تتعدى الحد الأقصى المسموح به.\n\n3. **فحص أوراق الجروب (journalctl)**:\n   - يمكنك فحص أوراق الجروب للتحقق من أي رسائل خطأ أو معلومات أخرى قد تكون مفيدة.\n   - استخدم الأمر التالي لفحص أوراق الجروب:\n     ```sh\n     sudo journalctl -u nginx.service\n     ```\n   - تحقق من أي رسائل خطأ قد تكون موجودة في الأوراق التي تم إنشاؤها.\n\n### أمثلة على الإعدادات الممكنة:\n1. **إعدادات nginx**:\n    ```nginx\n    http {\n        client_max_body_size 20M;  # حدد حجم الملف الذي يمكن رفعه\n    }\n    ```\n\n2. **إعدادات uWSGI** (إذا كان uWSGI هو الخادم الذي يستقبل الطلب):\n    ```ini\n    [uwsgi]\n    limitRequestBody=10MB\n    maxRequestBodySize=10MB\n    ```\n\n### الخطوة الأخيرة:\n- بعد إجراء التعديلات، قم بتنفيذ الأمر التالي لاستعادة خدمة nginx وتجربة مرة أخرى:\n  ```sh\n  sudo systemctl restart nginx.service\n  ```\n  \nإذا استمرت المشكلة، فقد يكون من الضروري التحقق من أي إعدادات أو مكونات أخرى قد تكون غير صحيحة في uWSGI أو الخادم الذي يستقبل الطلب."
+    }
+  }
+}
