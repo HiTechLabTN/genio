@@ -86,15 +86,20 @@ class ModelRouter:
         self.state.cooldown_until[ep.name] = 0
 
     async def generate(self, prompt: str, temperature: float = 0.6,
-                       max_tokens: int = 4096) -> str:
-        """Generate text with automatic failover across all endpoints."""
+                       max_tokens: int = 4096, images: Optional[list] = None) -> str:
+        """Generate text with automatic failover across all endpoints.
+
+        `images` (list of base64 strings) enables multimodal inference on
+        Ollama endpoints (passed through as /api/generate `images`).
+        """
         errors = []
         for ep in self.endpoints:
             if not self._is_available(ep):
                 continue
             for attempt in range(1, 3):  # one retry for gemma4 empty-generation bug
                 try:
-                    result = await self._call_endpoint(ep, prompt, temperature, max_tokens)
+                    result = await self._call_endpoint(ep, prompt, temperature,
+                                                       max_tokens, images)
                     if result:
                         self._mark_success(ep)
                         logger.info(f"[router] ✅ {ep.name} succeeded (attempt {attempt})")
@@ -111,7 +116,8 @@ class ModelRouter:
         raise RuntimeError(f"All LLM endpoints failed: {errors}")
 
     async def _call_endpoint(self, ep: ModelEndpoint, prompt: str,
-                             temperature: float, max_tokens: int) -> str:
+                             temperature: float, max_tokens: int,
+                             images: Optional[list] = None) -> str:
         headers = {}
         if ep.api_key:
             headers["Authorization"] = f"Bearer {ep.api_key}"
@@ -120,7 +126,8 @@ class ModelRouter:
             response = await client.post(
                 f"{ep.base_url}/api/generate" if "11434" in ep.base_url
                 else f"{ep.base_url}/chat/completions",
-                json=self._build_payload(ep, prompt, temperature, max_tokens),
+                json=self._build_payload(ep, prompt, temperature,
+                                         max_tokens, images),
                 headers=headers,
             )
             if response.status_code == 200:
@@ -135,12 +142,13 @@ class ModelRouter:
 
     @staticmethod
     def _build_payload(ep: ModelEndpoint, prompt: str,
-                       temperature: float, max_tokens: int) -> dict:
+                       temperature: float, max_tokens: int,
+                       images: Optional[list] = None) -> dict:
         if "11434" in ep.base_url:
             # Ollama/Gemma4 quirk: num_predict <= 512 returns an empty
             # response (done_reason=length, 0 visible tokens). Floor it.
             num_predict = max(max_tokens, 1024) if ep.model.startswith("gemma") else max_tokens
-            return {
+            payload = {
                 "model": ep.model,
                 "prompt": prompt,
                 "stream": False,
@@ -151,6 +159,9 @@ class ModelRouter:
                     "num_ctx": 8192,
                 },
             }
+            if images:
+                payload["images"] = images
+            return payload
         return {
             "model": ep.model,
             "messages": [{"role": "user", "content": prompt}],
