@@ -92,16 +92,22 @@ class ModelRouter:
         for ep in self.endpoints:
             if not self._is_available(ep):
                 continue
-            try:
-                result = await self._call_endpoint(ep, prompt, temperature, max_tokens)
-                if result:
-                    self._mark_success(ep)
-                    logger.info(f"[router] ✅ {ep.name} succeeded")
-                    return result
-            except Exception as exc:
-                self._mark_failure(ep)
-                errors.append(f"{ep.name}: {exc}")
-                logger.warning(f"[router] ❌ {ep.name} failed: {exc}")
+            for attempt in range(1, 3):  # one retry for gemma4 empty-generation bug
+                try:
+                    result = await self._call_endpoint(ep, prompt, temperature, max_tokens)
+                    if result:
+                        self._mark_success(ep)
+                        logger.info(f"[router] ✅ {ep.name} succeeded (attempt {attempt})")
+                        return result
+                    if attempt == 1 and "11434" in ep.base_url:
+                        logger.warning(f"[router] {ep.name} returned empty result, retrying")
+                        await asyncio.sleep(0.5)
+                        continue
+                except Exception as exc:
+                    self._mark_failure(ep)
+                    errors.append(f"{ep.name}: {exc}")
+                    logger.warning(f"[router] ❌ {ep.name} failed: {exc}")
+                    break
         raise RuntimeError(f"All LLM endpoints failed: {errors}")
 
     async def _call_endpoint(self, ep: ModelEndpoint, prompt: str,
@@ -131,6 +137,9 @@ class ModelRouter:
     def _build_payload(ep: ModelEndpoint, prompt: str,
                        temperature: float, max_tokens: int) -> dict:
         if "11434" in ep.base_url:
+            # Ollama/Gemma4 quirk: num_predict <= 512 returns an empty
+            # response (done_reason=length, 0 visible tokens). Floor it.
+            num_predict = max(max_tokens, 1024) if ep.model.startswith("gemma") else max_tokens
             return {
                 "model": ep.model,
                 "prompt": prompt,
@@ -138,7 +147,7 @@ class ModelRouter:
                 "options": {
                     "temperature": temperature,
                     "top_p": 0.9,
-                    "num_predict": max_tokens,
+                    "num_predict": num_predict,
                     "num_ctx": 8192,
                 },
             }

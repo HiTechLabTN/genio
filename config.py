@@ -19,8 +19,8 @@ def _env(key: str, default: str = "") -> str:
 @dataclass(frozen=True)
 class OllamaConfig:
     base_url: str = field(default_factory=lambda: _env("OLLAMA_BASE_URL", "http://localhost:11434"))
-    primary_model: str = "gemma2:9b"
-    backup_models: tuple = ("qwen2.5:7b", "qwen2.5-coder:14b")
+    primary_model: str = field(default_factory=lambda: _env("GENIO_OLLAMA_MODEL", "gemma4:12b"))
+    backup_models: tuple = ("qwen2.5vl:7b", "qwen2.5:7b", "qwen2.5-coder:14b")
     num_ctx: int = 8192
     temperature: float = 0.6
 

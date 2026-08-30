@@ -95,3 +95,15 @@ Verdict: **Gemma 4 12B** answers in the requested Arabic/Tunisian persona more r
 | Fine-tune shelf life       | **Gemma 4 12B** |
 
 **Recommendation**: adopt **Gemma 4 12B Unified (Q4_K_M)** as the Genio-VL engine for diagnostic + darja-heavy workloads, accepting ~1.8× slower answers; keep `qwen2.5vl:7b` as the low-latency/first-response path where speed matters. Next step: verify Unsloth transformer support, then run a QLoRA pilot (r=16, darja DevOps dataset) at batch=1 on this RTX 3060.
+
+**Adopted in Genio**: `config.py` → `OllamaConfig.primary_model = "gemma4:12b"` (env override `GENIO_OLLAMA_MODEL`), backups `("qwen2.5vl:7b", "qwen2.5:7b", "qwen2.5-coder:14b")`; `core/model_router.py` floors `num_predict` to 1024 for Gemma models and retries empty results once before failover.
+
+## 7. Known Issue — Ollama 0.32.1 × Gemma 4 MTP (empty generation)
+
+Empirically reproduced on this box via `/api/generate`:
+- **num_predict ≤ 512 → whole response silently dropped** (`done_reason=length`, `eval_count=N`, visible `response=""`).
+- **Some Arabic/token-leading prompts → empty output regardless of options** (e.g. `"قال: كلمة وحدة, لكن عرفني شنو مدير المهام نتاعك."` yields 1447 sampled tokens but `response=15` chars, while other prompts return 1000+ chars).
+- Impacted paths and workarounds:
+  - All Genio Ollama calls must floor `num_predict ≥ 1024` (router does this for `gemma*`).
+  - Empty responses are retried once, then fail over to `qwen2.5vl:7b` — never surfaces to the user.
+- Next action: watch for an Ollama update that fixes Gemma 4 MTP buffer flushing; retest with the two repro prompts (`num_predict=60`, `"قال: كلمة وحدة, ..."`).
