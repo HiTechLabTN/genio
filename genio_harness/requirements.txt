@@ -1,0 +1,7 @@
+textual>=0.86
+httpx>=0.27
+pydantic>=2.7
+pyperclip>=1.8
+sounddevice>=0.4.6
+numpy>=1.24
+psutil>=5.9
