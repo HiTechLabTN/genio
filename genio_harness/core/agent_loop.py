@@ -23,10 +23,12 @@ Design notes
 """
 from __future__ import annotations
 
+import asyncio
 import json
 import os
 import re
-from typing import AsyncIterator, Dict, List, Optional, Tuple
+import threading
+from typing import AsyncIterator, Callable, Dict, List, Optional, Tuple
 
 import httpx
 
@@ -34,16 +36,31 @@ from genio_harness.tools import invoke, tool_specs
 
 DEFAULT_MODEL = os.environ.get("GENIO_MODEL", "gemma4:12b")
 OLLAMA_URL = os.environ.get("GENIO_OLLAMA_URL", "http://127.0.0.1:11434")
-DEFAULT_MAX_ITERATIONS = int(os.environ.get("GENIO_MAX_ITERATIONS", "10"))
+DEFAULT_MAX_ITERATIONS = int(os.environ.get("GENIO_MAX_ITERATIONS", "24"))
+DEFAULT_MODE = os.environ.get("GENIO_MODE", "autonomous")
 STEP_TIMEOUT = 120  # seconds per model request
 
 SYSTEM_PROMPT = (
-    "You are Genio, the autonomous AI engineer for HiTech Lab. "
+    "You are Genio, the fully autonomous AI engineer for HiTech Lab. "
     "CRITICAL RULE: You MUST communicate with the user EXCLUSIVELY in "
     "Tunisian Darja (Tunisian Arabic naturally mixed with technical "
     "English/French terms). NEVER reply in standard French or standard "
-    "Arabic. You can execute commands on this Linux system. Output tool "
-    "calls in JSON format."
+    "Arabic. You can execute commands, browse the web headlessly, control "
+    "the desktop GUI and call third-party REST APIs on this Linux system. "
+    "Output tool calls in JSON format."
+)
+
+AUTONOMY_MODE = (
+    "\n"
+    "FULLY AUTONOMOUS MODE:\n"
+    "- You are an autonomous orchestrator. Take direct action with the tools; "
+    "NEVER ask the user for permission or wait for confirmation.\n"
+    "- Prefer concrete actions over explanations. Keep narrations short (2-3 "
+    "sentences) and always in Tunisian Darja.\n"
+    "- Chain as many tool calls as needed (browser, computer, api, bash) to "
+    "reach the goal autonomously. Inspect outputs, adapt, and continue.\n"
+    "- Stop only when the objective is met; then reply to the user in Darja "
+    "with a clear, complete summary of what you did and the result.\n"
 )
 
 REACT_INSTRUCTIONS = (
@@ -52,13 +69,17 @@ REACT_INSTRUCTIONS = (
     "Work in a Reason+Act loop:\n"
     "1. Think in plain text — explain your current step.\n"
     "2. When you want to run a command, reply with ONLY a single line of JSON: "
-    "{\"tool\": \"bash\", \"command\": \"<shell command>\"} — nothing else.\n"
-    "3. The environment replies with the command output and exit code.\n"
+    "{\"tool\": \"<tool>\", \"command\": \"<payload>\"} — nothing else.\n"
+    "3. The environment replies with the tool output and status.\n"
     "4. Use that output to decide the next step. When the task is complete, "
     "answer in plain text WITHOUT any JSON.\n"
     "\n"
     "Example of a correct tool turn (nothing before or after the JSON):\n"
     "{\"tool\": \"bash\", \"command\": \"pwd && git status --short\"}\n"
+    "\n"
+    "Available tools and their payloads:\n"
+    + tool_specs()
+    + "\n"
     "\n"
     "Rules:\n"
     "- Never invent output you have not observed.\n"
@@ -66,18 +87,23 @@ REACT_INSTRUCTIONS = (
     "- Guard against destructive commands.\n"
     "- Start every tool turn with exactly the JSON object above (no markdown "
     "fences).\n"
+    "- For browser extracts, work from the returned DOM text.\n"
+    "- For computer use, prefer coordinates/selectors you know exist.\n"
     "\n"
     "LANGUAGE (strict):\n"
     "- Every message you send to the user — reasoning BEFORE a tool call and "
     "your final answer — MUST be written in Tunisian Darja. Use Latin-script "
     "terms (English/French) naturally as a Tunisian engineer would.\n"
     "- Never write standard French or standard Modern Standard Arabic.\n"
-    "- Command output may arrive in any language (for example French, if the "
-    "system locale is French). That output is not yours — quote it and "
-    "report the result back in Darja.\n"
-    "\n"
-    + tool_specs()
+    "- Command/tool output may arrive in any language (for example French, if "
+    "the system locale is French). That output is not yours — quote it and "
+    "report the result back in Darja."
 )
+
+
+def build_instructions(mode: str = DEFAULT_MODE) -> str:
+    base = REACT_INSTRUCTIONS
+    return base + (AUTONOMY_MODE if mode == "autonomous" else "")
 
 
 class OllamaConnectionError(RuntimeError):
@@ -106,7 +132,11 @@ def _extract_tool_call(text: str) -> Optional[Dict[str, object]]:
     if "command" not in obj and "payload" not in obj:
         return None
     command = obj.get("command") or obj.get("payload") or ""
-    return {"tool": str(obj["tool"]).strip(), "command": str(command).strip()}
+    if isinstance(command, str):
+        command = command.strip()
+    # Keep dict/list commands as-is (nested JSON) so payloads are not mangled
+    # into Python reprs ("{'action': 'x'}") that tools can't JSON-parse.
+    return {"tool": str(obj["tool"]).strip(), "command": command}
 
 
 def _split_narration(text: str) -> Tuple[str, Optional[Dict[str, object]]]:
@@ -136,6 +166,23 @@ def _last_json(text: str) -> Optional[Dict[str, object]]:
     return None
 
 
+def _feedback_for(result: Dict[str, object], assistant: str) -> str:
+    """Human/LLM-readable tool feedback for the next model turn."""
+    if not isinstance(result, dict):
+        return f"Tool output:\n{(result or '(no output)')}"
+    if "returncode" in result:  # bash-style result
+        out = str(result.get("stdout") or "")
+        err = str(result.get("stderr") or "")
+        code = result.get("returncode", -1)
+        return f"Tool output (exit code {code}):\n{out or err or '(no output)'}"
+    if result.get("error"):
+        return f"Tool output (ERROR): {result['error']}"
+    flat = json.dumps(result, ensure_ascii=False)
+    if len(flat) > 4000:
+        flat = flat[:4000] + "…[truncated]"
+    return f"Tool output:\n{flat}"
+
+
 class AgentLoop:
     """Async ReAct dispatcher bound to a local Ollama instance."""
 
@@ -145,13 +192,20 @@ class AgentLoop:
         ollama_url: str = OLLAMA_URL,
         max_iterations: int = DEFAULT_MAX_ITERATIONS,
         step_timeout: float = STEP_TIMEOUT,
+        mode: str = DEFAULT_MODE,
+        cancel_event: Optional[threading.Event] = None,
         system_prompt: Optional[str] = None,
     ) -> None:
         self.model = model
         self.ollama_url = ollama_url.rstrip("/")
         self.max_iterations = max_iterations
         self.step_timeout = step_timeout
-        self.system_prompt = system_prompt or REACT_INSTRUCTIONS
+        self.mode = mode
+        self.cancel_event = cancel_event
+        self.system_prompt = system_prompt or build_instructions(mode)
+
+    def cancelled(self) -> bool:
+        return bool(self.cancel_event is not None and self.cancel_event.is_set())
 
     async def _chat(self, client: httpx.AsyncClient,
                     messages: List[Dict[str, str]]) -> Tuple[str, int, float]:
@@ -183,7 +237,11 @@ class AgentLoop:
         return content, eval_count, round(tok_per_s, 1)
 
     async def run(self, user_input: str) -> AsyncIterator[Dict[str, str]]:
-        """Execute the ReAct loop for ``user_input`` and yield events."""
+        """Execute the ReAct loop for ``user_input`` and yield events.
+
+        In autonomous mode the loop chains tool calls without confirmation.
+        If ``cancel_event`` is set (KILL SWITCH) the loop halts immediately.
+        """
         messages: List[Dict[str, str]] = [
             {"role": "system", "content": self.system_prompt},
             {"role": "user", "content": user_input},
@@ -192,6 +250,13 @@ class AgentLoop:
 
         async with httpx.AsyncClient(base_url=self.ollama_url) as client:
             for _ in range(self.max_iterations):
+                if self.cancelled():
+                    yield {
+                        "type": "error",
+                        "message": "HALTED — kill switch engaged. Re-arm the system "
+                                   "before running another autonomous task.",
+                    }
+                    return
                 assistant, eval_count, tok_per_s = await self._chat(client, messages)
                 if eval_count:
                     yield {"type": "stats", "tokens": eval_count, "tok_per_s": tok_per_s}
@@ -210,13 +275,12 @@ class AgentLoop:
                     return
                 yield {"type": "tool_call", "command": command}
 
-                result = invoke(call["tool"], command)
+                # Tools (playwright / pyautogui / mss) are blocking — run them
+                # in a worker thread so the async loop stays responsive.
+                result = await asyncio.to_thread(invoke, call["tool"], command)
                 yield {"type": "tool_result", "result": result}
 
-                output = result.get("stdout", "") or ""
-                err = result.get("stderr", "") or ""
-                code = result.get("returncode", -1)
-                feedback = f"Tool output (exit code {code}):\n{output or err or '(no output)'}"
+                feedback = _feedback_for(result, assistant)
                 messages.append({"role": "assistant", "content": assistant})
                 messages.append({"role": "user", "content": feedback})
 

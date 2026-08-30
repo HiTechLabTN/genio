@@ -1,0 +1,1 @@
+"""Genio distributed desktop client — PySide6 native GUI."""

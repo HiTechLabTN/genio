@@ -54,3 +54,6 @@ docker-compose.override.yml
 *_credentials.json
 client_secret*.json
 token*.json
+
+# Server attachments
+tmp/

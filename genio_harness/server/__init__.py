@@ -1,0 +1,1 @@
+"""Genio distributed backend daemon — FastAPI + WebSockets."""
