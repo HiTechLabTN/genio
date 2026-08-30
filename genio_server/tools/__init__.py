@@ -3,7 +3,7 @@
 Includes the classic local tools (bash, social_post) plus the autonomous
 actuators: headless browsing (:mod:`~.browser_tool`), GUI computer use
 (:mod:`~.computer_tool`) and dynamic third-party API calls
-(:mod:`genio_harness.server.api_engine`). Every actuator is gated by the
+(:mod:`genio_server.server.api_engine`). Every actuator is gated by the
 process-wide KILL SWITCH (:mod:`~.safety`).
 """
 from __future__ import annotations
@@ -13,9 +13,9 @@ import time
 from pathlib import Path
 from typing import Any, Dict
 
-from genio_harness.tools.bash_tool import run_command
-from genio_harness.tools.social_tool import invoke_social_post
-from genio_harness.tools import browser_tool, computer_tool
+from genio_server.tools.bash_tool import run_command
+from genio_server.tools.social_tool import invoke_social_post
+from genio_server.tools import browser_tool, computer_tool
 
 TOOLS = {
     "bash": "execute a shell command on this Pop!_OS system",
@@ -77,7 +77,7 @@ def invoke(tool: str, payload: Any) -> Dict[str, object]:
         if tool == "screen":
             return computer_tool.screenshot()
         if tool == "api":
-            from genio_harness.server.api_engine import handle as api_handle
+            from genio_server.server.api_engine import handle as api_handle
             return api_handle(payload)
     except Exception as exc:
         return {"tool": tool, "error": f"{tool} raised: {exc}"}

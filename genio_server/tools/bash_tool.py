@@ -6,7 +6,7 @@ agent can never hang the harness. Returns a plain dict of ``stdout``,
 
 Usage::
 
-    from genio_harness.tools.bash_tool import run_command
+    from genio_server.tools.bash_tool import run_command
     result = run_command("python3 --version")
     print(result["stdout"])
 """

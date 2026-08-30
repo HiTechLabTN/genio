@@ -15,7 +15,7 @@ import threading
 import time
 from typing import Any, Dict, Optional
 
-from genio_harness.tools.safety import SAFETY
+from genio_server.tools.safety import SAFETY
 
 MAX_TEXT = 8000  # keep DOM text digest-sized for the LLM context
 DEFAULT_TIMEOUT_MS = 15_000

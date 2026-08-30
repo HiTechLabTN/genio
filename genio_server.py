@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
-"""Genio Server runner.
+"""Genio v2.0 Server runner.
 
 Starts the distributed Genio backend daemon::
 
     python genio_server.py               # 0.0.0.0:8000
     python genio_server.py --host 127.0.0.1 --port 9000 --api-key secret
 
-Equivalent to ``uvicorn genio_harness.server.main:app`` with the repo root on
-``sys.path`` so ``genio_harness`` resolves from any working directory.
+Equivalent to ``uvicorn genio_server.server.main:app`` with the repo root on
+``sys.path`` so ``genio_server`` resolves from any working directory.
 """
 from __future__ import annotations
 
@@ -21,7 +21,7 @@ sys.path.insert(0, str(REPO_ROOT))
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Start the Genio backend daemon.")
+    parser = argparse.ArgumentParser(description="Start the Genio v2.0 backend daemon.")
     parser.add_argument("--host", default=os.environ.get("GENIO_HOST", "0.0.0.0"))
     parser.add_argument("--port", type=int, default=int(os.environ.get("GENIO_PORT", "8000")))
     parser.add_argument(
@@ -37,7 +37,7 @@ def main() -> None:
     import uvicorn
 
     uvicorn.run(
-        "genio_harness.server.main:app",
+        "genio_server.server.main:app",
         host=args.host,
         port=args.port,
         log_level="info",

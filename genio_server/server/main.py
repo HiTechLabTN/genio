@@ -32,11 +32,11 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Depends, Header, HT
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 
-from genio_harness.core.agent_loop import AgentLoop, OllamaConnectionError
-from genio_harness.tools import invoke as invoke_tool
-from genio_harness.tools import safe_cwd
-from genio_harness.tools import computer_tool
-from genio_harness.tools.safety import SAFETY
+from genio_server.core.agent_loop import AgentLoop, OllamaConnectionError
+from genio_server.tools import invoke as invoke_tool
+from genio_server.tools import safe_cwd
+from genio_server.tools import computer_tool
+from genio_server.tools.safety import SAFETY
 
 API_KEY = os.environ.get("GENIO_API_KEY", "")
 NODE_NAME = os.environ.get("GENIO_NODE_NAME", "HiTech-Node")

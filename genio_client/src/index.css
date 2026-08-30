@@ -1,0 +1,49 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  @apply bg-void text-slate-200 antialiased font-display;
+  background-image:
+    radial-gradient(ellipse 80% 60% at 50% -10%, rgba(34, 211, 238, 0.14), transparent 60%),
+    radial-gradient(ellipse 60% 50% at 100% 110%, rgba(14, 116, 144, 0.18), transparent 60%);
+  background-attachment: fixed;
+}
+
+@layer components {
+  .glass-panel {
+    @apply bg-glass backdrop-blur-xl border border-slate-700/50 rounded-glass shadow-panel;
+  }
+
+  .neon-input {
+    @apply w-full bg-slate-950/60 border border-slate-700/60 rounded-xl px-4 py-3 text-sm
+      text-slate-100 placeholder-slate-500 outline-none transition-all duration-200
+      focus:border-neon/70 focus:shadow-neon focus:bg-slate-900/80;
+  }
+
+  .neon-button {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-6 py-3 text-sm
+      font-semibold tracking-wide text-slate-950 bg-neon transition-all duration-200
+      hover:bg-neon-soft hover:shadow-neon-lg active:scale-[0.98] disabled:opacity-40
+      disabled:cursor-not-allowed disabled:hover:shadow-none;
+  }
+
+  .node-chip {
+    @apply inline-flex items-center gap-1.5 rounded-full border border-slate-700/60
+      bg-slate-900/70 px-3 py-1 text-xs font-mono text-slate-300;
+  }
+
+  .neon-label {
+    @apply block text-[11px] font-semibold uppercase tracking-[0.18em] text-neon/80 mb-2;
+  }
+}

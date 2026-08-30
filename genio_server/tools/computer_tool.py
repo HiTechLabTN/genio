@@ -14,7 +14,7 @@ import time
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-from genio_harness.tools.safety import SAFETY
+from genio_server.tools.safety import SAFETY
 
 _SCREEN = None
 _PYAUTOGUI = None

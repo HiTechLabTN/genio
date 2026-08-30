@@ -2,7 +2,7 @@
 
 The loop is model-agnostic: it talks to an Ollama instance (``gemma4:12b``)
 over HTTP, parses the assistant's reply for a JSON tool-call, runs the tool
-through :mod:`genio_harness.tools`, then feeds the command output back to the
+through :mod:`genio_server.tools`, then feeds the command output back to the
 model for evaluation. Plain-text assistant replies are surfaced as
 reasoning/final answers.
 
@@ -32,7 +32,7 @@ from typing import AsyncIterator, Callable, Dict, List, Optional, Tuple
 
 import httpx
 
-from genio_harness.tools import invoke, tool_specs
+from genio_server.tools import invoke, tool_specs
 
 DEFAULT_MODEL = os.environ.get("GENIO_MODEL", "gemma4:12b")
 OLLAMA_URL = os.environ.get("GENIO_OLLAMA_URL", "http://127.0.0.1:11434")
