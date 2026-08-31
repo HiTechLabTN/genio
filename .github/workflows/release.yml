@@ -51,7 +51,6 @@ jobs:
           prerelease: false
 
   build-android-apk:
-    needs: publish-tauri
     permissions:
       contents: write
     runs-on: ubuntu-latest
@@ -104,17 +103,21 @@ jobs:
             --out "${APK%-unsigned.apk}.apk" /tmp/genio-aligned.apk
           rm -f "$APK"
           echo "signed APK ready: ${APK%-unsigned.apk}.apk"
-      - name: Derive release tag from app version
-        id: tag
+      - name: Derive app version
+        id: ver
         run: |
           VER=$(node -p "require('./genio_client/package.json').version")
-          echo "RELEASE_TAG=app-v${VER}" >> "$GITHUB_OUTPUT"
+          echo "APP_VERSION=${VER}" >> "$GITHUB_OUTPUT"
       - name: List APK outputs
         run: find genio_client/src-tauri/gen/android -name "*.apk" 2>/dev/null || true
-      - name: Upload APK to Release
+      - name: Upload APK to Android release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ steps.tag.outputs.RELEASE_TAG }}
+          tag_name: genio-android-v${{ steps.ver.outputs.APP_VERSION }}
+          name: Genio Android v${{ steps.ver.outputs.APP_VERSION }}
+          body: 'Native Android APK build of the Genio AI Client.'
+          draft: false
+          prerelease: false
           files: |
             genio_client/src-tauri/gen/android/app/build/outputs/apk/**/*.apk
-          fail_on_unmatched_files: false
+          fail_on_unmatched_files: true
