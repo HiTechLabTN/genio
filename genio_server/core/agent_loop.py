@@ -250,6 +250,9 @@ class AgentLoop:
 
         async with httpx.AsyncClient(base_url=self.ollama_url) as client:
             for _ in range(self.max_iterations):
+                # Yield to the event loop each iteration so surrounding tasks
+                # (WebSocket telemetry, SSE stream, kill handling) can run.
+                await asyncio.sleep(0)
                 if self.cancelled():
                     yield {
                         "type": "error",

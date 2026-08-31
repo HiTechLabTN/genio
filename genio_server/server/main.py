@@ -116,8 +116,15 @@ def _gpu_stats() -> Dict[str, Any]:
     return info
 
 
-def _telemetry_snapshot() -> Dict[str, Any]:
+async def _telemetry_snapshot_async() -> Dict[str, Any]:
+    """Build a telemetry snapshot without blocking the event loop.
+
+    ``psutil`` reads and any subprocess calls (``nvidia-smi``) run in a worker
+    thread so the SSE generator / status endpoint keep yielding control even
+    while the agent is busy thinking or executing heavy tools.
+    """
     vm = psutil.virtual_memory()
+    gpu = await asyncio.to_thread(_gpu_stats)
     return {
         "node": NODE_NAME,
         "hostname": os.uname().nodename,
@@ -126,7 +133,7 @@ def _telemetry_snapshot() -> Dict[str, Any]:
         "ram_percent": float(vm.percent),
         "ram_used_gb": round(vm.used / 1e9, 1),
         "ram_total_gb": round(vm.total / 1e9, 1),
-        "gpu": _gpu_stats(),
+        "gpu": gpu,
         "model": AgentLoop().model,
         "mode": os.environ.get("GENIO_MODE", "autonomous"),
         "last_tok_per_s": float(LAST_STATS.get("tok_per_s", 0.0)),
@@ -137,8 +144,8 @@ def _telemetry_snapshot() -> Dict[str, Any]:
 
 
 @app.get("/api/v1/status")
-def get_status(_: None = Depends(require_key)) -> Dict[str, Any]:
-    return _telemetry_snapshot()
+async def get_status(_: None = Depends(require_key)) -> Dict[str, Any]:
+    return await _telemetry_snapshot_async()
 
 
 @app.get("/api/v1/safety")
@@ -169,7 +176,7 @@ def telemetry_stream(_: None = Depends(require_key)) -> StreamingResponse:
 
     async def gen():
         while True:
-            yield f"data: {json.dumps(_telemetry_snapshot())}\n\n"
+            yield f"data: {json.dumps(await _telemetry_snapshot_async())}\n\n"
             await asyncio.sleep(1.0)
 
     return StreamingResponse(gen(), media_type="text/event-stream")
@@ -275,6 +282,10 @@ async def ws_agent(ws: WebSocket, node: str = Query(default=None)) -> None:
     try:
         while True:
             raw = await ws.receive_text()
+            # Yield control back to the event loop so in-flight tasks (the SSE
+            # telemetry stream, screen capture loop, kill handling) keep running
+            # even while this connection is busy processing a prompt/exec.
+            await asyncio.sleep(0)
             try:
                 msg = json.loads(raw)
             except json.JSONDecodeError:
@@ -378,7 +389,7 @@ async def ws_agent(ws: WebSocket, node: str = Query(default=None)) -> None:
                     await safe_send(ws, {"type": "error", "message": "empty command"})
                     continue
                 await safe_send(ws, {"type": "tool_call", "command": command})
-                result = invoke_tool("bash", command)
+                result = await asyncio.to_thread(invoke_tool, "bash", command)
                 await safe_send(ws, {"type": "tool_result", "result": result})
                 continue
 

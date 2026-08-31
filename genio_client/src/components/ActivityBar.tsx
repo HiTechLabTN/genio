@@ -42,6 +42,26 @@ export default function ActivityBar({ chat, agentStatus, onKill, onContinue }: P
   const isActive = agentStatus.kind === "thinking" || agentStatus.kind === "executing";
   const logRef = useRef<HTMLPreElement>(null);
 
+  const [elapsed, setElapsed] = useState(0);
+  const activeStartRef = useRef<number | null>(null);
+
+  // Live elapsed timer — proves the UI thread is alive while the agent works.
+  useEffect(() => {
+    if (isActive) {
+      activeStartRef.current = Date.now();
+      setElapsed(0);
+      const id = window.setInterval(() => {
+        if (activeStartRef.current) {
+          setElapsed((Date.now() - activeStartRef.current) / 1000);
+        }
+      }, 100);
+      return () => window.clearInterval(id);
+    }
+    activeStartRef.current = null;
+    setElapsed(0);
+    return undefined;
+  }, [isActive]);
+
   useEffect(() => {
     if (logRef.current) {
       logRef.current.scrollTop = logRef.current.scrollHeight;
@@ -104,11 +124,14 @@ export default function ActivityBar({ chat, agentStatus, onKill, onContinue }: P
                 <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-neon" />
               </span>
               <span className="text-[11px] font-mono text-neon-soft">
-                {agentStatus.kind === "thinking" && "thinking…"}
+                {agentStatus.kind === "thinking" && (
+                  <>thinking… <span className="font-bold text-neon">{elapsed.toFixed(1)}s</span></>
+                )}
                 {agentStatus.kind === "executing" && (
                   <>
                     <span className="text-slate-500">executing</span>{" "}
-                    <span className="font-semibold text-amber-300">{agentStatus.tool}</span>
+                    <span className="font-semibold text-amber-300">{agentStatus.tool}</span>{" "}
+                    <span className="font-bold text-neon">{elapsed.toFixed(1)}s</span>
                   </>
                 )}
               </span>
