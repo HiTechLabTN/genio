@@ -1,11 +1,20 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { ChatEvent, ServerNode, SocketStatus, TelemetrySnapshot, UseGenioSocket } from "../lib/types";
+import type {
+  ChatEvent,
+  GenioEvent,
+  ServerNode,
+  SocketStatus,
+  TelemetrySnapshot,
+  UseGenioSocket,
+} from "../lib/types";
 import { GenioSocket, isChatEvent, streamTelemetry } from "../lib/ws";
 
 export function useGenioSocket(): UseGenioSocket {
   const [status, setStatus] = useState<SocketStatus>({ kind: "idle" });
   const [telemetry, setTelemetry] = useState<TelemetrySnapshot | null>(null);
   const [chat, setChat] = useState<ChatEvent[]>([]);
+  const [screen, setScreen] = useState<string | null>(null);
+  const [streaming, setStreaming] = useState(false);
 
   const socketRef = useRef<GenioSocket | null>(null);
   const sseRef = useRef<AbortController | null>(null);
@@ -21,6 +30,16 @@ export function useGenioSocket(): UseGenioSocket {
     return ws.send(clean);
   }, []);
 
+  const requestScreenshot = useCallback(() => send({ action: "screenshot" }), [send]);
+  const toggleScreenStream = useCallback(
+    (active: boolean) => {
+      const ok = send({ action: "screen_stream", active });
+      if (ok) setStreaming(active);
+      return ok;
+    },
+    [send],
+  );
+
   const disconnect = useCallback(() => {
     socketRef.current?.disconnect();
     sseRef.current?.abort();
@@ -28,9 +47,10 @@ export function useGenioSocket(): UseGenioSocket {
     activeRef.current = null;
     setStatus({ kind: "idle" });
     setTelemetry(null);
+    setScreen(null);
+    setStreaming(false);
   }, []);
 
-  /** Connect to a Genio node; resolves once the socket is open. */
   const connect = useCallback(
     async (target: ServerNode): Promise<boolean> => {
       disconnect();
@@ -38,13 +58,17 @@ export function useGenioSocket(): UseGenioSocket {
 
       const socket = new GenioSocket(
         () => setStatus({ kind: "connected", node: target.host }),
-        (event) => {
+        (event: GenioEvent) => {
+          if (event.type === "screen" || event.type === "browser_view") {
+            setScreen(event.data_b64);
+            return;
+          }
           if (event.type === "telemetry") {
             setTelemetry(event as unknown as TelemetrySnapshot);
             return;
           }
           if (isChatEvent(event)) {
-            setChat((prev) => [...prev.slice(-199), event]);
+            setChat((prev) => [...prev.slice(-299), event]);
           }
         },
         () => setStatus({ kind: "error", message: `WebSocket error on ${target.host}` }),
@@ -52,6 +76,8 @@ export function useGenioSocket(): UseGenioSocket {
           if (activeRef.current) {
             setStatus({ kind: "idle" });
             setTelemetry(null);
+            setScreen(null);
+            setStreaming(false);
           }
         },
       );
@@ -65,16 +91,15 @@ export function useGenioSocket(): UseGenioSocket {
         return false;
       }
 
-      // Live telemetry over fetch-SSE (headers carry the API key).
       const controller = new AbortController();
       sseRef.current = controller;
       streamTelemetry(target, setTelemetry, controller.signal).catch(() => {
-        /* telemetry is best-effort; chat still works without it */
+        /* telemetry is best-effort */
       });
 
       setChat((prev) => [
-        ...prev.slice(-199),
-        { type: "answer", text: `🔗 Connected to ${target.host}:${target.port}` },
+        ...prev.slice(-299),
+        { type: "answer", text: `Connected to ${target.host}:${target.port}` },
       ]);
       return true;
     },
@@ -88,10 +113,14 @@ export function useGenioSocket(): UseGenioSocket {
     socket: socketRef.current as GenioSocket | null,
     telemetry,
     chat,
+    screen,
+    streaming,
     addChat: setChat,
     connect,
     disconnect,
     send,
+    requestScreenshot,
+    toggleScreenStream,
     error: status.kind === "error" ? status.message : undefined,
   };
 }

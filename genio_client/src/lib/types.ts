@@ -23,11 +23,24 @@ export type SocketStatus =
   | { kind: "error"; message: string };
 
 /** A chat-relevant event pushed by the Genio backend agent loop. */
+export interface ToolResultMap {
+  command?: string;
+  stdout?: string;
+  stderr?: string;
+  returncode?: number;
+  duration?: number;
+  timed_out?: boolean;
+  success?: boolean;
+  error?: string;
+  output?: string;
+  [key: string]: unknown;
+}
+
 export type ChatEvent =
   | { type: "thought"; text: string }
   | { type: "answer"; text: string }
   | { type: "tool_call"; command: string }
-  | { type: "tool_result"; result: Record<string, unknown> }
+  | { type: "tool_result"; result: ToolResultMap }
   | { type: "stats"; tokens?: number; tok_per_s?: number }
   | { type: "error"; message: string }
   | { type: "attached"; kind?: string; path?: string; name?: string }
@@ -37,16 +50,28 @@ export type ChatEvent =
 export type GenioEvent =
   | ({ type: "telemetry" } & Record<string, unknown>)
   | ({ type: "pong" } & Record<string, unknown>)
+  | { type: "screen"; data_b64: string }
+  | { type: "browser_view"; data_b64: string }
+  | { type: "screen_stream"; active?: boolean; interval?: number }
+  | { type: "voice_ready"; path?: string; duration?: number }
   | ChatEvent;
 
+/** Snapshot pushed by `GET /api/v1/telemetry` (SSE) from genio_server. */
 export interface TelemetrySnapshot {
-  cpu?: { percent: number; cores: number; temp_c?: number };
-  ram?: { used_bytes: number; total_bytes: number };
-  gpu?: { name: string; used_gb: number; total_gb: number };
-  armed?: boolean;
-  mode?: string;
-  model?: string;
+  node?: string;
+  hostname?: string;
   uptime_s?: number;
+  cpu_percent?: number;
+  ram_percent?: number;
+  ram_used_gb?: number;
+  ram_total_gb?: number;
+  gpu?: { name?: string; used_gb?: number; total_gb?: number; vram_pct?: number };
+  model?: string;
+  mode?: string;
+  last_tok_per_s?: number;
+  clients?: number;
+  armed?: boolean;
+  ts?: number;
   [key: string]: unknown;
 }
 
@@ -55,9 +80,13 @@ export interface UseGenioSocket {
   socket: unknown;
   telemetry: TelemetrySnapshot | null;
   chat: ChatEvent[];
+  screen: string | null;
+  streaming: boolean;
   addChat: Dispatch<SetStateAction<ChatEvent[]>>;
   connect: (target: ServerNode) => Promise<boolean>;
   disconnect: () => void;
   send: (payload: Record<string, unknown>) => boolean;
+  requestScreenshot: () => boolean;
+  toggleScreenStream: (active: boolean) => boolean;
   error?: string;
 }

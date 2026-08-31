@@ -6,7 +6,17 @@ import { useGenioSocket } from "./hooks/useGenioSocket";
 import type { ServerNode } from "./lib/types";
 
 export default function App() {
-  const { telemetry, chat, connect, disconnect, send } = useGenioSocket();
+  const {
+    telemetry,
+    chat,
+    screen,
+    streaming,
+    connect,
+    disconnect,
+    send,
+    requestScreenshot,
+    toggleScreenStream,
+  } = useGenioSocket();
   const [connected, setConnected] = useState(false);
   const [target, setTarget] = useState<ServerNode | null>(null);
 
@@ -25,9 +35,16 @@ export default function App() {
     setTarget(null);
   }
 
+  async function handleSwitchNode(host: string, label: string) {
+    if (!target) return false;
+    const next: ServerNode = { ...target, host, label };
+    const ok = await connect(next);
+    if (ok) setTarget(next);
+    return ok;
+  }
+
   return (
     <div className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden px-4 py-10">
-      {/* cyber grid */}
       <div className="pointer-events-none absolute inset-0 -z-20 bg-grid-neon bg-grid [mask-image:radial-gradient(ellipse_70%_60%_at_50%_40%,black,transparent)]" />
 
       <AnimatePresence mode="wait">
@@ -36,10 +53,19 @@ export default function App() {
             key="dashboard"
             node={target.label}
             host={target.host}
+            apiKey={target.key}
             telemetry={telemetry}
             chat={chat}
+            screen={screen}
+            streaming={streaming}
             onDisconnect={handleDisconnect}
             onSendPrompt={(text) => send({ action: "prompt", text })}
+            onSendVoice={(dataB64, durationSec) =>
+              send({ action: "voice_wav", data_b64: dataB64, duration: durationSec, final: true })
+            }
+            onRequestScreenshot={requestScreenshot}
+            onToggleScreenStream={toggleScreenStream}
+            onSwitchNode={handleSwitchNode}
           />
         ) : (
           <ConnectionHub key="hub" onConnect={handleConnect} />
