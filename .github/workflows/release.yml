@@ -86,11 +86,26 @@ jobs:
       - name: Build Android APK
         working-directory: ./genio_client
         run: npx tauri android build --apk --target aarch64
-      - name: Compute release tag
+      - name: Sign APK with generated keystore
+        run: |
+          set -e
+          APK=$(find genio_client/src-tauri/gen/android -path "*release*" -name "*.apk" | head -1)
+          if [ -z "$APK" ]; then echo "no apk found"; exit 0; fi
+          BT=$(ls "$ANDROID_SDK_ROOT/build-tools" | sort -V | tail -1)
+          keytool -genkey -v -keystore /tmp/genio.keystore -storepass genio2026 \
+            -keypass genio2026 -alias genio -dname "CN=Genio,O=HiTechLab,C=TN" \
+            -keyalg RSA -keysize 2048 -validity 10000
+          "$ANDROID_SDK_ROOT/build-tools/$BT/zipalign" -f 4 "$APK" /tmp/genio-aligned.apk
+          "$ANDROID_SDK_ROOT/build-tools/$BT/apksigner" sign --ks /tmp/genio.keystore \
+            --ks-pass pass:genio2026 --key-pass pass:genio2026 --ks-key-alias genio \
+            --out "${APK%-unsigned.apk}.apk" /tmp/genio-aligned.apk
+          rm -f "$APK"
+          echo "signed APK ready: ${APK%-unsigned.apk}.apk"
+      - name: Derive release tag from app version
         id: tag
         run: |
-          VER="${GITHUB_REF#refs/tags/}"      # e.g. v1.0.6
-          echo "RELEASE_TAG=app-v${VER#v}" >> "$GITHUB_OUTPUT"
+          VER=$(node -p "require('./genio_client/package.json').version")
+          echo "RELEASE_TAG=app-v${VER}" >> "$GITHUB_OUTPUT"
       - name: List APK outputs
         run: find genio_client/src-tauri/gen/android -name "*.apk" 2>/dev/null || true
       - name: Upload APK to Release
