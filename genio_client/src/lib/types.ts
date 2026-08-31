@@ -99,6 +99,7 @@ export interface UseGenioSocket {
   agentStatus: AgentStatus;
   socket: unknown;
   telemetry: TelemetrySnapshot | null;
+  telemetryStale: boolean;
   chat: ChatEvent[];
   screen: string | null;
   streaming: boolean;

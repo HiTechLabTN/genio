@@ -15,6 +15,7 @@ interface Props {
   node: string;
   host: string;
   telemetry: TelemetrySnapshot | null;
+  telemetryStale: boolean;
   agentStatus: AgentStatus;
   onKill: () => void;
   onDisconnect: () => void;
@@ -25,6 +26,7 @@ export default function Header({
   node,
   host,
   telemetry,
+  telemetryStale,
   agentStatus,
   onKill,
   onDisconnect,
@@ -63,18 +65,20 @@ export default function Header({
         </div>
 
         <div className="hidden items-center gap-2 sm:flex">
-          <MetricChip icon={<Cpu size={12} />} label="CPU" value={cpu != null ? `${cpu.toFixed(0)}%` : null} ok={cpu != null} />
+          <MetricChip icon={<Cpu size={12} />} label="CPU" value={cpu != null ? `${cpu.toFixed(0)}%` : null} ok={cpu != null} stale={telemetryStale} />
           <MetricChip
             icon={<MemoryStick size={12} />}
             label="RAM"
             value={ram != null && ramT != null ? `${ram.toFixed(1)}/${ramT.toFixed(0)} GB` : null}
             ok={ram != null}
+            stale={telemetryStale}
           />
           <MetricChip
             icon={<Activity size={12} />}
             label={gpu?.name?.replace(/NVIDIA\s*/i, "").slice(0, 10) ?? "GPU"}
             value={gpu?.total_gb ? `${gpu.used_gb?.toFixed(1)}/${gpu.total_gb.toFixed(0)} GB` : null}
             ok={!!gpu?.total_gb}
+            stale={telemetryStale}
           />
           <MetricChip
             icon={isKilled ? <Shield size={12} /> : <Zap size={12} />}
@@ -83,6 +87,15 @@ export default function Header({
             ok={!isKilled}
             accent={isKilled ? "danger" : "ok"}
           />
+          {telemetryStale && (
+            <span
+              className="flex items-center gap-1 rounded-full border border-amber-400/40 bg-amber-400/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-amber-300"
+              title="Telemetry paused — backend event loop busy"
+            >
+              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-amber-400" />
+              stale
+            </span>
+          )}
         </div>
 
         <div className="ml-2 hidden rounded-full bg-slate-900/60 px-2.5 py-1 text-[10px] font-mono text-slate-500 lg:block">
@@ -119,17 +132,21 @@ function MetricChip({
   value,
   ok,
   accent,
+  stale,
 }: {
   icon: React.ReactNode;
   label: string;
   value: string | null;
   ok: boolean;
   accent?: "ok" | "danger" | "neon";
+  stale?: boolean;
 }) {
   const base = accent === "danger"
     ? "border-danger/30 bg-danger/10 text-rose-300"
     : accent === "ok"
     ? "border-ok/30 bg-ok/10 text-emerald-300"
+    : stale
+    ? "border-amber-400/40 bg-amber-400/10 text-amber-300"
     : ok
     ? "border-neon/25 bg-neon/5 text-neon-soft"
     : "border-slate-700/40 bg-slate-900/50 text-slate-500";

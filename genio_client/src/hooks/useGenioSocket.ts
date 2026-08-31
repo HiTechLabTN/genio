@@ -15,6 +15,7 @@ export function useGenioSocket(): UseGenioSocket {
   const [status, setStatus] = useState<SocketStatus>({ kind: "idle" });
   const [agentStatus, setAgentStatus] = useState<AgentStatus>({ kind: "idle" });
   const [telemetry, setTelemetry] = useState<TelemetrySnapshot | null>(null);
+  const [telemetryStale, setTelemetryStale] = useState(false);
   const [chat, setChat] = useState<ChatEvent[]>([]);
   const [screen, setScreen] = useState<string | null>(null);
   const [streaming, setStreaming] = useState(false);
@@ -22,6 +23,22 @@ export function useGenioSocket(): UseGenioSocket {
   const socketRef = useRef<GenioSocket | null>(null);
   const sseRef = useRef<AbortController | null>(null);
   const activeRef = useRef<ServerNode | null>(null);
+  const lastTelemetryAtRef = useRef<number>(0);
+
+  // flag telemetry as stale when no snapshot arrives within a window
+  // (backend event loop blocked during heavy LLM / tool execution)
+  useEffect(() => {
+    const id = window.setInterval(() => {
+      const staleThresholdMs = 5000;
+      const last = lastTelemetryAtRef.current;
+      if (last > 0 && Date.now() - last > staleThresholdMs) {
+        setTelemetryStale(true);
+      } else {
+        setTelemetryStale(false);
+      }
+    }, 1500);
+    return () => window.clearInterval(id);
+  }, []);
 
   const send = useCallback((payload: Record<string, unknown>) => {
     const ws = socketRef.current;
@@ -91,6 +108,8 @@ export function useGenioSocket(): UseGenioSocket {
     setStatus({ kind: "idle" });
     setAgentStatus({ kind: "idle" });
     setTelemetry(null);
+    setTelemetryStale(false);
+    lastTelemetryAtRef.current = 0;
     setScreen(null);
     setStreaming(false);
   }, []);
@@ -109,6 +128,7 @@ export function useGenioSocket(): UseGenioSocket {
           }
           if (event.type === "telemetry") {
             setTelemetry(event as unknown as TelemetrySnapshot);
+            lastTelemetryAtRef.current = Date.now();
             return;
           }
           if (isChatEvent(event)) {
@@ -167,6 +187,7 @@ export function useGenioSocket(): UseGenioSocket {
     agentStatus,
     socket: socketRef.current as GenioSocket | null,
     telemetry,
+    telemetryStale,
     chat,
     screen,
     streaming,

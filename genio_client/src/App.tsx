@@ -11,6 +11,7 @@ export default function App() {
   const {
     agentStatus,
     telemetry,
+    telemetryStale,
     chat,
     screen,
     streaming,
@@ -87,6 +88,7 @@ export default function App() {
             host={target.host}
             apiKey={target.key}
             telemetry={telemetry}
+            telemetryStale={telemetryStale}
             agentStatus={agentStatus}
             chat={chat}
             screen={screen}

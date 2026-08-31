@@ -411,7 +411,7 @@ function NodeWatch({
 }) {
   const otherHost = isNodeTuning(activeHost);
   const otherLabel = otherHost === "tn" ? "TN VPS" : "Pop!_OS";
-  const [other, setOther] = useState<{ live: boolean; status: TelemetrySnapshot | null }>({ live: false, status: null });
+  const [other, setOther] = useState<{ live: boolean; stale: boolean; status: TelemetrySnapshot | null }>({ live: false, stale: false, status: null });
   const [switching, setSwitching] = useState(false);
 
   useEffect(() => {
@@ -421,11 +421,20 @@ function NodeWatch({
       try {
         const headers: Record<string, string> = { Accept: "application/json" };
         if (apiKey) headers["X-API-Key"] = apiKey;
+        const timer = setTimeout(() => ctrl.abort(), 5000);
         const res = await fetch(`http://${otherHost}:8000/api/v1/status`, { headers, signal: ctrl.signal });
+        clearTimeout(timer);
         if (!alive) return;
-        setOther({ live: res.ok, status: res.ok ? ((await res.json()) as TelemetrySnapshot) : null });
+        if (res.ok) {
+          setOther({ live: true, stale: false, status: (await res.json()) as TelemetrySnapshot });
+        } else {
+          // retain last known values, mark stale
+          setOther((prev) => ({ live: false, stale: true, status: prev?.status ?? null }));
+        }
       } catch {
-        if (alive) setOther({ live: false, status: null });
+        if (alive)
+          // backend blocked/timeout — keep last known CPU/RAM, flag as stale
+          setOther((prev) => ({ live: false, stale: true, status: prev?.status ?? null }));
       }
     }
     check();
@@ -440,8 +449,8 @@ function NodeWatch({
   }
 
   const nodes = [
-    { host: activeHost, label: activeLabel, live: true, status: telemetry, action: null as null },
-    { host: otherHost, label: otherLabel, live: other.live, status: other.status, action: switchTo },
+    { host: activeHost, label: activeLabel, live: true, stale: false, status: telemetry, action: null as null },
+    { host: otherHost, label: otherLabel, live: other.live, stale: other.stale, status: other.status, action: switchTo },
   ];
 
   return (
@@ -454,13 +463,24 @@ function NodeWatch({
               {n.label}
               <span className="font-mono text-[10px] text-slate-500">{n.host}</span>
             </span>
-            <span className={`rounded-full px-2 py-0.5 text-[9px] font-bold uppercase ${n.live ? "bg-ok/15 text-ok" : "bg-danger/15 text-rose-400"}`}>
-              {n.live ? "LIVE" : "OFFLINE"}
+            <span className="flex items-center gap-1.5">
+              {n.stale && (
+                <span
+                  className="flex items-center gap-1 rounded-full border border-amber-400/40 bg-amber-400/15 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-amber-300"
+                  title="Last known values — backend event loop paused"
+                >
+                  <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-amber-400" />
+                  stale
+                </span>
+              )}
+              <span className={`rounded-full px-2 py-0.5 text-[9px] font-bold uppercase ${n.live ? "bg-ok/15 text-ok" : "bg-danger/15 text-rose-400"}`}>
+                {n.live ? "LIVE" : "OFFLINE"}
+              </span>
             </span>
           </div>
           <div className="grid grid-cols-3 gap-1.5 text-center font-mono text-[10px]">
-            <div className="rounded bg-slate-950/60 py-1"><div className="text-slate-500">CPU</div><div className="text-xs font-bold text-neon-soft">{n.status?.cpu_percent?.toFixed(0) ?? "—"}%</div></div>
-            <div className="rounded bg-slate-950/60 py-1"><div className="text-slate-500">RAM</div><div className="text-xs font-bold text-neon-soft">{n.status?.ram_used_gb?.toFixed(1) ?? "—"}G</div></div>
+            <div className="rounded bg-slate-950/60 py-1"><div className="text-slate-500">CPU</div><div className={`text-xs font-bold ${n.stale ? "text-amber-300" : "text-neon-soft"}`}>{n.status?.cpu_percent?.toFixed(0) ?? "—"}%</div></div>
+            <div className="rounded bg-slate-950/60 py-1"><div className="text-slate-500">RAM</div><div className={`text-xs font-bold ${n.stale ? "text-amber-300" : "text-neon-soft"}`}>{n.status?.ram_used_gb?.toFixed(1) ?? "—"}G</div></div>
             <div className="rounded bg-slate-950/60 py-1"><div className="text-slate-500">MODEL</div><div className="truncate text-[10px] font-bold text-slate-300">{n.status?.model ?? "—"}</div></div>
           </div>
           {n.action && (

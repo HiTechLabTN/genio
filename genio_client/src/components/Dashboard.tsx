@@ -12,6 +12,7 @@ interface Props {
   host: string;
   apiKey?: string;
   telemetry: TelemetrySnapshot | null;
+  telemetryStale: boolean;
   agentStatus: AgentStatus;
   chat: ChatEvent[];
   screen: string | null;
@@ -33,6 +34,7 @@ export default function Dashboard({
   host,
   apiKey,
   telemetry,
+  telemetryStale,
   agentStatus,
   chat,
   screen,
@@ -60,6 +62,7 @@ export default function Dashboard({
         node={node}
         host={host}
         telemetry={telemetry}
+        telemetryStale={telemetryStale}
         agentStatus={agentStatus}
         onKill={onKill}
         onDisconnect={onDisconnect}
@@ -70,7 +73,7 @@ export default function Dashboard({
         {/* main chat area */}
         <div className="flex min-h-0 flex-1 flex-col">
           <Transcript chat={chat} agentStatus={agentStatus} />
-          <ActivityBar agentStatus={agentStatus} onKill={onKill} onContinue={onContinue} />
+          <ActivityBar chat={chat} agentStatus={agentStatus} onKill={onKill} onContinue={onContinue} />
         </div>
 
         {/* right drawer */}
@@ -197,8 +200,8 @@ function Transcript({ chat, agentStatus }: { chat: ChatEvent[]; agentStatus?: Ag
 
 function UserBubble({ text, attachments }: { text: string; attachments?: { name: string; content?: string }[] }) {
   return (
-    <div className="ml-auto w-fit max-w-full rounded-2xl rounded-tr-sm border border-neon/30 bg-neon/10 px-3 py-2">
-      <p className="whitespace-pre-wrap text-sm text-slate-100">{text}</p>
+    <div className="ml-auto w-fit max-w-full rounded-2xl rounded-tr-sm border border-cyan-500 bg-cyan-900/60 px-3 py-2">
+      <p className="whitespace-pre-wrap text-sm text-cyan-50">{text}</p>
       {attachments && attachments.length > 0 && (
         <div className="mt-1.5 flex flex-col gap-1">
           {attachments.map((a) => (
