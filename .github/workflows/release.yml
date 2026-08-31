@@ -4,6 +4,8 @@ on:
     tags:
       - 'v*'
 
+permissions:
+  contents: write
 
 jobs:
   publish-tauri:
@@ -49,6 +51,7 @@ jobs:
           prerelease: false
 
   build-android-apk:
+    needs: publish-tauri
     permissions:
       contents: write
     runs-on: ubuntu-latest
