@@ -201,14 +201,16 @@ function ThoughtBubble({ text }: { text: string }) {
 
 function ToolCallLine({ command }: { command: string }) {
   return (
-    <div className="flex items-start gap-2 rounded-lg bg-amber-500/5 border border-amber-500/20 px-3 py-1.5">
+    <div className="group flex items-start gap-2 rounded-lg bg-amber-500/5 border border-amber-500/20 px-3 py-1.5">
       <span className="mt-0.5 text-amber-400 text-[11px]">⚡</span>
       <code className="flex-1 break-all text-xs text-amber-200/90">{command}</code>
+      <CopyBtn text={command} />
     </div>
   );
 }
 
 function ToolResultLine({ result }: { result: ToolResultMap }) {
+  const output = (result.stdout ?? result.output ?? result.error ?? "").toString();
   return (
     <div className="ml-6 flex items-center gap-2 text-[11px]">
       {typeof result.returncode === "number" && (
@@ -222,11 +224,34 @@ function ToolResultLine({ result }: { result: ToolResultMap }) {
         </span>
       )}
       {result.duration != null && <span className="text-slate-500">{result.duration}s</span>}
-      {(result.stdout || result.error || result.output) && (
-        <span className="truncate text-slate-500 max-w-xs">
-          {(result.stdout ?? result.output ?? result.error ?? "").toString().split("\n")[0].slice(0, 80)}
-        </span>
+      {output && (
+        <>
+          <span className="truncate text-slate-500 max-w-xs">
+            {output.split("\n")[0].slice(0, 80)}
+          </span>
+          <CopyBtn text={output} />
+        </>
       )}
     </div>
+  );
+}
+
+function CopyBtn({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false);
+  async function copy() {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1200);
+    } catch { /* noop */ }
+  }
+  return (
+    <button
+      onClick={copy}
+      className="shrink-0 rounded px-1 py-0.5 text-[10px] text-slate-500 opacity-0 transition-all group-hover:opacity-100 hover:bg-neon/10 hover:text-neon"
+      title="Copy"
+    >
+      {copied ? "✓" : "⧉"}
+    </button>
   );
 }

@@ -225,15 +225,11 @@ async def _screen_stream_loop(ws: WebSocket, conn_id: int, interval: float = 1.0
     while True:
         frame = await asyncio.to_thread(_capture_screen_png)
         if frame is None:
-            try:
-                await ws.send_json({"type": "error",
-                                    "message": "screen capture failed — empty display?"})
-            except Exception:
-                pass
+            await safe_send(ws, {"type": "error",
+                                 "message": "screen capture failed — empty display?"})
             return
-        try:
-            await ws.send_json({"type": "screen", "data_b64": base64.b64encode(frame).decode()})
-        except Exception:
+        if not await safe_send(ws, {"type": "screen",
+                                    "data_b64": base64.b64encode(frame).decode()}):
             return  # socket closed
         await asyncio.sleep(interval)
 
@@ -247,9 +243,20 @@ def _stop_screen_task(conn_id: int) -> None:
 # --------------------------------------------------------------------------- #
 # Agent WebSocket
 # --------------------------------------------------------------------------- #
+async def safe_send(ws: WebSocket, payload: dict) -> bool:
+    """Send JSON over WebSocket only if still connected. Returns False if socket is closed."""
+    try:
+        if ws.client_state.name == "CONNECTED":
+            await ws.send_json(payload)
+            return True
+    except Exception:
+        pass
+    return False
+
+
 def _emit(ws: WebSocket, event: Dict[str, Any]) -> None:
     try:
-        asyncio.get_running_loop().create_task(ws.send_json(event))
+        asyncio.get_running_loop().create_task(safe_send(ws, event))
     except Exception:
         pass  # socket already closed — events are best-effort here
 
@@ -258,7 +265,7 @@ def _emit(ws: WebSocket, event: Dict[str, Any]) -> None:
 async def ws_agent(ws: WebSocket, node: str = Query(default=None)) -> None:
     await ws.accept()
     if not _ws_authorized(ws):
-        await ws.send_json({"type": "error", "message": "invalid or missing API key"})
+        await safe_send(ws, {"type": "error", "message": "invalid or missing API key"})
         await ws.close(code=4401)
         return
 
@@ -271,22 +278,22 @@ async def ws_agent(ws: WebSocket, node: str = Query(default=None)) -> None:
             try:
                 msg = json.loads(raw)
             except json.JSONDecodeError:
-                await ws.send_json({"type": "error", "message": "invalid JSON payload"})
+                await safe_send(ws, {"type": "error", "message": "invalid JSON payload"})
                 continue
 
             action = msg.get("action")
             if action == "ping":
-                await ws.send_json({"type": "pong", "node": node or NODE_NAME, "ts": int(time.time())})
+                await safe_send(ws, {"type": "pong", "node": node or NODE_NAME, "ts": int(time.time())})
                 continue
 
             if action == "screenshot":
                 frame = await asyncio.to_thread(_capture_screen_png)
                 if frame is None:
-                    await ws.send_json({"type": "error",
-                                        "message": "screen capture failed — empty display?"})
+                    await safe_send(ws, {"type": "error",
+                                         "message": "screen capture failed — empty display?"})
                 else:
-                    await ws.send_json({"type": "screen",
-                                        "data_b64": base64.b64encode(frame).decode()})
+                    await safe_send(ws, {"type": "screen",
+                                         "data_b64": base64.b64encode(frame).decode()})
                 continue
 
             if action == "screen_stream":
@@ -296,29 +303,29 @@ async def ws_agent(ws: WebSocket, node: str = Query(default=None)) -> None:
                 if active:
                     _SCREEN_TASKS[conn_id] = asyncio.create_task(
                         _screen_stream_loop(ws, conn_id, interval))
-                await ws.send_json({"type": "screen_stream", "active": active,
-                                    "interval": interval})
+                await safe_send(ws, {"type": "screen_stream", "active": active,
+                                     "interval": interval})
                 continue
 
             if action == "kill":
                 SAFETY.halt(str(msg.get("reason") or "KILL SWITCH — operator"))
                 _KILL_EVENTS[conn_id].set()
-                await ws.send_json({"type": "killed", **SAFETY.snapshot()})
+                await safe_send(ws, {"type": "killed", **SAFETY.snapshot()})
                 continue
 
             if action == "rearm":
                 SAFETY.arm()
                 _KILL_EVENTS[conn_id].clear()
-                await ws.send_json({"type": "armed", **SAFETY.snapshot()})
+                await safe_send(ws, {"type": "armed", **SAFETY.snapshot()})
                 continue
 
             if action == "prompt":
                 if _ACTIVE_RUNS.get(conn_id):
-                    await ws.send_json({"type": "error", "message": "agent is already busy"})
+                    await safe_send(ws, {"type": "error", "message": "agent is already busy"})
                     continue
                 text = str(msg.get("text", "")).strip()
                 if not text:
-                    await ws.send_json({"type": "error", "message": "empty prompt"})
+                    await safe_send(ws, {"type": "error", "message": "empty prompt"})
                     continue
                 _ACTIVE_RUNS[conn_id] = True
                 agent = AgentLoop(
@@ -327,16 +334,17 @@ async def ws_agent(ws: WebSocket, node: str = Query(default=None)) -> None:
                 )
                 try:
                     async for event in agent.run(text):
-                        await ws.send_json(event)
+                        if not await safe_send(ws, event):
+                            break
                         if event.get("type") == "stats":
                             LAST_STATS.update(
                                 tokens=event.get("tokens", 0),
                                 tok_per_s=event.get("tok_per_s", 0.0),
                             )
                 except OllamaConnectionError as exc:
-                    await ws.send_json({"type": "error", "message": str(exc)})
+                    await safe_send(ws, {"type": "error", "message": str(exc)})
                 except Exception as exc:  # never let one run kill the socket
-                    await ws.send_json({"type": "error", "message": f"agent run failed: {exc}"})
+                    await safe_send(ws, {"type": "error", "message": f"agent run failed: {exc}"})
                 finally:
                     _ACTIVE_RUNS[conn_id] = False
                 continue
@@ -344,39 +352,39 @@ async def ws_agent(ws: WebSocket, node: str = Query(default=None)) -> None:
             if action == "attach_file":
                 name = str(msg.get("name", "file.bin"))
                 path = _save_attachment("file", name, msg["data_b64"])
-                await ws.send_json({"type": "attached", "kind": "file", "path": path,
-                                    "name": name, "size": len(_decode_payload(msg["data_b64"]))})
+                await safe_send(ws, {"type": "attached", "kind": "file", "path": path,
+                                     "name": name, "size": len(_decode_payload(msg["data_b64"]))})
                 continue
 
             if action == "attach_image":
                 name = str(msg.get("name", "image.png"))
                 path = _save_attachment("img", name, msg["data_b64"])
-                await ws.send_json({"type": "attached", "kind": "image", "path": path,
-                                    "name": name, "size": len(_decode_payload(msg["data_b64"]))})
+                await safe_send(ws, {"type": "attached", "kind": "image", "path": path,
+                                     "name": name, "size": len(_decode_payload(msg["data_b64"]))})
                 continue
 
             if action == "voice_wav":
                 final = bool(msg.get("final", True))
                 path = _save_wav(msg["data_b64"], str(conn_id), final)
                 if path:
-                    await ws.send_json({"type": "voice_ready", "path": path,
-                                        "duration": float(msg.get("duration", 0.0))})
+                    await safe_send(ws, {"type": "voice_ready", "path": path,
+                                         "duration": float(msg.get("duration", 0.0))})
                 continue
 
             if action == "exec":
                 # "target system commands" — run bash directly without the LLM.
                 command = str(msg.get("command", "")).strip()
                 if not command:
-                    await ws.send_json({"type": "error", "message": "empty command"})
+                    await safe_send(ws, {"type": "error", "message": "empty command"})
                     continue
-                await ws.send_json({"type": "tool_call", "command": command})
+                await safe_send(ws, {"type": "tool_call", "command": command})
                 result = invoke_tool("bash", command)
-                await ws.send_json({"type": "tool_result", "result": result})
+                await safe_send(ws, {"type": "tool_result", "result": result})
                 continue
 
-            await ws.send_json({"type": "error",
-                                "message": f"unknown action '{action}' "
-                                           "(prompt|attach_file|attach_image|voice_wav|exec|ping)"})
+            await safe_send(ws, {"type": "error",
+                                 "message": f"unknown action '{action}' "
+                                            "(prompt|attach_file|attach_image|voice_wav|exec|ping)"})
     except WebSocketDisconnect:
         pass
     finally:

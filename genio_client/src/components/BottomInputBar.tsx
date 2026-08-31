@@ -15,6 +15,7 @@ export default function BottomInputBar({ onSendPrompt, onSendVoice, disabled }: 
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [recording, setRecording] = useState(false);
   const [recTimer, setRecTimer] = useState(0);
+  const [micError, setMicError] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // auto-expanding textarea
@@ -50,6 +51,7 @@ export default function BottomInputBar({ onSendPrompt, onSendVoice, disabled }: 
   }
 
   async function toggleMic() {
+    setMicError(null);
     if (recording) {
       const audio = await stopVoiceRecording();
       setRecording(false);
@@ -58,8 +60,9 @@ export default function BottomInputBar({ onSendPrompt, onSendVoice, disabled }: 
       try {
         await startVoiceRecording();
         setRecording(true);
-      } catch {
+      } catch (err: unknown) {
         setRecording(false);
+        setMicError(err instanceof Error ? err.message : "Microphone unavailable");
       }
     }
   }
@@ -163,6 +166,12 @@ export default function BottomInputBar({ onSendPrompt, onSendVoice, disabled }: 
           <Send size={16} />
         </button>
       </div>
+
+      {micError && (
+        <p className="mt-2 text-center text-[11px] font-mono text-rose-400">
+          ⚠ {micError}
+        </p>
+      )}
 
       {recording && (
         <motion.p

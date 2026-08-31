@@ -60,9 +60,20 @@ function blobToBase64(blob: Blob): Promise<string> {
 
 /** Start collecting microphone audio. Call once; pairing with `stopVoiceRecording`. */
 export async function startVoiceRecording(): Promise<void> {
-  latestStream = await navigator.mediaDevices.getUserMedia({
-    audio: { echoCancellation: true, noiseSuppression: true, channelCount: 1 },
-  });
+  try {
+    latestStream = await navigator.mediaDevices.getUserMedia({
+      audio: { echoCancellation: true, noiseSuppression: true, channelCount: 1 },
+    });
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (msg.includes("NotAllowedError") || msg.includes("Permission")) {
+      throw new Error("Microphone permission denied — allow mic access in your browser or Tauri settings and try again.");
+    }
+    if (msg.includes("NotFoundError") || msg.includes("DevicesNotFound")) {
+      throw new Error("No microphone detected — connect a mic and try again.");
+    }
+    throw new Error(`Microphone error: ${msg}`);
+  }
   const mime = pickMime();
   const rec = new MediaRecorder(latestStream, mime ? { mimeType: mime } : undefined);
   recChunks = [];

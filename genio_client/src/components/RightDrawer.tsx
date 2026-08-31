@@ -209,8 +209,9 @@ function ToolInspector({ chat }: { chat: ChatEvent[] }) {
       {runs.map((run) => {
         const ok = run.result?.returncode === 0;
         const active = openId === run.id;
+        const output = run.result ? (run.result.stdout ?? run.result.output ?? run.result.stderr ?? run.result.error ?? "") : "";
         return (
-          <div key={run.id} className="overflow-hidden rounded-lg border border-slate-700/50 bg-slate-950/50">
+          <div key={run.id} className="group overflow-hidden rounded-lg border border-slate-700/50 bg-slate-950/50">
             <button
               onClick={() => setOpenId(active ? null : run.id)}
               className="flex w-full items-center gap-2 px-3 py-2 text-left text-[11px] font-mono transition-colors hover:bg-neon/5"
@@ -234,12 +235,33 @@ function ToolInspector({ chat }: { chat: ChatEvent[] }) {
                     {JSON.stringify(run.result, null, 2)}
                   </pre>
                 )}
+                {output && <DrawerCopyBtn text={String(output)} />}
               </div>
             )}
           </div>
         );
       })}
     </div>
+  );
+}
+
+function DrawerCopyBtn({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false);
+  async function copy() {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1200);
+    } catch { /* noop */ }
+  }
+  return (
+    <button
+      onClick={copy}
+      className="mt-1.5 rounded px-2 py-0.5 text-[10px] text-slate-500 transition-all hover:bg-neon/10 hover:text-neon"
+      title="Copy output"
+    >
+      {copied ? "✓ copied" : "⧉ copy"}
+    </button>
   );
 }
 
