@@ -59,15 +59,15 @@ function blobToBase64(blob: Blob): Promise<string> {
 }
 
 /** Start collecting microphone audio. Call once; pairing with `stopVoiceRecording`. */
-export async function startVoiceRecording(): Promise<void> {
+export async function requestMicrophonePermission(): Promise<void> {
   try {
-    latestStream = await navigator.mediaDevices.getUserMedia({
-      audio: true,
-    });
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    // Stop the probe tracks immediately; recording will re-acquire the stream.
+    stream.getTracks().forEach((t) => t.stop());
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
     if (msg.includes("NotAllowedError") || msg.includes("Permission") || msg.includes("permission")) {
-      throw new Error("Microphone permission denied — allow mic access in your browser or Tauri settings and try again.");
+      throw new Error("Microphone permission denied — grant mic access in your browser/OS settings (Tauri + Android: Settings → App → Microphone), then try again.");
     }
     if (msg.includes("NotFoundError") || msg.includes("DevicesNotFound") || msg.includes("devices")) {
       throw new Error("No microphone detected — connect a mic and try again.");
@@ -77,6 +77,13 @@ export async function startVoiceRecording(): Promise<void> {
     }
     throw new Error(`Microphone error: ${msg}`);
   }
+}
+
+export async function startVoiceRecording(): Promise<void> {
+  await requestMicrophonePermission();
+  latestStream = await navigator.mediaDevices.getUserMedia({
+    audio: true,
+  });
   const mime = pickMime();
   const rec = new MediaRecorder(latestStream, mime ? { mimeType: mime } : undefined);
   recChunks = [];

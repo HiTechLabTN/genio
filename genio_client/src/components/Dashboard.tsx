@@ -1,6 +1,7 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { useCallback, useEffect, useRef, useState } from "react";
 import ActivityBar from "./ActivityBar";
+import AudioPlayer, { stopAllAudio } from "./AudioPlayer";
 import BottomInputBar from "./BottomInputBar";
 import Header from "./Header";
 import RightDrawer from "./RightDrawer";
@@ -68,7 +69,7 @@ export default function Dashboard({
       <div className="flex min-h-0 flex-1">
         {/* main chat area */}
         <div className="flex min-h-0 flex-1 flex-col">
-          <Transcript chat={chat} />
+          <Transcript chat={chat} agentStatus={agentStatus} />
           <ActivityBar agentStatus={agentStatus} onKill={onKill} onContinue={onContinue} />
         </div>
 
@@ -98,7 +99,7 @@ export default function Dashboard({
 /* Transcript                                                           */
 /* ------------------------------------------------------------------ */
 
-function Transcript({ chat }: { chat: ChatEvent[] }) {
+function Transcript({ chat, agentStatus }: { chat: ChatEvent[]; agentStatus?: AgentStatus }) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const stickRef = useRef(true);
 
@@ -114,6 +115,13 @@ function Transcript({ chat }: { chat: ChatEvent[] }) {
       el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
     }
   }, [chat]);
+
+  // stop any playing audio when the agent is interrupted (killed / goes idle)
+  useEffect(() => {
+    if (agentStatus?.kind === "idle" || agentStatus?.kind === "completed") {
+      stopAllAudio();
+    }
+  }, [agentStatus]);
 
   return (
     <div
@@ -149,9 +157,17 @@ function Transcript({ chat }: { chat: ChatEvent[] }) {
           >
             <span className={`mt-0.5 select-none text-[11px] ${event.type === "user" ? "order-last" : "text-slate-700"}`}>{i}</span>
             <div className={`min-w-0 ${event.type === "user" ? "max-w-[85%]" : "flex-1"}`}>
-              {event.type === "user" && <UserBubble text={event.text} attachments={event.attachments} />}
+              {event.type === "user" && (
+                <>
+                  <UserBubble text={event.text} attachments={event.attachments} />
+                  {event.audio && <AudioPlayer audioUrl={event.audio.url} base64Audio={event.audio.dataB64} mime={event.audio.mime} />}
+                </>
+              )}
               {event.type === "answer" && (
-                <p className="whitespace-pre-wrap text-slate-200">{event.text}</p>
+                <>
+                  <p className="whitespace-pre-wrap text-slate-200">{event.text}</p>
+                  {event.audio && <AudioPlayer audioUrl={event.audio.url} base64Audio={event.audio.dataB64} mime={event.audio.mime} />}
+                </>
               )}
               {event.type === "thought" && <ThoughtBubble text={event.text} />}
               {event.type === "tool_call" && <ToolCallLine command={event.command} />}

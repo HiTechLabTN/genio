@@ -41,6 +41,7 @@ export default {
         scan: "scan 4s linear infinite",
         "spin-slow": "spin 6s linear infinite",
         "float-y": "floatY 6s ease-in-out infinite",
+        equalizer: "equalizer 0.9s ease-in-out infinite",
       },
       keyframes: {
         scan: {
@@ -50,6 +51,10 @@ export default {
         floatY: {
           "0%, 100%": { transform: "translateY(0px)" },
           "50%": { transform: "translateY(-12px)" },
+        },
+        equalizer: {
+          "0%, 100%": { transform: "scaleY(0.4)" },
+          "50%": { transform: "scaleY(1)" },
         },
       },
     },

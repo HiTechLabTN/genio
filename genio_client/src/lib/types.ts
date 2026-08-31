@@ -50,16 +50,22 @@ export interface ToolResultMap {
   [key: string]: unknown;
 }
 
+export interface AudioPayload {
+  url?: string;
+  dataB64?: string;
+  mime?: string;
+}
+
 export type ChatEvent =
   | { type: "thought"; text: string }
-  | { type: "answer"; text: string }
+  | { type: "answer"; text: string; audio?: AudioPayload }
   | { type: "tool_call"; command: string }
   | { type: "tool_result"; result: ToolResultMap }
   | { type: "stats"; tokens?: number; tok_per_s?: number }
   | { type: "error"; message: string }
   | { type: "attached"; kind?: string; path?: string; name?: string }
   | { type: "killed" | "armed" }
-  | { type: "user"; text: string; attachments?: { name: string; content?: string }[]; timestamp?: number };
+  | { type: "user"; text: string; attachments?: { name: string; content?: string }[]; audio?: AudioPayload; timestamp?: number };
 
 export type GenioEvent =
   | ({ type: "telemetry" } & Record<string, unknown>)
