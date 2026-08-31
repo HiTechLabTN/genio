@@ -1,5 +1,7 @@
 import { motion } from "framer-motion";
-import { Download, X } from "lucide-react";
+import { Check, Download, Loader2, Rocket, X } from "lucide-react";
+import { useState } from "react";
+import { installUpdate } from "../lib/updater";
 
 interface Props {
   version: string;
@@ -7,7 +9,13 @@ interface Props {
   onClose: () => void;
 }
 
+type Phase = "idle" | "downloading" | "installing" | "done";
+
 export default function UpdateModal({ version, notes, onClose }: Props) {
+  const [phase, setPhase] = useState<Phase>("idle");
+  const [progress, setProgress] = useState(0);
+  const [error, setError] = useState<string | null>(null);
+
   async function openReleases() {
     try {
       const { openUrl } = await import("@tauri-apps/plugin-opener");
@@ -17,11 +25,29 @@ export default function UpdateModal({ version, notes, onClose }: Props) {
     }
   }
 
+  async function handleInstall() {
+    setError(null);
+    setPhase("downloading");
+    const ok = await installUpdate((downloaded, total) => {
+      if (total > 0) setProgress(Math.min(1, downloaded / total));
+    });
+    if (ok) {
+      setPhase("done");
+    } else {
+      setPhase("idle");
+      setError(
+        "The in-app installer isn't available here. Please download the latest build from the releases page instead.",
+      );
+    }
+  }
+
+  const installing = phase === "downloading" || phase === "installing";
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
       onClick={onClose}
     >
       <motion.div
@@ -34,31 +60,84 @@ export default function UpdateModal({ version, notes, onClose }: Props) {
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-3">
             <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-neon/15 text-neon">
-              <Download size={18} />
+              {phase === "done" ? <Check size={18} /> : <Download size={18} />}
             </span>
             <div>
-              <h3 className="font-display text-base font-bold text-white">Update available</h3>
+              <h3 className="font-display text-base font-bold text-white">
+                {phase === "done" ? "Update installed" : "Update available"}
+              </h3>
               <p className="text-[11px] font-mono text-neon-soft">v{version}</p>
             </div>
           </div>
-          <button onClick={onClose} className="text-slate-500 hover:text-white transition-colors">
-            <X size={18} />
-          </button>
+          {!installing && (
+            <button onClick={onClose} className="text-slate-500 transition-colors hover:text-white">
+              <X size={18} />
+            </button>
+          )}
         </div>
 
-        {notes && (
+        {notes && phase === "idle" && (
           <div className="custom-scrollbar mt-4 max-h-40 overflow-y-auto rounded-lg border border-slate-700/40 bg-slate-950/60 p-3 text-xs leading-relaxed text-slate-300">
             <pre className="whitespace-pre-wrap font-sans">{notes}</pre>
           </div>
         )}
 
+        {phase === "downloading" && (
+          <div className="mt-4">
+            <div className="h-2 w-full overflow-hidden rounded-full bg-slate-800">
+              <motion.div
+                className="h-full bg-neon"
+                animate={{ width: `${Math.round(progress * 100)}%` }}
+                transition={{ ease: "easeOut", duration: 0.2 }}
+              />
+            </div>
+            <p className="mt-1 text-center text-[11px] font-mono text-slate-400">
+              Downloading {Math.round(progress * 100)}%
+            </p>
+          </div>
+        )}
+
+        {phase === "done" && (
+          <p className="mt-4 text-center text-sm text-slate-300">
+            Genio will restart to apply the update. <Rocket size={14} className="ml-1 inline text-neon" />
+          </p>
+        )}
+
+        {error && (
+          <p className="mt-4 text-center text-[11px] font-mono text-rose-400">⚠ {error}</p>
+        )}
+
         <div className="mt-5 flex gap-2">
-          <button onClick={openReleases} className="neon-button flex-1 py-2.5">
-            <Download size={14} /> Download latest
-          </button>
-          <button onClick={onClose} className="rounded-xl border border-slate-700 px-4 py-2.5 text-sm text-slate-300 transition-colors hover:bg-slate-800">
-            Later
-          </button>
+          {phase === "done" ? (
+            <button onClick={onClose} className="neon-button flex-1 py-2.5">
+              <Check size={14} /> Done
+            </button>
+          ) : phase === "idle" ? (
+            <>
+              <button
+                onClick={handleInstall}
+                className="neon-button flex-1 py-2.5"
+              >
+                <Rocket size={14} /> Install & restart
+              </button>
+              <button
+                onClick={openReleases}
+                className="rounded-xl border border-slate-700 px-4 py-2.5 text-sm text-slate-300 transition-colors hover:bg-slate-800"
+              >
+                Release page
+              </button>
+              <button
+                onClick={onClose}
+                className="rounded-xl border border-slate-700 px-4 py-2.5 text-sm text-slate-300 transition-colors hover:bg-slate-800"
+              >
+                Later
+              </button>
+            </>
+          ) : (
+            <button disabled className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-slate-800 py-2.5 text-sm text-slate-400">
+              <Loader2 size={14} className="animate-spin" /> Installing…
+            </button>
+          )}
         </div>
       </motion.div>
     </motion.div>

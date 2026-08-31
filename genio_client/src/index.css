@@ -13,12 +13,37 @@ body,
   margin: 0;
 }
 
+/* Andalusian / Islamic geometry — subtle hexagonal star lattice (base64 SVG). */
+:root,
+html.dark {
+  --andal: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCIgdmlld0JveD0iMCAwIDYwIDYwIj4KICA8ZyBmaWxsPSJub25lIiBzdHJva2U9IiMyMmQzZWUiPgogICAgPHBvbHlnb24gcG9pbnRzPSIzMCwyIDU1LDE2IDU1LDQ0IDMwLDU4IDUsNDQgNSwxNiIvPgogICAgPHBvbHlnb24gcG9pbnRzPSIzMCwyIDU1LDE2IDU1LDQ0IDMwLDU4IDUsNDQgNSwxNiIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMCwwKSByb3RhdGUoMTgwIDMwIDMwKSIvPgogICAgPHBhdGggZD0iTTMwIDIgTDU1IDE2IEwzMCAzMCBMNSAxNiBaIi8+CiAgICA8cGF0aCBkPSJNMzAgNTggTDUgNDQgTDMwIDMwIEw1NSA0NCBaIi8+CiAgICA8cGF0aCBkPSJNNSAxNiBMMzAgMzAgTDU1IDE2Ii8+CiAgICA8cGF0aCBkPSJNNSA0NCBMMzAgMzAgTDU1IDQ0Ii8+CiAgPC9nPgo8L3N2Zz4K");
+  --body-bg: #020617;
+  --body-glow1: rgba(34, 211, 238, 0.10);
+  --body-glow2: rgba(14, 116, 144, 0.12);
+}
+
+html.light {
+  color-scheme: light;
+  --andal: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCIgdmlld0JveD0iMCAwIDYwIDYwIj4KICA8ZyBmaWxsPSJub25lIiBzdHJva2U9IiMwZTc0OTAiPgogICAgPHBvbHlnb24gcG9pbnRzPSIzMCwyIDU1LDE2IDU1LDQ0IDMwLDU4IDUsNDQgNSwxNiIvPgogICAgPHBvbHlnb24gcG9pbnRzPSIzMCwyIDU1LDE2IDU1LDQ0IDMwLDU4IDUsNDQgNSwxNiIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMCwwKSByb3RhdGUoMTgwIDMwIDMwKSIvPgogICAgPHBhdGggZD0iTTMwIDIgTDU1IDE2IEwzMCAzMCBMNSAxNiBaIi8+CiAgICA8cGF0aCBkPSJNMzAgNTggTDUgNDQgTDMwIDMwIEw1NSA0NCBaIi8+CiAgICA8cGF0aCBkPSJNNSAxNiBMMzAgMzAgTDU1IDE2Ii8+CiAgICA8cGF0aCBkPSJNNSA0NCBMMzAgMzAgTDU1IDQ0Ii8+CiAgPC9nPgo8L3N2Zz4K");
+  --body-bg: #eef2f7;
+  --body-glow1: rgba(14, 165, 233, 0.10);
+  --body-glow2: rgba(14, 116, 144, 0.08);
+}
+
 body {
   @apply bg-void text-slate-200 antialiased font-display;
+  background-color: var(--body-bg);
   background-image:
-    radial-gradient(ellipse 80% 60% at 50% -10%, rgba(34, 211, 238, 0.10), transparent 60%),
-    radial-gradient(ellipse 60% 50% at 100% 110%, rgba(14, 116, 144, 0.12), transparent 60%);
+    radial-gradient(ellipse 80% 60% at 50% -10%, var(--body-glow1), transparent 60%),
+    radial-gradient(ellipse 60% 50% at 100% 110%, var(--body-glow2), transparent 60%),
+    var(--andal);
+  background-size: auto, auto, 60px 60px;
   background-attachment: fixed;
+  transition: background-color 0.3s ease;
+}
+
+html.light body {
+  color: #1e293b;
 }
 
 @layer components {

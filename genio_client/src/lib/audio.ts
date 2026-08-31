@@ -1,6 +1,32 @@
 export interface VoicedAudio {
   dataB64: string;
   durationSec: number;
+  mime: string;
+  transcript?: string;
+}
+
+// Type augmentation for engines that expose webkitSpeechRecognition.
+interface SpeechRecognitionAlternative {
+  transcript: string;
+  confidence: number;
+}
+interface SpeechRecognitionResultItem {
+  isFinal: boolean;
+  length: number;
+  item(i: number): SpeechRecognitionAlternative;
+  [i: number]: SpeechRecognitionAlternative;
+}
+interface SpeechRecognitionResultList {
+  length: number;
+  item(i: number): SpeechRecognitionResultItem;
+  [i: number]: SpeechRecognitionResultItem;
+}
+interface SpeechRecognitionEvent {
+  results: SpeechRecognitionResultList;
+  resultIndex: number;
+}
+interface SpeechRecognitionErrorEvent {
+  error: string;
 }
 
 let recorder: MediaRecorder | null = null;
@@ -8,6 +34,9 @@ let latestStream: MediaStream | null = null;
 let audioCtx: AudioContext | null = null;
 let recChunks: Blob[] = [];
 let recordingStartedAt = 0;
+let recognition: unknown = null;
+let silenceTimer: ReturnType<typeof setTimeout> | null = null;
+let onTranscriptCb: ((text: string, final: boolean) => void) | null = null;
 
 function pickMime(): string {
   const candidates = ["audio/webm;codecs=opus", "audio/webm", "audio/mp4"];
@@ -58,11 +87,9 @@ function blobToBase64(blob: Blob): Promise<string> {
   });
 }
 
-/** Start collecting microphone audio. Call once; pairing with `stopVoiceRecording`. */
 export async function requestMicrophonePermission(): Promise<void> {
   try {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    // Stop the probe tracks immediately; recording will re-acquire the stream.
     stream.getTracks().forEach((t) => t.stop());
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
@@ -79,11 +106,76 @@ export async function requestMicrophonePermission(): Promise<void> {
   }
 }
 
-export async function startVoiceRecording(): Promise<void> {
+/** Start SpeechRecognition for live transcription (best-effort; returns true if supported). */
+function startSpeechRecognition(onTranscript: (text: string, final: boolean) => void): boolean {
+  const w = window as unknown as Record<string, unknown>;
+  const SR = (w.SpeechRecognition || w.webkitSpeechRecognition) as
+    | (new () => unknown)
+    | undefined;
+  if (!SR) return false;
+
+  const sr = new SR() as {
+    lang: string;
+    continuous: boolean;
+    interimResults: boolean;
+    onresult: ((e: SpeechRecognitionEvent) => void) | null;
+    onerror: ((e: SpeechRecognitionErrorEvent) => void) | null;
+    onend: (() => void) | null;
+    start: () => void;
+    stop: () => void;
+  };
+  sr.lang = "en-US";
+  sr.continuous = true;
+  sr.interimResults = true;
+  sr.onresult = (e) => {
+    let interim = "";
+    let finalText = "";
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      const result = e.results.item(i);
+      const text = result.item(0).transcript;
+      if (result.isFinal) finalText += text;
+      else interim += text;
+    }
+    if (finalText) {
+      intermediateTranscript += finalText;
+      onTranscript(intermediateTranscript + (interim ? " " + interim : ""), true);
+    } else if (interim) {
+      onTranscript(intermediateTranscript + (interim ? " " + interim : ""), false);
+    }
+  };
+  sr.onerror = () => { /* ignore; fall back to silence timer */ };
+  sr.onend = () => {
+    // If still recording and transcripts have stopped, auto-stop on silence.
+    if (recorder && recorder.state === "recording") {
+      scheduleSilenceStop();
+    }
+  };
+  recognition = sr;
+  try { sr.start(); } catch { /* already started */ }
+  return true;
+}
+
+function scheduleSilenceStop() {
+  // Auto-stop after ~2.5s of no final transcript while idle-audio.
+  if (silenceTimer) clearTimeout(silenceTimer);
+  silenceTimer = setTimeout(() => {
+    if (recorder && recorder.state === "recording") {
+      stopVoiceRecording().catch(() => {});
+    }
+  }, 2500);
+}
+
+export function speechRecognitionSupported(): boolean {
+  const w = window as unknown as Record<string, unknown>;
+  return Boolean(w.SpeechRecognition || w.webkitSpeechRecognition);
+}
+
+/** Start collecting microphone audio with optional live transcription callback. */
+export async function startVoiceRecording(
+  onTranscript?: (text: string, final: boolean) => void,
+): Promise<void> {
   await requestMicrophonePermission();
-  latestStream = await navigator.mediaDevices.getUserMedia({
-    audio: true,
-  });
+  latestStream = await navigator.mediaDevices.getUserMedia({ audio: true });
   const mime = pickMime();
   const rec = new MediaRecorder(latestStream, mime ? { mimeType: mime } : undefined);
   recChunks = [];
@@ -93,37 +185,79 @@ export async function startVoiceRecording(): Promise<void> {
   recorder = rec;
   recordingStartedAt = performance.now();
   rec.start();
+
+  onTranscriptCb = onTranscript ?? null;
+  if (onTranscript) {
+    if (!startSpeechRecognition(onTranscript)) {
+      // No STT engine — fall back to silence auto-stop heuristic.
+      scheduleSilenceStop();
+    }
+  }
 }
 
-/** Stop, decode to PCM, re-encode as real WAV and return base64 for `voice_wav`. */
-export async function stopVoiceRecording(): Promise<VoicedAudio | null> {
+function collectBlob(): Promise<{ blob: Blob; mime: string }> {
   const rec = recorder;
-  if (!rec || rec.state === "inactive") return null;
-  const durationSec = Math.round(((performance.now() - recordingStartedAt) / 1000) * 100) / 100;
-
-  const blob = await new Promise<Blob>((resolve) => {
-    rec.onstop = () => resolve(new Blob(recChunks, { type: rec.mimeType || "audio/webm" }));
-    rec.stop();
+  if (!rec) return Promise.resolve({ blob: new Blob([], { type: "audio/webm" }), mime: "audio/webm" });
+  return new Promise((resolve) => {
+    const done = rec.onstop;
+    rec.onstop = () => {
+      if (typeof done === "function") (done as () => void).call(rec);
+      resolve({ blob: new Blob(recChunks, { type: rec.mimeType || "audio/webm" }), mime: rec.mimeType || "audio/webm" });
+    };
+    try { rec.stop(); } catch { resolve({ blob: new Blob(recChunks, { type: rec.mimeType || "audio/webm" }), mime: rec.mimeType || "audio/webm" }); }
+    // Safety: never hang forever — resolve with whatever we have after 3s.
+    setTimeout(() => {
+      resolve({ blob: new Blob(recChunks, { type: rec.mimeType || "audio/webm" }), mime: rec.mimeType || "audio/webm" });
+    }, 3000);
   });
-  latestStream?.getTracks().forEach((t) => t.stop());
+}
 
+/**
+ * Stop, try to decode to PCM WAV; fall back to the raw recorded blob base64
+ * so the client NEVER freezes stuck on "recording…".
+ */
+export async function stopVoiceRecording(): Promise<VoicedAudio | null> {
+  if (silenceTimer) { clearTimeout(silenceTimer); silenceTimer = null; }
+  if (recognition) {
+    try { (recognition as { stop?: () => void }).stop?.(); } catch { /* noop */ }
+    recognition = null;
+  }
+  const durationSec = Math.round(((performance.now() - recordingStartedAt) / 1000) * 100) / 100;
+  const transcript = onTranscriptCb ? intermediateTranscript : undefined;
+
+  const { blob, mime } = recChunks.length || recorder
+    ? await collectBlob()
+    : { blob: new Blob([], { type: "audio/webm" }), mime: "audio/webm" };
+  latestStream?.getTracks().forEach((t) => t.stop());
+  latestStream = null;
+  recorder = null;
+  onTranscriptCb = null;
+
+  if (blob.size === 0) return null;
+
+  // Prefer WAV (backend expects wav via _save_wav); fall back to the raw blob.
   try {
     audioCtx = audioCtx ?? new AudioContext();
     const arrayBuffer = await blob.arrayBuffer();
     const decoded = await audioCtx.decodeAudioData(arrayBuffer);
     await audioCtx.close().catch(() => void 0);
     audioCtx = null;
-
     const wav = encodeWav(decoded);
     const dataB64 = await blobToBase64(wav);
-    recorder = null;
-    latestStream = null;
-    return { dataB64, durationSec };
+    return { dataB64, durationSec, mime: "audio/wav", transcript };
   } catch {
-    recorder = null;
-    latestStream = null;
-    return null;
+    audioCtx?.close().catch(() => void 0);
+    audioCtx = null;
+    const dataB64 = await blobToBase64(blob).catch(() => "");
+    if (!dataB64) return null;
+    return { dataB64, durationSec, mime, transcript };
   }
+}
+
+let intermediateTranscript = "";
+
+export function setIntermediateTranscript(text: string) {
+  intermediateTranscript = text;
 }
 
 /** Whether a voice session is actively capturing. */

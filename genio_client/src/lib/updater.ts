@@ -70,3 +70,37 @@ export function isNewer(candidate: string, base: string): boolean {
   }
   return false;
 }
+
+/**
+ * Download and install the available update via the Tauri v2 updater plugin.
+ * Calling this inside a packaged app triggers the native installer and restarts.
+ * Returns false when the plugin isn't available (web/dev preview).
+ */
+export async function installUpdate(onProgress?: (downloaded: number, total: number) => void): Promise<boolean> {
+  try {
+    const { check } = await import("@tauri-apps/plugin-updater");
+    const { relaunch } = await import("@tauri-apps/plugin-process");
+    const update = await check();
+    if (!update) return false;
+
+    let downloaded = 0;
+    let total = 0;
+    await update.downloadAndInstall((event) => {
+      if (event.event === "Started") {
+        total = event.data.contentLength ?? 0;
+      } else if (event.event === "Progress") {
+        downloaded += event.data.chunkLength;
+        if (total > 0) onProgress?.(downloaded, total);
+      }
+    });
+
+    try {
+      await relaunch();
+    } catch {
+      /* relaunch may fail on some platforms; the install is already done */
+    }
+    return true;
+  } catch {
+    return false;
+  }
+}

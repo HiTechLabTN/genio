@@ -41,15 +41,16 @@ export default function Header({
       initial={{ opacity: 0, y: -12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
-      className="flex h-[52px] flex-none items-center justify-between border-b border-slate-700/40 bg-slate-950/80 px-4 backdrop-blur-lg"
+      className="flex h-[52px] flex-none items-center justify-between border-b border-slate-700/40 bg-slate-950/80 pl-4 pr-4 backdrop-blur-lg pt-[env(safe-area-inset-top)]"
+      style={{ height: "calc(52px + env(safe-area-inset-top, 0px))" }}
     >
       <div className="flex items-center gap-3">
         <button
           onClick={onToggleDrawer}
-          className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-neon/10 hover:text-neon"
+          className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-neon/10 hover:text-neon"
           title="Toggle drawer"
         >
-          <Menu size={18} />
+          <Menu size={20} />
         </button>
 
         <div className="flex items-center gap-2">
@@ -94,7 +95,7 @@ export default function Header({
         {agentStatus.kind === "executing" || agentStatus.kind === "thinking" ? (
           <button
             onClick={onKill}
-            className="flex h-8 items-center gap-1.5 rounded-lg border border-danger/40 bg-danger/10 px-3 text-[11px] font-bold uppercase tracking-wider text-rose-300 transition-all hover:bg-danger/20 hover:shadow-[0_0_16px_rgba(244,63,94,0.3)]"
+            className="flex h-9 items-center gap-1.5 rounded-lg border border-danger/40 bg-danger/10 px-3 text-[11px] font-bold uppercase tracking-wider text-rose-300 transition-all hover:bg-danger/20 hover:shadow-[0_0_16px_rgba(244,63,94,0.3)]"
           >
             <Power size={12} />
             Stop
@@ -103,9 +104,9 @@ export default function Header({
         <button
           onClick={onDisconnect}
           title="Disconnect"
-          className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-danger/10 hover:text-rose-400"
+          className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-danger/10 hover:text-rose-400"
         >
-          <LogOut size={16} />
+          <LogOut size={18} />
         </button>
       </div>
     </motion.header>

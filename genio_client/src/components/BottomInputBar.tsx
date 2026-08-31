@@ -2,7 +2,7 @@ import { motion } from "framer-motion";
 import { Mic, Paperclip, Send, Square, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type { Attachment } from "../lib/types";
-import { startVoiceRecording, stopVoiceRecording } from "../lib/audio";
+import { setIntermediateTranscript, startVoiceRecording, stopVoiceRecording, speechRecognitionSupported } from "../lib/audio";
 
 interface Props {
   onSendPrompt: (text: string, attachments?: Attachment[]) => void;
@@ -64,10 +64,18 @@ export default function BottomInputBar({ onSendPrompt, onSendVoice, disabled }: 
     if (recording) {
       const audio = await stopVoiceRecording();
       setRecording(false);
+      // Keep any live-transcribed words so they can be sent as text too.
+      if (audio?.transcript && !value.trim()) {
+        setValue(audio.transcript.trim());
+      }
       if (audio && audio.dataB64) onSendVoice(audio.dataB64, audio.durationSec);
     } else {
+      setIntermediateTranscript("");
       try {
-        await startVoiceRecording();
+        await startVoiceRecording((text: string) => {
+          // Live STT: stream recognized words into the input in real-time.
+          setValue(text);
+        });
         setRecording(true);
       } catch (err: unknown) {
         setRecording(false);
@@ -220,7 +228,10 @@ export default function BottomInputBar({ onSendPrompt, onSendVoice, disabled }: 
           animate={{ opacity: 1, y: 0 }}
           className="mt-2 text-center text-[11px] font-mono text-danger"
         >
-          ● recording {recTimer}s — release to send via Web Audio
+          ● recording {recTimer}s —{" "}
+          {speechRecognitionSupported()
+            ? "live transcription: speak…"
+            : "release to send via Web Audio"}
         </motion.p>
       )}
     </div>

@@ -2,15 +2,19 @@ import { AnimatePresence, motion } from "framer-motion";
 import {
   ChevronDown,
   MonitorPlay,
+  Moon,
   Network,
+  Palette,
   Puzzle,
   Radio,
   Square,
+  Sun,
   Wrench,
   X,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import type { ChatEvent, TelemetrySnapshot, ToolResultMap } from "../lib/types";
+import { useTheme } from "../lib/theme";
 
 interface Props {
   open: boolean;
@@ -27,13 +31,14 @@ interface Props {
   onSwitchNode: (host: string, label: string) => Promise<boolean>;
 }
 
-type DrawerTab = "live" | "tools" | "mcp" | "nodes";
+type DrawerTab = "live" | "tools" | "mcp" | "nodes" | "appearance";
 
 const TABS: { id: DrawerTab; label: string; icon: React.ReactNode }[] = [
   { id: "live", label: "Live", icon: <MonitorPlay size={15} /> },
   { id: "tools", label: "Tools", icon: <Wrench size={15} /> },
   { id: "mcp", label: "MCP", icon: <Puzzle size={15} /> },
   { id: "nodes", label: "Nodes", icon: <Network size={15} /> },
+  { id: "appearance", label: "UI", icon: <Palette size={15} /> },
 ];
 
 export default function RightDrawer({
@@ -118,6 +123,7 @@ export default function RightDrawer({
                   onSwitchNode={onSwitchNode}
                 />
               )}
+              {tab === "appearance" && <AppearancePanel />}
             </div>
           </motion.aside>
         </>
@@ -379,6 +385,48 @@ function NodeWatch({
           )}
         </div>
       ))}
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Appearance (theme switcher)                                          */
+/* ------------------------------------------------------------------ */
+
+function AppearancePanel() {
+  const { theme, setTheme } = useTheme();
+
+  const options = [
+    { id: "dark" as const, label: "Dark", desc: "Neon void — default", icon: <Moon size={16} /> },
+    { id: "light" as const, label: "Light", desc: "Andalusian porcelain", icon: <Sun size={16} /> },
+  ];
+
+  return (
+    <div className="space-y-3">
+      <h3 className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Appearance</h3>
+
+      <div className="grid grid-cols-2 gap-2">
+        {options.map((o) => (
+          <button
+            key={o.id}
+            onClick={() => setTheme(o.id)}
+            className={`flex flex-col items-start gap-1.5 rounded-xl border p-3 text-left transition-all ${
+              theme === o.id
+                ? "border-neon/60 bg-neon/10 shadow-neon"
+                : "border-slate-700/50 bg-slate-950/40 hover:border-slate-600"
+            }`}
+          >
+            <span className={theme === o.id ? "text-neon" : "text-slate-400"}>{o.icon}</span>
+            <span className="text-xs font-bold text-white">{o.label}</span>
+            <span className="text-[10px] text-slate-500">{o.desc}</span>
+          </button>
+        ))}
+      </div>
+
+      <p className="rounded-lg border border-slate-700/40 bg-slate-950/40 px-3 py-2 text-[10px] leading-relaxed text-slate-500">
+        ✦ Andalusian geometric lattice — rooted in hexagonal Islamic star patterns — overlays the
+        background at low opacity for a localized cyberpunk identity.
+      </p>
     </div>
   );
 }
