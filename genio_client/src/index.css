@@ -10,13 +10,14 @@ html,
 body,
 #root {
   height: 100%;
+  margin: 0;
 }
 
 body {
   @apply bg-void text-slate-200 antialiased font-display;
   background-image:
-    radial-gradient(ellipse 80% 60% at 50% -10%, rgba(34, 211, 238, 0.14), transparent 60%),
-    radial-gradient(ellipse 60% 50% at 100% 110%, rgba(14, 116, 144, 0.18), transparent 60%);
+    radial-gradient(ellipse 80% 60% at 50% -10%, rgba(34, 211, 238, 0.10), transparent 60%),
+    radial-gradient(ellipse 60% 50% at 100% 110%, rgba(14, 116, 144, 0.12), transparent 60%);
   background-attachment: fixed;
 }
 
@@ -32,9 +33,9 @@ body {
   }
 
   .neon-button {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl px-6 py-3 text-sm
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-sm
       font-semibold tracking-wide text-slate-950 bg-neon transition-all duration-200
-      hover:bg-neon-soft hover:shadow-neon-lg active:scale-[0.98] disabled:opacity-40
+      hover:bg-neon-soft hover:shadow-neon-lg active:scale-[0.97] disabled:opacity-40
       disabled:cursor-not-allowed disabled:hover:shadow-none;
   }
 
@@ -51,26 +52,24 @@ body {
 @layer utilities {
   .custom-scrollbar {
     scrollbar-width: thin;
-    scrollbar-color: rgba(34, 211, 238, 0.4) rgba(2, 6, 23, 0.6);
+    scrollbar-color: rgba(34, 211, 238, 0.3) rgba(2, 6, 23, 0.5);
   }
 
   .custom-scrollbar::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
+    width: 6px;
+    height: 6px;
   }
 
   .custom-scrollbar::-webkit-scrollbar-track {
-    background: rgba(2, 6, 23, 0.6);
-    border-radius: 999px;
+    background: transparent;
   }
 
   .custom-scrollbar::-webkit-scrollbar-thumb {
-    background: rgba(34, 211, 238, 0.35);
+    background: rgba(34, 211, 238, 0.25);
     border-radius: 999px;
-    border: 2px solid rgba(2, 6, 23, 0.6);
   }
 
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: rgba(34, 211, 238, 0.65);
+    background: rgba(34, 211, 238, 0.5);
   }
 }

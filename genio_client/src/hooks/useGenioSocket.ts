@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type {
+  AgentStatus,
   ChatEvent,
   GenioEvent,
   ServerNode,
@@ -11,6 +12,7 @@ import { GenioSocket, isChatEvent, streamTelemetry } from "../lib/ws";
 
 export function useGenioSocket(): UseGenioSocket {
   const [status, setStatus] = useState<SocketStatus>({ kind: "idle" });
+  const [agentStatus, setAgentStatus] = useState<AgentStatus>({ kind: "idle" });
   const [telemetry, setTelemetry] = useState<TelemetrySnapshot | null>(null);
   const [chat, setChat] = useState<ChatEvent[]>([]);
   const [screen, setScreen] = useState<string | null>(null);
@@ -27,9 +29,14 @@ export function useGenioSocket(): UseGenioSocket {
     for (const [k, v] of Object.entries(payload)) {
       if (v !== undefined && v !== "") clean[k] = v;
     }
+    // track agent lifecycle
+    if (clean.action === "prompt") setAgentStatus({ kind: "thinking" });
+    if (clean.action === "kill") setAgentStatus({ kind: "idle" });
     return ws.send(clean);
   }, []);
 
+  const kill = useCallback(() => send({ action: "kill", reason: "user stop" }), [send]);
+  const continuePrompt = useCallback((_lp: string) => false, []);
   const requestScreenshot = useCallback(() => send({ action: "screenshot" }), [send]);
   const toggleScreenStream = useCallback(
     (active: boolean) => {
@@ -46,6 +53,7 @@ export function useGenioSocket(): UseGenioSocket {
     socketRef.current = null;
     activeRef.current = null;
     setStatus({ kind: "idle" });
+    setAgentStatus({ kind: "idle" });
     setTelemetry(null);
     setScreen(null);
     setStreaming(false);
@@ -69,12 +77,24 @@ export function useGenioSocket(): UseGenioSocket {
           }
           if (isChatEvent(event)) {
             setChat((prev) => [...prev.slice(-299), event]);
+            // update agent status from chat events
+            if (event.type === "tool_call") {
+              const toolName = extractToolName(event.command);
+              setAgentStatus({ kind: "executing", tool: toolName });
+            } else if (event.type === "stats" || event.type === "answer") {
+              setAgentStatus({ kind: "completed" });
+            } else if (event.type === "error") {
+              setAgentStatus({ kind: "idle" });
+            } else if (event.type === "killed") {
+              setAgentStatus({ kind: "idle" });
+            }
           }
         },
         () => setStatus({ kind: "error", message: `WebSocket error on ${target.host}` }),
         () => {
           if (activeRef.current) {
             setStatus({ kind: "idle" });
+            setAgentStatus({ kind: "idle" });
             setTelemetry(null);
             setScreen(null);
             setStreaming(false);
@@ -93,9 +113,7 @@ export function useGenioSocket(): UseGenioSocket {
 
       const controller = new AbortController();
       sseRef.current = controller;
-      streamTelemetry(target, setTelemetry, controller.signal).catch(() => {
-        /* telemetry is best-effort */
-      });
+      streamTelemetry(target, setTelemetry, controller.signal).catch(() => {});
 
       setChat((prev) => [
         ...prev.slice(-299),
@@ -110,6 +128,7 @@ export function useGenioSocket(): UseGenioSocket {
 
   return {
     status,
+    agentStatus,
     socket: socketRef.current as GenioSocket | null,
     telemetry,
     chat,
@@ -119,8 +138,19 @@ export function useGenioSocket(): UseGenioSocket {
     connect,
     disconnect,
     send,
+    kill,
+    continuePrompt,
     requestScreenshot,
     toggleScreenStream,
     error: status.kind === "error" ? status.message : undefined,
   };
+}
+
+function extractToolName(command: string): string {
+  try {
+    const obj = JSON.parse(command);
+    return obj.tool ?? command.slice(0, 30);
+  } catch {
+    return command.split(/\s+/)[0].slice(0, 30);
+  }
 }

@@ -1,5 +1,5 @@
 import { AnimatePresence } from "framer-motion";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import ConnectionHub from "./components/ConnectionHub";
 import Dashboard from "./components/Dashboard";
 import { useGenioSocket } from "./hooks/useGenioSocket";
@@ -7,6 +7,7 @@ import type { ServerNode } from "./lib/types";
 
 export default function App() {
   const {
+    agentStatus,
     telemetry,
     chat,
     screen,
@@ -14,17 +15,22 @@ export default function App() {
     connect,
     disconnect,
     send,
+    kill,
     requestScreenshot,
     toggleScreenStream,
   } = useGenioSocket();
+
   const [connected, setConnected] = useState(false);
   const [target, setTarget] = useState<ServerNode | null>(null);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const lastPromptRef = useRef("");
 
   async function handleConnect(node: ServerNode) {
     const ok = await connect(node);
     if (ok) {
       setTarget(node);
       setConnected(true);
+      setDrawerOpen(false);
     }
     return ok;
   }
@@ -33,6 +39,7 @@ export default function App() {
     disconnect();
     setConnected(false);
     setTarget(null);
+    setDrawerOpen(false);
   }
 
   async function handleSwitchNode(host: string, label: string) {
@@ -43,8 +50,19 @@ export default function App() {
     return ok;
   }
 
+  function handleSendPrompt(text: string) {
+    lastPromptRef.current = text;
+    send({ action: "prompt", text });
+  }
+
+  function handleContinue() {
+    if (lastPromptRef.current) {
+      send({ action: "prompt", text: lastPromptRef.current });
+    }
+  }
+
   return (
-    <div className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden px-4 py-10">
+    <div className="relative h-screen overflow-hidden">
       <div className="pointer-events-none absolute inset-0 -z-20 bg-grid-neon bg-grid [mask-image:radial-gradient(ellipse_70%_60%_at_50%_40%,black,transparent)]" />
 
       <AnimatePresence mode="wait">
@@ -55,11 +73,16 @@ export default function App() {
             host={target.host}
             apiKey={target.key}
             telemetry={telemetry}
+            agentStatus={agentStatus}
             chat={chat}
             screen={screen}
             streaming={streaming}
+            drawerOpen={drawerOpen}
+            onToggleDrawer={() => setDrawerOpen((o) => !o)}
             onDisconnect={handleDisconnect}
-            onSendPrompt={(text) => send({ action: "prompt", text })}
+            onKill={kill}
+            onContinue={handleContinue}
+            onSendPrompt={handleSendPrompt}
             onSendVoice={(dataB64, durationSec) =>
               send({ action: "voice_wav", data_b64: dataB64, duration: durationSec, final: true })
             }
@@ -71,10 +94,6 @@ export default function App() {
           <ConnectionHub key="hub" onConnect={handleConnect} />
         )}
       </AnimatePresence>
-
-      <footer className="mt-10 text-center text-[11px] font-mono text-slate-600">
-        genio v2.0 client · tauri + react + tailwind · “the machine works for you”
-      </footer>
     </div>
   );
 }

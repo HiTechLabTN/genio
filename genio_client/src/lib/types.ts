@@ -22,7 +22,20 @@ export type SocketStatus =
   | { kind: "connected"; node?: string }
   | { kind: "error"; message: string };
 
-/** A chat-relevant event pushed by the Genio backend agent loop. */
+export type AgentStatus =
+  | { kind: "idle" }
+  | { kind: "thinking" }
+  | { kind: "executing"; tool: string }
+  | { kind: "completed" };
+
+export interface Attachment {
+  id: string;
+  name: string;
+  type: string;
+  dataB64: string;
+  size: number;
+}
+
 export interface ToolResultMap {
   command?: string;
   stdout?: string;
@@ -46,7 +59,6 @@ export type ChatEvent =
   | { type: "attached"; kind?: string; path?: string; name?: string }
   | { type: "killed" | "armed" };
 
-/** Raw event received on the /ws/agent socket (superset of ChatEvent). */
 export type GenioEvent =
   | ({ type: "telemetry" } & Record<string, unknown>)
   | ({ type: "pong" } & Record<string, unknown>)
@@ -56,7 +68,6 @@ export type GenioEvent =
   | { type: "voice_ready"; path?: string; duration?: number }
   | ChatEvent;
 
-/** Snapshot pushed by `GET /api/v1/telemetry` (SSE) from genio_server. */
 export interface TelemetrySnapshot {
   node?: string;
   hostname?: string;
@@ -77,6 +88,7 @@ export interface TelemetrySnapshot {
 
 export interface UseGenioSocket {
   status: SocketStatus;
+  agentStatus: AgentStatus;
   socket: unknown;
   telemetry: TelemetrySnapshot | null;
   chat: ChatEvent[];
@@ -86,6 +98,8 @@ export interface UseGenioSocket {
   connect: (target: ServerNode) => Promise<boolean>;
   disconnect: () => void;
   send: (payload: Record<string, unknown>) => boolean;
+  kill: () => boolean;
+  continuePrompt: (lastPrompt: string) => boolean;
   requestScreenshot: () => boolean;
   toggleScreenStream: (active: boolean) => boolean;
   error?: string;
