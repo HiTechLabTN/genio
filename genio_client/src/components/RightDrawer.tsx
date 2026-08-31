@@ -1,6 +1,8 @@
 import { AnimatePresence, motion } from "framer-motion";
 import {
   ChevronDown,
+  ClipboardCopy,
+  FileText,
   MonitorPlay,
   Moon,
   Network,
@@ -31,9 +33,10 @@ interface Props {
   onSwitchNode: (host: string, label: string) => Promise<boolean>;
 }
 
-type DrawerTab = "live" | "tools" | "mcp" | "nodes" | "appearance";
+type DrawerTab = "logs" | "live" | "tools" | "mcp" | "nodes" | "appearance";
 
 const TABS: { id: DrawerTab; label: string; icon: React.ReactNode }[] = [
+  { id: "logs", label: "Export", icon: <FileText size={15} /> },
   { id: "live", label: "Live", icon: <MonitorPlay size={15} /> },
   { id: "tools", label: "Tools", icon: <Wrench size={15} /> },
   { id: "mcp", label: "MCP", icon: <Puzzle size={15} /> },
@@ -104,6 +107,7 @@ export default function RightDrawer({
 
             {/* content */}
             <div className="flex-1 overflow-y-auto custom-scrollbar p-4">
+              {tab === "logs" && <ExportPanel chat={chat} />}
               {tab === "live" && (
                 <LiveViewport
                   screen={screen}
@@ -129,6 +133,87 @@ export default function RightDrawer({
         </>
       )}
     </AnimatePresence>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Export (Markdown session log)                                        */
+/* ------------------------------------------------------------------ */
+
+function formatTranscriptMarkdown(chat: ChatEvent[]): string {
+  const lines: string[] = [];
+  chat.forEach((ev) => {
+    switch (ev.type) {
+      case "user":
+        lines.push(`**[User]**: ${ev.text ?? ""}`);
+        if (ev.attachments?.length) {
+          ev.attachments.forEach((a) => lines.push(`   > 📎 ${a.name}`));
+        }
+        break;
+      case "answer":
+        lines.push(`**[Agent]**: ${ev.text ?? ""}`);
+        break;
+      case "thought":
+        lines.push(`**[Thought]**: ${ev.text ?? ""}`);
+        break;
+      case "tool_call":
+        lines.push(`**[Tool: ${(ev.command.split(/\s+/)[0] ?? "bash")} ]**: \`${ev.command}\``);
+        break;
+      case "tool_result": {
+        const output =
+          (ev.result.stdout ?? ev.result.output ?? ev.result.stderr ?? ev.result.error ?? "").toString();
+        if (output) lines.push(`\`\`\`\n${output.trimEnd()}\n\`\`\``);
+        break;
+      }
+      case "stats":
+        if (ev.tokens != null) lines.push(`*stats: ${ev.tokens} tok · ${ev.tok_per_s?.toFixed(1) ?? "—"} tok/s*`);
+        break;
+      case "error":
+        lines.push(`**[Error]**: ${ev.message ?? ""}`);
+        break;
+      case "killed":
+        lines.push(`**[System]**: KILL SWITCH — run halted`);
+        break;
+      case "armed":
+        lines.push(`**[System]**: re-armed`);
+        break;
+      case "attached":
+        lines.push(`**[File]**: ${ev.name ?? ""} → ${ev.path ?? ""}`);
+        break;
+      default:
+        break;
+    }
+  });
+  return lines.length ? lines.join("\n\n") : "(no transcript yet)";
+}
+
+function ExportPanel({ chat }: { chat: ChatEvent[] }) {
+  const [copied, setCopied] = useState(false);
+  const markdown = useMemo(() => formatTranscriptMarkdown(chat), [chat]);
+
+  async function copy() {
+    try {
+      await navigator.clipboard.writeText(markdown);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch { /* noop */ }
+  }
+
+  return (
+    <div className="flex h-full flex-col gap-3">
+      <button
+        onClick={copy}
+        disabled={chat.length === 0}
+        className="neon-button w-full py-2 text-[11px]"
+      >
+        <ClipboardCopy size={12} />
+        {copied ? "Copied!" : "Copy Full Log"}
+      </button>
+
+      <pre className="custom-scrollbar min-h-0 flex-1 overflow-y-auto whitespace-pre-wrap break-words rounded-lg border border-slate-700/40 bg-slate-950/60 p-3 font-mono text-[11px] leading-relaxed text-slate-300">
+        {markdown}
+      </pre>
+    </div>
   );
 }
 

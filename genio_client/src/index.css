@@ -36,10 +36,17 @@ body {
   background-image:
     radial-gradient(ellipse 80% 60% at 50% -10%, var(--body-glow1), transparent 60%),
     radial-gradient(ellipse 60% 50% at 100% 110%, var(--body-glow2), transparent 60%),
-    var(--andal);
+    image(var(--andal), opacity(0.02));
   background-size: auto, auto, 60px 60px;
   background-attachment: fixed;
   transition: background-color 0.3s ease;
+}
+
+html.light body {
+  background-image:
+    radial-gradient(ellipse 80% 60% at 50% -10%, var(--body-glow1), transparent 60%),
+    radial-gradient(ellipse 60% 50% at 100% 110%, var(--body-glow2), transparent 60%),
+    image(var(--andal), opacity(0.04));
 }
 
 html.light body {
