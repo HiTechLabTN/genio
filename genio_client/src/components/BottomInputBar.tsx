@@ -5,7 +5,7 @@ import type { Attachment } from "../lib/types";
 import { startVoiceRecording, stopVoiceRecording } from "../lib/audio";
 
 interface Props {
-  onSendPrompt: (text: string) => void;
+  onSendPrompt: (text: string, attachments?: Attachment[]) => void;
   onSendVoice: (dataB64: string, durationSec: number) => void;
   disabled?: boolean;
 }
@@ -16,7 +16,15 @@ export default function BottomInputBar({ onSendPrompt, onSendVoice, disabled }: 
   const [recording, setRecording] = useState(false);
   const [recTimer, setRecTimer] = useState(0);
   const [micError, setMicError] = useState<string | null>(null);
+  const [dragOver, setDragOver] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  function handleDrop(e: React.DragEvent) {
+    e.preventDefault();
+    setDragOver(false);
+    const files = Array.from(e.dataTransfer.files);
+    if (files.length) readFiles(files);
+  }
 
   // auto-expanding textarea
   useEffect(() => {
@@ -38,8 +46,9 @@ export default function BottomInputBar({ onSendPrompt, onSendVoice, disabled }: 
   function handleSubmit() {
     const text = value.trim();
     if (!text && attachments.length === 0) return;
-    if (text) onSendPrompt(text);
+    if (text) onSendPrompt(text, attachments.length ? attachments : undefined);
     setValue("");
+    setAttachments([]);
     textareaRef.current?.focus();
   }
 
@@ -70,19 +79,41 @@ export default function BottomInputBar({ onSendPrompt, onSendVoice, disabled }: 
   function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
     const files = e.target.files;
     if (!files) return;
-    const readers: Promise<Attachment>[] = Array.from(files).map(
-      (f) =>
-        new Promise((resolve) => {
-          const reader = new FileReader();
-          reader.onload = () => {
-            const dataB64 = String(reader.result).split(",")[1] || "";
-            resolve({ id: crypto.randomUUID(), name: f.name, type: f.type, dataB64, size: f.size });
-          };
-          reader.readAsDataURL(f);
-        }),
-    );
-    Promise.all(readers).then((newAtts) => setAttachments((prev) => [...prev, ...newAtts]));
+    readFiles(Array.from(files));
     e.target.value = "";
+  }
+
+  function readFiles(files: File[]) {
+    Promise.all(files.map(readFile)).then((newAtts) =>
+      setAttachments((prev) => [...prev, ...newAtts]),
+    );
+  }
+
+  function readFile(f: File): Promise<Attachment> {
+    return new Promise((resolve) => {
+      const id = crypto.randomUUID();
+      const reader = new FileReader();
+      if (isTextual(f)) {
+        reader.onload = () => {
+          resolve({ id, name: f.name, type: f.type, dataB64: "", size: f.size, content: String(reader.result) });
+        };
+        reader.readAsText(f);
+      } else {
+        reader.onload = () => {
+          const dataB64 = String(reader.result).split(",")[1] || "";
+          resolve({ id, name: f.name, type: f.type, dataB64, size: f.size });
+        };
+        reader.readAsDataURL(f);
+      }
+    });
+  }
+
+  function isTextual(f: File): boolean {
+    if (!f.type) {
+      const ext = f.name.split(".").pop()?.toLowerCase();
+      return ["txt", "md", "html", "htm", "css", "js", "ts", "json", "py", "c", "cpp", "h", "java", "rs", "go", "rb", "sh", "yaml", "yml", "log", "csv", "xml", "sql", "ini", "toml"].includes(ext ?? "");
+    }
+    return f.type.startsWith("text/") || /json|xml|javascript|yaml/.test(f.type);
   }
 
   function removeAttachment(id: string) {
@@ -90,8 +121,18 @@ export default function BottomInputBar({ onSendPrompt, onSendVoice, disabled }: 
   }
 
   return (
-    <div className="flex-none border-t border-slate-700/40 bg-slate-950/80 px-4 py-3 backdrop-blur-lg">
+    <div
+      className={`flex-none border-t border-slate-700/40 bg-slate-950/80 px-4 py-3 backdrop-blur-lg transition-colors ${
+        dragOver ? "ring-2 ring-inset ring-neon bg-slate-900/90" : ""
+      }`}
+      onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+      onDragLeave={() => setDragOver(false)}
+      onDrop={handleDrop}
+    >
       {/* attachments preview */}
+      {dragOver && (
+        <p className="mb-2 text-center text-[11px] font-mono text-neon">drop files to attach</p>
+      )}
       {attachments.length > 0 && (
         <div className="mb-2 flex flex-wrap gap-1.5">
           {attachments.map((att) => (

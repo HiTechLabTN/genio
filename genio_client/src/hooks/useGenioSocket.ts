@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type {
   AgentStatus,
+  Attachment,
   ChatEvent,
   GenioEvent,
   ServerNode,
@@ -35,8 +36,43 @@ export function useGenioSocket(): UseGenioSocket {
     return ws.send(clean);
   }, []);
 
+  const sendPrompt = useCallback(
+    (text: string, attachments?: Attachment[]) => {
+      const ws = socketRef.current;
+      if (!ws) return false;
+      const filePayload = attachments?.map((a) => ({
+        name: a.name,
+        content: a.content ?? (a.type.startsWith("image/") ? a.dataB64 : undefined),
+      }));
+      // render the user message immediately
+      setChat((prev) => [
+        ...prev.slice(-299),
+        {
+          type: "user",
+          text,
+          attachments: filePayload?.filter((f) => f.content !== undefined),
+          timestamp: Date.now(),
+        },
+      ]);
+      setAgentStatus({ kind: "thinking" });
+      return send({ action: "prompt", text, attachments: filePayload?.length ? filePayload : undefined });
+    },
+    [send],
+  );
+
   const kill = useCallback(() => send({ action: "kill", reason: "user stop" }), [send]);
-  const continuePrompt = useCallback((_lp: string) => false, []);
+  const continuePrompt = useCallback(
+    (lastPrompt: string) => {
+      if (!lastPrompt) return false;
+      setChat((prev) => [
+        ...prev.slice(-299),
+        { type: "user", text: lastPrompt, timestamp: Date.now() },
+      ]);
+      setAgentStatus({ kind: "thinking" });
+      return send({ action: "prompt", text: lastPrompt });
+    },
+    [send],
+  );
   const requestScreenshot = useCallback(() => send({ action: "screenshot" }), [send]);
   const toggleScreenStream = useCallback(
     (active: boolean) => {
@@ -138,6 +174,7 @@ export function useGenioSocket(): UseGenioSocket {
     connect,
     disconnect,
     send,
+    sendPrompt,
     kill,
     continuePrompt,
     requestScreenshot,

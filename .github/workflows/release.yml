@@ -38,6 +38,8 @@ jobs:
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
           projectPath: ./genio_client
           tagName: app-v__VERSION__
@@ -45,3 +47,50 @@ jobs:
           releaseBody: 'Official release of the Genio AI Client.'
           releaseDraft: false
           prerelease: false
+
+  build-android-apk:
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: setup node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+      - name: install Linux dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev patchelf
+      - name: install frontend dependencies
+        working-directory: ./genio_client
+        run: npm install
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+      - name: Add Android platform
+        working-directory: ./genio_client
+        run: npx tauri android init
+      - name: Build Android APK
+        working-directory: ./genio_client
+        env:
+          NDK_HOME: ${{ env.SDK_ROOT }}/ndk
+        run: npx tauri android build --apk --target aarch64
+      - name: Compute release tag
+        id: tag
+        run: |
+          VER="${GITHUB_REF#refs/tags/}"      # e.g. v1.0.6
+          echo "RELEASE_TAG=app-v${VER#v}" >> "$GITHUB_OUTPUT"
+      - name: Upload APK to Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.tag.outputs.RELEASE_TAG }}
+          files: |
+            genio_client/src-tauri/gen/android/app/build/outputs/apk/universal/release/*.apk
+          fail_on_unmatched_files: false

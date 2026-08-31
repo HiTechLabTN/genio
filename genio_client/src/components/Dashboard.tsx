@@ -4,7 +4,7 @@ import ActivityBar from "./ActivityBar";
 import BottomInputBar from "./BottomInputBar";
 import Header from "./Header";
 import RightDrawer from "./RightDrawer";
-import type { AgentStatus, ChatEvent, TelemetrySnapshot, ToolResultMap } from "../lib/types";
+import type { AgentStatus, Attachment, ChatEvent, TelemetrySnapshot, ToolResultMap } from "../lib/types";
 
 interface Props {
   node: string;
@@ -20,7 +20,7 @@ interface Props {
   onDisconnect: () => void;
   onKill: () => void;
   onContinue: () => void;
-  onSendPrompt: (text: string) => void;
+  onSendPrompt: (text: string, attachments?: Attachment[]) => void;
   onSendVoice: (dataB64: string, durationSec: number) => void;
   onRequestScreenshot: () => boolean;
   onToggleScreenStream: (active: boolean) => boolean;
@@ -145,10 +145,11 @@ function Transcript({ chat }: { chat: ChatEvent[] }) {
             initial={{ opacity: 0, x: -6 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.15 }}
-            className="flex gap-3"
+            className={`flex gap-3 ${event.type === "user" ? "justify-end" : ""}`}
           >
-            <span className="mt-0.5 select-none text-slate-700 text-[11px]">{i}</span>
-            <div className="min-w-0 flex-1">
+            <span className={`mt-0.5 select-none text-[11px] ${event.type === "user" ? "order-last" : "text-slate-700"}`}>{i}</span>
+            <div className={`min-w-0 ${event.type === "user" ? "max-w-[85%]" : "flex-1"}`}>
+              {event.type === "user" && <UserBubble text={event.text} attachments={event.attachments} />}
               {event.type === "answer" && (
                 <p className="whitespace-pre-wrap text-slate-200">{event.text}</p>
               )}
@@ -178,9 +179,25 @@ function Transcript({ chat }: { chat: ChatEvent[] }) {
   );
 }
 
+function UserBubble({ text, attachments }: { text: string; attachments?: { name: string; content?: string }[] }) {
+  return (
+    <div className="ml-auto w-fit max-w-full rounded-2xl rounded-tr-sm border border-neon/30 bg-neon/10 px-3 py-2">
+      <p className="whitespace-pre-wrap text-sm text-slate-100">{text}</p>
+      {attachments && attachments.length > 0 && (
+        <div className="mt-1.5 flex flex-col gap-1">
+          {attachments.map((a) => (
+            <span key={a.name} className="inline-flex items-center gap-1.5 rounded bg-slate-950/60 px-2 py-0.5 text-[10px] font-mono text-neon-soft">
+              📎 {a.name}
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function ThoughtBubble({ text }: { text: string }) {
   const [open, setOpen] = useState(text.length <= 200);
-
   return (
     <div className="rounded-lg border border-neon/20 bg-neon/5 px-3 py-2">
       <button

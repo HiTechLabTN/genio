@@ -34,6 +34,7 @@ export interface Attachment {
   type: string;
   dataB64: string;
   size: number;
+  content?: string;
 }
 
 export interface ToolResultMap {
@@ -57,7 +58,8 @@ export type ChatEvent =
   | { type: "stats"; tokens?: number; tok_per_s?: number }
   | { type: "error"; message: string }
   | { type: "attached"; kind?: string; path?: string; name?: string }
-  | { type: "killed" | "armed" };
+  | { type: "killed" | "armed" }
+  | { type: "user"; text: string; attachments?: { name: string; content?: string }[]; timestamp?: number };
 
 export type GenioEvent =
   | ({ type: "telemetry" } & Record<string, unknown>)
@@ -98,6 +100,7 @@ export interface UseGenioSocket {
   connect: (target: ServerNode) => Promise<boolean>;
   disconnect: () => void;
   send: (payload: Record<string, unknown>) => boolean;
+  sendPrompt: (text: string, attachments?: Attachment[]) => boolean;
   kill: () => boolean;
   continuePrompt: (lastPrompt: string) => boolean;
   requestScreenshot: () => boolean;

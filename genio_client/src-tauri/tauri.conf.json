@@ -12,18 +12,30 @@
   "app": {
     "windows": [
       {
-        "title": "genio-client",
-        "width": 800,
-        "height": 600
+        "title": "Genio",
+        "width": 1280,
+        "height": 800,
+        "minWidth": 960,
+        "minHeight": 600,
+        "resizable": true
       }
     ],
     "security": {
       "csp": null
     }
   },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEM4MTlCN0ZGODc0RkVENjgKUldSbzdVK0gvN2NaeU9JY3c2VWNrYmxkRzFIZVgrZVJyZTJ4RFRBUFhRb2RlOGxHVE1xV0xFcXQK",
+      "endpoints": [
+        "https://github.com/HiTechLabTN/genio/releases/latest/download/latest.json"
+      ]
+    }
+  },
   "bundle": {
     "active": true,
     "targets": "all",
+    "createUpdaterArtifacts": true,
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",

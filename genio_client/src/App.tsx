@@ -1,9 +1,11 @@
 import { AnimatePresence } from "framer-motion";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import ConnectionHub from "./components/ConnectionHub";
 import Dashboard from "./components/Dashboard";
+import UpdateModal from "./components/UpdateModal";
 import { useGenioSocket } from "./hooks/useGenioSocket";
-import type { ServerNode } from "./lib/types";
+import { checkForUpdates } from "./lib/updater";
+import type { Attachment, ServerNode } from "./lib/types";
 
 export default function App() {
   const {
@@ -15,6 +17,7 @@ export default function App() {
     connect,
     disconnect,
     send,
+    sendPrompt,
     kill,
     requestScreenshot,
     toggleScreenStream,
@@ -23,7 +26,17 @@ export default function App() {
   const [connected, setConnected] = useState(false);
   const [target, setTarget] = useState<ServerNode | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [update, setUpdate] = useState<{ version: string; notes?: string } | null>(null);
   const lastPromptRef = useRef("");
+  const lastPromptFileRef = useRef<Attachment[] | undefined>(undefined);
+
+  useEffect(() => {
+    let alive = true;
+    checkForUpdates().then((u) => {
+      if (alive && u) setUpdate(u);
+    });
+    return () => { alive = false; };
+  }, []);
 
   async function handleConnect(node: ServerNode) {
     const ok = await connect(node);
@@ -50,14 +63,15 @@ export default function App() {
     return ok;
   }
 
-  function handleSendPrompt(text: string) {
+  function handleSendPrompt(text: string, attachments?: Attachment[]) {
     lastPromptRef.current = text;
-    send({ action: "prompt", text });
+    lastPromptFileRef.current = attachments;
+    sendPrompt(text, attachments);
   }
 
   function handleContinue() {
     if (lastPromptRef.current) {
-      send({ action: "prompt", text: lastPromptRef.current });
+      sendPrompt(lastPromptRef.current, lastPromptFileRef.current);
     }
   }
 
@@ -94,6 +108,8 @@ export default function App() {
           <ConnectionHub key="hub" onConnect={handleConnect} />
         )}
       </AnimatePresence>
+
+      {update && <UpdateModal version={update.version} notes={update.notes} onClose={() => setUpdate(null)} />}
     </div>
   );
 }

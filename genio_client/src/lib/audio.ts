@@ -62,15 +62,18 @@ function blobToBase64(blob: Blob): Promise<string> {
 export async function startVoiceRecording(): Promise<void> {
   try {
     latestStream = await navigator.mediaDevices.getUserMedia({
-      audio: { echoCancellation: true, noiseSuppression: true, channelCount: 1 },
+      audio: true,
     });
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
-    if (msg.includes("NotAllowedError") || msg.includes("Permission")) {
+    if (msg.includes("NotAllowedError") || msg.includes("Permission") || msg.includes("permission")) {
       throw new Error("Microphone permission denied — allow mic access in your browser or Tauri settings and try again.");
     }
-    if (msg.includes("NotFoundError") || msg.includes("DevicesNotFound")) {
+    if (msg.includes("NotFoundError") || msg.includes("DevicesNotFound") || msg.includes("devices")) {
       throw new Error("No microphone detected — connect a mic and try again.");
+    }
+    if (msg.includes("ConstraintNotSatisfied") || msg.includes("Invalid constraint") || msg.includes("Overconstrained")) {
+      throw new Error("Microphone constraint not supported on this device — retry with default settings.");
     }
     throw new Error(`Microphone error: ${msg}`);
   }
