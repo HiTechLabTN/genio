@@ -74,23 +74,29 @@ jobs:
           java-version: '17'
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
+      - name: Install Android NDK
+        run: |
+          sdkmanager --install "ndk;27.0.12077973" "platforms;android-34" "build-tools;34.0.0"
+          echo "NDK_HOME=${ANDROID_SDK_ROOT}/ndk/27.0.12077973" >> "$GITHUB_ENV"
+          echo "ANDROID_HOME=${ANDROID_SDK_ROOT}" >> "$GITHUB_ENV"
+          echo "ANDROID_SDK_ROOT=${ANDROID_SDK_ROOT}" >> "$GITHUB_ENV"
       - name: Add Android platform
         working-directory: ./genio_client
         run: npx tauri android init
       - name: Build Android APK
         working-directory: ./genio_client
-        env:
-          NDK_HOME: ${{ env.SDK_ROOT }}/ndk
         run: npx tauri android build --apk --target aarch64
       - name: Compute release tag
         id: tag
         run: |
           VER="${GITHUB_REF#refs/tags/}"      # e.g. v1.0.6
           echo "RELEASE_TAG=app-v${VER#v}" >> "$GITHUB_OUTPUT"
+      - name: List APK outputs
+        run: find genio_client/src-tauri/gen/android -name "*.apk" 2>/dev/null || true
       - name: Upload APK to Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.tag.outputs.RELEASE_TAG }}
           files: |
-            genio_client/src-tauri/gen/android/app/build/outputs/apk/universal/release/*.apk
+            genio_client/src-tauri/gen/android/app/build/outputs/apk/**/*.apk
           fail_on_unmatched_files: false
