@@ -85,6 +85,9 @@ jobs:
       - name: Add Android platform
         working-directory: ./genio_client
         run: npx tauri android init
+      - name: Apply Android cleartext overlay
+        working-directory: ./genio_client
+        run: bash scripts/apply-android-cleartext.sh
       - name: Build Android APK
         working-directory: ./genio_client
         run: npx tauri android build --apk --target aarch64
