@@ -65,6 +65,9 @@ _ACTIVE_RUNS: Dict[int, bool] = {}
 _KILL_EVENTS: Dict[int, threading.Event] = {}
 # Per-connection screenshot streaming tasks.
 _SCREEN_TASKS: Dict[int, asyncio.Task] = {}
+# Phase D: track session_ids per connection for container cleanup
+_SESSION_IDS: Dict[int, set] = {}
+_CLEANUP_TASK: Optional[asyncio.Task] = None
 
 app = FastAPI(
     title="Genio Server",
@@ -77,6 +80,59 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+def _idle_timeout() -> int:
+    return int(os.getenv("GENIO_SESSION_CONTAINER_IDLE_TIMEOUT", "1800"))
+
+
+async def _periodic_container_cleanup():
+    """Phase D: détruit les conteneurs genio-session-* inactifs depuis > timeout."""
+    while True:
+        await asyncio.sleep(60)
+        try:
+            from genio_server.tools.session_container import _LAST_USED, cleanup_container, _container_name
+            import subprocess as _sp, time as _time, shutil as _sh
+            if not _sh.which("docker"):
+                continue
+            res = _sp.run(["docker", "ps", "--filter", "name=genio-session-", "--format", "{{.Names}}"],
+                          capture_output=True, text=True, timeout=5)
+            if res.returncode != 0:
+                continue
+            names = [n.strip() for n in res.stdout.splitlines() if n.strip()]
+            now = _time.time()
+            timeout = _idle_timeout()
+            for name in names:
+                for sess_id, last in list(_LAST_USED.items()):
+                    if _container_name(sess_id) == name and now - last > timeout:
+                        cleanup_container(sess_id)
+                        _LAST_USED.pop(sess_id, None)
+                        # Also clean cwd map
+                        try:
+                            from genio_server.tools.session_container import _CWD_MAP
+                            _CWD_MAP.pop(sess_id, None)
+                        except Exception:
+                            pass
+                        break
+        except Exception:
+            pass
+
+
+@app.on_event("startup")
+async def _start_periodic_cleanup():
+    global _CLEANUP_TASK
+    _CLEANUP_TASK = asyncio.create_task(_periodic_container_cleanup())
+
+
+@app.on_event("shutdown")
+async def _stop_periodic_cleanup():
+    global _CLEANUP_TASK
+    if _CLEANUP_TASK:
+        _CLEANUP_TASK.cancel()
+        try:
+            await _CLEANUP_TASK
+        except asyncio.CancelledError:
+            pass
 
 
 # --------------------------------------------------------------------------- #
@@ -310,6 +366,7 @@ async def ws_agent(ws: WebSocket, node: str = Query(default=None)) -> None:
     conn_id = id(ws)
     _ACTIVE_RUNS[conn_id] = False
     _KILL_EVENTS[conn_id] = threading.Event()
+    _SESSION_IDS[conn_id] = set()
     try:
         while True:
             raw = await ws.receive_text()
@@ -355,6 +412,21 @@ async def ws_agent(ws: WebSocket, node: str = Query(default=None)) -> None:
                 # Propagate kill to all active runners (global halt)
                 for ev in _KILL_EVENTS.values():
                     ev.set()
+                # Phase D: destroy containers for killed session(s) immediately
+                try:
+                    from genio_server.tools.session_container import cleanup_container, _CWD_MAP, _LAST_USED
+                    kill_sid = str(msg.get("session_id") or "").strip()
+                    if kill_sid:
+                        cleanup_container(kill_sid)
+                        _CWD_MAP.pop(kill_sid, None)
+                        _LAST_USED.pop(kill_sid, None)
+                    else:
+                        for sid in list(_SESSION_IDS.get(conn_id, set())):
+                            cleanup_container(sid)
+                            _CWD_MAP.pop(sid, None)
+                            _LAST_USED.pop(sid, None)
+                except Exception:
+                    pass
                 await safe_send(ws, {"type": "killed", **SAFETY.snapshot()})
                 continue
 
@@ -389,10 +461,13 @@ async def ws_agent(ws: WebSocket, node: str = Query(default=None)) -> None:
                     await safe_send(ws, {"type": "error", "message": "empty prompt"})
                     continue
                 _ACTIVE_RUNS[conn_id] = True
+                sid = str(msg.get("session_id") or "").strip() or None
+                if sid:
+                    _SESSION_IDS.setdefault(conn_id, set()).add(sid)
                 agent = AgentLoop(
                     mode=str(msg.get("mode", "autonomous")),
                     cancel_event=_KILL_EVENTS[conn_id],
-                    session_id=str(msg.get("session_id") or "").strip() or None,
+                    session_id=sid,
                 )
                 try:
                     async for event in agent.run(text):
@@ -441,6 +516,8 @@ async def ws_agent(ws: WebSocket, node: str = Query(default=None)) -> None:
                     continue
                 await safe_send(ws, {"type": "tool_call", "command": command})
                 sid = str(msg.get("session_id") or "").strip() or None
+                if sid:
+                    _SESSION_IDS.setdefault(conn_id, set()).add(sid)
                 result = await asyncio.to_thread(invoke_tool, "bash", command, sid)
                 await safe_send(ws, {"type": "tool_result", "result": result})
                 continue
@@ -455,6 +532,20 @@ async def ws_agent(ws: WebSocket, node: str = Query(default=None)) -> None:
         _ACTIVE_RUNS.pop(conn_id, None)
         _KILL_EVENTS.pop(conn_id, None)
         _VOICE_STATE.pop(str(conn_id), None)
+        # Phase D: cleanup containers for this connection's sessions
+        for sid in _SESSION_IDS.pop(conn_id, set()):
+            try:
+                from genio_server.tools.session_container import cleanup_container
+                cleanup_container(sid)
+                # Also clean cwd/last_used tracking
+                try:
+                    from genio_server.tools.session_container import _CWD_MAP, _LAST_USED
+                    _CWD_MAP.pop(sid, None)
+                    _LAST_USED.pop(sid, None)
+                except Exception:
+                    pass
+            except Exception:
+                pass
 
 
 # --------------------------------------------------------------------------- #
