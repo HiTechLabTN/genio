@@ -334,3 +334,25 @@ result = [c for c in ().__class__.__base__.__subclasses__()
 - **`src/App.tsx`** : `useState<string | null>(null)` pour `task`, `handleSendPrompt` met a jour `setTask(text)`, `<ChronosPortal task={task} onDismiss={() => setTask(null)} />` en bas du layout.
 
 **Build** : `npm run build` exit 0 (2830 modules, 5.15s, 1522kB gzip). Release `v2.3.0` avec `Genio-Web-v2.3.0.zip` (477KB).
+
+## 2026-09-02 — Genio v2.3.1: Multiplateforme Electron + Capacitor + CI/CD
+
+### Electron (Desktop)
+- **`electron/main.js`** (nouveau) : BrowserWindow 1200x800, `loadFile dist/index.html`, `removeMenu()`, preload.js.
+- **`electron/preload.js`** (nouveau) : `DOMContentLoaded` console.log.
+- **`package.json`** : `version "2.3.1"`, `main "electron/main.js"`, scripts `electron:start`, `electron:build:win` (nsis), `electron:build:linux` (deb).
+
+### Capacitor (Mobile)
+- **`capacitor.config.json`** (nouveau) : `appId com.hitechlab.genio`, `webDir dist`, `androidScheme https`.
+- **`package.json`** : devDeps `@capacitor/cli/android/ios ^5`, scripts `capacitor:sync`, `capacitor:build:android`.
+
+### GitHub Actions CI/CD
+- **`.github/workflows/release-binaries.yml`** (nouveau) : déclenché sur `release: published`.
+  - **build-web** : `npm install && npm run build` → upload artifact `dist`.
+  - **build-electron** : matrix `windows-latest` + `ubuntu-latest`, download web-dist, `electron-builder` → upload `Genio-Setup.exe` / `genio_amd64.deb`.
+  - **build-android** : Java 17 Zulu + Android SDK, `npx cap sync android`, `./gradlew assembleDebug` → upload `Genio.apk`.
+
+### electron-builder config
+- **`package.json`** → `"build"` : `appId com.hitechlab.genio`, `productName Genio`, `directories.output release-builds`, `win.target nsis`, `linux.target deb`.
+
+**Build** : `npm run build` exit 0 (2830 modules). GitHub Actions déclenchées automatiquement sur le tag `v2.3.1` — binaires EXE/DEB/APK disponibles dans ~5-10 min sur la page Releases.
