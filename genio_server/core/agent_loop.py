@@ -227,6 +227,31 @@ async def summarize_session_batch(conversation_text: str,
     return summary[:max_chars]
 
 
+# Phase 1 v2.1: no-op exit-0 commands (file/touch/mkdir/cat style) that yield no
+# meaningful content and should never terminate the loop into idle.
+_NOOP_CMDS = ("cat", "touch", "mkdir", "pwd", "cd", "ls", "true", "echo -n", ":")
+
+
+def _is_noop_command(command: str) -> bool:
+    """Return True if the command is a known no-op (file/touch/mkdir/cat style)
+    that completes instantly with no observable output worth acting on."""
+    cmd = (command or "").strip().lower()
+    first = cmd.split()[0] if cmd.split() else ""
+    if first in ("cat", "touch", "mkdir", "pwd", "cd", "ls", "true", ":"):
+        return True
+    return any(cmd.startswith(n) for n in ("echo -n", "printf ''"))
+
+
+def _is_trivial_success(assistant: str, output: str) -> bool:
+    """Return True when the model's narration is short AND the tool body is
+    empty or trivial, indicating a step finished without meaningful output."""
+    narration = (assistant or "").strip()
+    narration_is_short = not narration or len(narration) < 120
+    out = (output or "").strip()
+    trivial_body = not out or len(out) < 40
+    return narration_is_short and trivial_body
+
+
 def _feedback_for(result: Dict[str, object], assistant: str) -> str:
     """Human/LLM-readable tool feedback for the next model turn.
 
@@ -255,6 +280,19 @@ def _feedback_for(result: Dict[str, object], assistant: str) -> str:
         code = int(code) if code is not None else -1
         body = out or err or "(no output)"
         if code == 0:
+            # Phase 1 v2.1: loop-chaining enforcement. Exit-0 with trivial
+            # file/touch/mkdir/cat output means the step is done — instruct the
+            # model to PROCEED to its next pending step rather than terminating
+            # prematurely into idle.
+            if _is_trivial_success(assistant, out) and _is_noop_command(str(result.get("command") or "")):
+                return (
+                    f"Tool output (exit code 0):\n{body}\n\n"
+                    "This step completed successfully with no meaningful output. "
+                    "If your plan has more pending steps, execute the NEXT step "
+                    "immediately with another tool call — do not stop or go idle "
+                    "until the entire objective is met. Only give a final answer "
+                    "once all plan steps are complete."
+                )
             return f"Tool output (exit code 0):\n{body}"
         # Self-correction: surface the failure and ask the model to adapt.
         return (

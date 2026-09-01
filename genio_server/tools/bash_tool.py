@@ -9,9 +9,14 @@ Usage::
     from genio_server.tools.bash_tool import run_command
     result = run_command("python3 --version")
     print(result["stdout"])
+
+Phase 1 v2.1: Async migration — run_command now has async counterpart
+async_run_command using asyncio.create_subprocess_exec to avoid blocking
+the event loop. Sync wrapper retained for backward compat.
 """
 from __future__ import annotations
 
+import asyncio
 import os
 import shlex
 import subprocess
@@ -251,15 +256,81 @@ def run_command(command: str, timeout: int = DEFAULT_TIMEOUT,
             timeout=timeout,
             cwd=os.getcwd(),
         )
+        return _result(command, proc.stdout, proc.stderr, proc.returncode, started, False)
+    except subprocess.TimeoutExpired:
         return {
             "command": command,
-            "stdout": truncate_output(proc.stdout),
-            "stderr": truncate_output(proc.stderr),
-            "returncode": proc.returncode,
+            "stdout": "",
+            "stderr": f"timed out after {timeout}s",
+            "returncode": -9,
             "duration": round(time.monotonic() - started, 3),
-            "timed_out": False,
+            "timed_out": True,
         }
-    except subprocess.TimeoutExpired:
+    except FileNotFoundError:
+        raise BashToolError(f"binary not found for command: {command!r}")
+
+
+def _result(command: str, stdout: str, stderr: str, returncode: int,
+            started: float, timed_out: bool) -> Dict[str, object]:
+    """Build the canonical result dict from a completed subprocess outcome."""
+    return {
+        "command": command,
+        "stdout": truncate_output(str(stdout or "")),
+        "stderr": truncate_output(str(stderr or "")),
+        "returncode": returncode,
+        "duration": round(time.monotonic() - started, 3),
+        "timed_out": timed_out,
+    }
+
+
+async def async_run_command(command: str, timeout: int = DEFAULT_TIMEOUT,
+                            session_id: Optional[str] = None) -> Dict[str, object]:
+    """Async non-blocking variant of :func:`run_command` (Phase 1 v2.1).
+
+    Uses ``asyncio.create_subprocess_exec`` so a long-running bash command
+    never blocks the harness event loop (WebSocket telemetry, kill handling
+    and SSE stay responsive). Semantics otherwise identical to run_command.
+    """
+    command = command.strip()
+    if not command:
+        return {"command": command, "stdout": "", "stderr": "empty command",
+                "returncode": -1, "duration": 0.0, "timed_out": False}
+
+    danger = is_dangerous(command)
+    if danger:
+        return {"command": command, "stdout": "",
+                "stderr": f"refused: {danger}",
+                "returncode": 126, "duration": 0.0, "timed_out": False}
+
+    # Container sandboxing (Phase 5) — route per-session when enabled.
+    if session_id and os.getenv("GENIO_SANDBOX_MODE", "").strip().lower() == "container":
+        try:
+            from genio_server.tools.session_container import async_exec_in_container
+            return await async_exec_in_container(session_id, command, timeout)
+        except Exception as exc:
+            return {"command": command, "stdout": "", "stderr": str(exc),
+                    "returncode": 127, "duration": 0.0, "timed_out": False}
+
+    started = time.monotonic()
+    cmd = ["/bin/bash", "-lc", command] if os.name == "posix" else ["/bin/sh", "-c", command]
+    try:
+        proc = await asyncio.create_subprocess_exec(
+            *cmd,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+            cwd=os.getcwd(),
+        )
+        stdout, stderr = await asyncio.wait_for(
+            proc.communicate(), timeout=timeout,
+        )
+        decoded_out = stdout.decode(errors="replace") if stdout else ""
+        decoded_err = stderr.decode(errors="replace") if stderr else ""
+        return _result(command, decoded_out, decoded_err, proc.returncode, started, False)
+    except asyncio.TimeoutError:
+        try:
+            proc.kill()
+        except Exception:
+            pass
         return {
             "command": command,
             "stdout": "",

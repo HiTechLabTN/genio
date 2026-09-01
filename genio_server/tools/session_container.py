@@ -18,6 +18,7 @@ Cwd persistence: Dict[session_id, str] mis à jour via pwd après chaque exec, p
 """
 from __future__ import annotations
 
+import asyncio
 import os
 import shutil
 import subprocess
@@ -265,3 +266,204 @@ def cleanup_container(session_id: str) -> bool:
         return True
     except Exception:
         return False
+
+
+async def async_cleanup_container(session_id: str) -> bool:
+    """Async non-blocking variant of :func:`cleanup_container` (Phase 1 v2.1)."""
+    name = _container_name(session_id)
+    if not _docker_available():
+        return False
+    try:
+        proc = await asyncio.create_subprocess_exec(
+            "docker", "rm", "-f", name,
+            stdout=asyncio.subprocess.DEVNULL,
+            stderr=asyncio.subprocess.DEVNULL,
+        )
+        await asyncio.wait_for(proc.wait(), timeout=10)
+        return proc.returncode == 0
+    except Exception:
+        return False
+
+
+async def async_ensure_container(session_id: str) -> tuple[bool, str]:
+    """Async variant of :func:`_ensure_container` using create_subprocess_exec."""
+    name = _container_name(session_id)
+    img = _image()
+    workdir = _host_workdir(session_id)
+    net_args = _network_args()
+    try:
+        proc = await asyncio.create_subprocess_exec(
+            "docker", "inspect", "-f", "{{.State.Running}}", name,
+            stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.DEVNULL,
+        )
+        out, _ = await asyncio.wait_for(proc.communicate(), timeout=5)
+        if proc.returncode == 0 and b"true" in (out or b"").lower():
+            return True, ""
+    except Exception:
+        pass
+    try:
+        cmd = ["docker", "run", "-d", "--name", name] + net_args + [
+            "-v", f"{workdir}:/work", "-w", "/work",
+            "--memory", "512m", "--pids-limit", "256",
+            img, "sleep", "infinity"]
+        proc = await asyncio.create_subprocess_exec(
+            *cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
+        )
+        out, err = await asyncio.wait_for(proc.communicate(), timeout=30)
+        if proc.returncode == 0:
+            return True, ""
+        errtext = (err or out or b"").decode(errors="replace")
+        if "already in use" in errtext or "already exists" in errtext:
+            proc2 = await asyncio.create_subprocess_exec(
+                "docker", "start", name,
+                stdout=asyncio.subprocess.DEVNULL, stderr=asyncio.subprocess.PIPE,
+            )
+            _, err2 = await asyncio.wait_for(proc2.communicate(), timeout=10)
+            if proc2.returncode == 0:
+                return True, ""
+            return False, err2.decode(errors="replace").strip() or errtext.strip()
+        return False, errtext.strip()
+    except Exception as exc:
+        return False, str(exc)
+
+
+async def async_exec_in_container(session_id: str, command: str,
+                                  timeout: int = 30) -> Dict[str, object]:
+    """Async non-blocking variant of :func:`exec_in_container` (Phase 1 v2.1).
+
+    All docker exec/run/inspect/ps calls use ``asyncio.create_subprocess_exec``
+    so slow container operations never block the harness event loop. Fallback
+    to ``async_run_command`` when docker is unavailable or container start
+    fails, exactly as the sync path does.
+    """
+    if not session_id:
+        return {"command": command, "stdout": "", "stderr": "missing session_id",
+                "returncode": 127, "duration": 0.0, "timed_out": False}
+    return await _async_exec_in_container(session_id, command, timeout)
+
+
+async def _async_exec_in_container(session_id: str, command: str,
+                                   timeout: int) -> Dict[str, object]:
+    started = time.monotonic()
+
+    def _t(s: str) -> str:
+        if len(s) <= MAX_OUTPUT:
+            return s
+        return s[:MAX_OUTPUT] + TRUNCATE_MARKER
+
+    cwd = _CWD_MAP.get(session_id)
+    if cwd and cwd != "/work":
+        import shlex
+        command = f"cd {shlex.quote(cwd)} && {command}"
+
+    if not _enabled():
+        from genio_server.tools.bash_tool import async_run_command
+        old = os.getenv("GENIO_SANDBOX_MODE")
+        os.environ["GENIO_SANDBOX_MODE"] = ""
+        try:
+            return await async_run_command(command, timeout=timeout)
+        finally:
+            if old is None:
+                os.environ.pop("GENIO_SANDBOX_MODE", None)
+            else:
+                os.environ["GENIO_SANDBOX_MODE"] = old
+
+    if not _docker_available():
+        old = os.getenv("GENIO_SANDBOX_MODE")
+        os.environ["GENIO_SANDBOX_MODE"] = ""
+        try:
+            try:
+                proc = await asyncio.create_subprocess_exec(
+                    "/bin/bash", "-lc", command,
+                    stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
+                )
+                out, err = await asyncio.wait_for(proc.communicate(), timeout=timeout)
+                return {
+                    "command": command,
+                    "stdout": _t(out.decode(errors="replace")),
+                    "stderr": _t(err.decode(errors="replace")),
+                    "returncode": proc.returncode,
+                    "duration": round(time.monotonic() - started, 3),
+                    "timed_out": False,
+                    "sandbox_fallback": True,
+                    "sandbox_reason": "docker not available",
+                }
+            except asyncio.TimeoutError:
+                return {"command": command, "stdout": "", "stderr": f"timed out after {timeout}s",
+                        "returncode": -9, "duration": round(time.monotonic() - started, 3),
+                        "timed_out": True, "sandbox_fallback": True}
+        finally:
+            if old is None:
+                os.environ.pop("GENIO_SANDBOX_MODE", None)
+            else:
+                os.environ["GENIO_SANDBOX_MODE"] = old
+
+    ok, msg = await async_ensure_container(session_id)
+    if not ok:
+        old = os.getenv("GENIO_SANDBOX_MODE")
+        os.environ["GENIO_SANDBOX_MODE"] = ""
+        try:
+            try:
+                proc = await asyncio.create_subprocess_exec(
+                    "/bin/bash", "-lc", command,
+                    stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
+                )
+                out, err = await asyncio.wait_for(proc.communicate(), timeout=timeout)
+                return {
+                    "command": command,
+                    "stdout": _t(out.decode(errors="replace")),
+                    "stderr": _t(err.decode(errors="replace") + f"\n[sandbox fallback: {msg}]"),
+                    "returncode": proc.returncode,
+                    "duration": round(time.monotonic() - started, 3),
+                    "timed_out": False,
+                    "sandbox_fallback": True,
+                    "sandbox_reason": msg or "container start failed",
+                }
+            except asyncio.TimeoutError:
+                return {"command": command, "stdout": "", "stderr": f"timed out after {timeout}s",
+                        "returncode": -9, "duration": round(time.monotonic() - started, 3),
+                        "timed_out": True, "sandbox_fallback": True}
+        finally:
+            if old is None:
+                os.environ.pop("GENIO_SANDBOX_MODE", None)
+            else:
+                os.environ["GENIO_SANDBOX_MODE"] = old
+
+    name = _container_name(session_id)
+    try:
+        wrapped = f"{command}\nrc=$?\necho __GENIO_CWD__$(pwd)\nexit $rc"
+        proc = await asyncio.create_subprocess_exec(
+            "docker", "exec", name, "/bin/bash", "-lc", wrapped,
+            stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
+        )
+        out, err = await asyncio.wait_for(proc.communicate(), timeout=timeout)
+        stdout = out.decode(errors="replace")
+        cwd_captured = None
+        if "__GENIO_CWD__" in stdout:
+            actual, cwd_part = stdout.rsplit("__GENIO_CWD__", 1)
+            cwd_captured = cwd_part.strip().splitlines()[0].strip()
+            stdout = actual
+        if proc.returncode == 0:
+            _LAST_USED[session_id] = time.time()
+            if cwd_captured:
+                _CWD_MAP[session_id] = cwd_captured
+        return {
+            "command": command,
+            "stdout": _t(stdout),
+            "stderr": _t(err.decode(errors="replace")),
+            "returncode": proc.returncode,
+            "duration": round(time.monotonic() - started, 3),
+            "timed_out": False,
+            "container": name,
+        }
+    except asyncio.TimeoutError:
+        try:
+            proc.kill()
+        except Exception:
+            pass
+        return {"command": command, "stdout": "", "stderr": f"timed out after {timeout}s",
+                "returncode": -9, "duration": round(time.monotonic() - started, 3),
+                "timed_out": True, "container": name}
+    except Exception as exc:
+        return {"command": command, "stdout": "", "stderr": str(exc), "returncode": 127,
+                "duration": round(time.monotonic() - started, 3), "timed_out": False, "container": name}

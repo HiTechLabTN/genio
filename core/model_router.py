@@ -103,6 +103,8 @@ class ModelRouter:
         endpoint and aborts with CancelledError when killed.
         """
         errors = []
+        import os
+        turn_timeout = float(os.getenv("GENIO_MODEL_TURN_TIMEOUT", "30"))
         for ep in self.endpoints:
             self._check_cancelled(cancel_event)
             if not self._is_available(ep):
@@ -110,8 +112,11 @@ class ModelRouter:
             for attempt in range(1, 3):  # one retry for gemma4 empty-generation bug
                 self._check_cancelled(cancel_event)
                 try:
-                    result = await self._call_endpoint(ep, prompt, temperature,
-                                                       max_tokens, images, cancel_event)
+                    result = await asyncio.wait_for(
+                        self._call_endpoint(ep, prompt, temperature,
+                                            max_tokens, images, cancel_event),
+                        timeout=turn_timeout,
+                    )
                     if result:
                         self._mark_success(ep)
                         logger.info(f"[router] ✅ {ep.name} succeeded (attempt {attempt})")
@@ -120,6 +125,12 @@ class ModelRouter:
                         logger.warning(f"[router] {ep.name} returned empty result, retrying")
                         await asyncio.sleep(0.5)
                         continue
+                except asyncio.TimeoutError:
+                    logger.warning(f"[router] ⏱ {ep.name} exceeded turn timeout "
+                                   f"({turn_timeout}s), failover")
+                    self._mark_failure(ep)
+                    errors.append(f"{ep.name}: timed out after {turn_timeout}s")
+                    break
                 except asyncio.CancelledError:
                     raise
                 except Exception as exc:
@@ -138,16 +149,28 @@ class ModelRouter:
         via CancelledError; the caller should race this against cancel_event and
         cancel the task to close the HTTP connection.
         """
+        import os
+        turn_timeout = float(os.getenv("GENIO_MODEL_TURN_TIMEOUT", "30"))
         errors = []
         for ep in self.endpoints:
             self._check_cancelled(cancel_event)
             if not self._is_available(ep):
                 continue
             try:
-                content, eval_count, tok_per_s = await self._call_chat_endpoint(ep, messages, cancel_event)
+                content, eval_count, tok_per_s = await asyncio.wait_for(
+                    self._call_chat_endpoint(ep, messages, cancel_event),
+                    timeout=turn_timeout,
+                )
                 if content or eval_count:
                     self._mark_success(ep)
                     return content, eval_count, tok_per_s
+            except asyncio.TimeoutError:
+                # Phase 1 v2.1: watchdog — turn exceeded GENIO_MODEL_TURN_TIMEOUT.
+                logger.warning(f"[router] ⏱ {ep.name} exceeded turn timeout "
+                               f"({turn_timeout}s), failover")
+                self._mark_failure(ep)
+                errors.append(f"{ep.name}: timed out after {turn_timeout}s")
+                continue
             except asyncio.CancelledError:
                 raise
             except Exception as exc:
