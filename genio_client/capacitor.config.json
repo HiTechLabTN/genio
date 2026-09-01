@@ -1,0 +1,7 @@
+{
+  "appId": "com.hitechlab.genio",
+  "appName": "Genio",
+  "webDir": "dist",
+  "bundledWebRuntime": false,
+  "server": { "androidScheme": "https" }
+}
