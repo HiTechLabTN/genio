@@ -25,7 +25,7 @@ jobs:
       - name: setup node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: lts/*
       - name: install Rust stable
         uses: dtolnay/rust-toolchain@stable
       - name: install Linux dependencies
@@ -36,8 +36,12 @@ jobs:
       - name: install frontend dependencies
         working-directory: ./genio_client
         run: npm install
+      - name: install Tauri CLI Windows binary
+        if: matrix.platform == 'windows-latest'
+        working-directory: ./genio_client
+        run: npm install @tauri-apps/cli-win32-x64-msvc@2.11.4
       - name: Build and Publish Tauri app
-        uses: tauri-apps/tauri-action@v0
+        uses: tauri-apps/tauri-action@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
@@ -59,7 +63,7 @@ jobs:
       - name: setup node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: lts/*
       - name: install Rust stable
         uses: dtolnay/rust-toolchain@stable
       - name: install Linux dependencies
