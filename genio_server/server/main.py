@@ -42,6 +42,20 @@ API_KEY = os.environ.get("GENIO_API_KEY", "")
 NODE_NAME = os.environ.get("GENIO_NODE_NAME", "HiTech-Node")
 SERVICE_DIR = safe_cwd()
 
+# Runtime environment guard: production REQUIRES an API key.
+GENIO_ENV = os.environ.get("GENIO_ENV", "dev").strip().lower()
+if GENIO_ENV == "prod" and not API_KEY:
+    raise RuntimeError(
+        "GENIO_ENV=prod requires GENIO_API_KEY to be set. Refusing to start an "
+        "unauthenticated server. Export GENIO_API_KEY=<secret> (or run "
+        "`python genio_server.py --api-key <secret>`) and retry."
+    )
+
+# CORS allow-list is explicit (defaults to the Tauri dev origin). Never "*".
+_CORS_DEFAULT = "http://localhost:1420"
+_CORS_CSV = os.environ.get("GENIO_CORS_ORIGINS", "") or _CORS_DEFAULT
+CORS_ORIGINS = [o.strip() for o in _CORS_CSV.split(",") if o.strip()] or [_CORS_DEFAULT]
+
 # Latest run stats (heartbeat for the telemetry dock — updated on every run).
 LAST_STATS: Dict[str, Any] = {"tokens": 0, "tok_per_s": 0.0}
 # Live per-connection state (guards against concurrent agent runs).
@@ -58,7 +72,7 @@ app = FastAPI(
 )
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=CORS_ORIGINS,
     allow_methods=["*"],
     allow_headers=["*"],
 )
