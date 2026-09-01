@@ -8,6 +8,8 @@ import RightDrawer from "./RightDrawer";
 import CyberAvatar from "./avatar/CyberAvatar";
 import { HolographicHud } from "./avatar/HolographicHud";
 import type { AgentStatus, Attachment, ChatEvent, TelemetrySnapshot, ToolResultMap } from "../lib/types";
+import type { DeviceProfile } from "../lib/deviceProfiler";
+import type { EngineDecision } from "../lib/adaptiveEngine";
 
 interface Props {
   node: string;
@@ -20,6 +22,8 @@ interface Props {
   screen: string | null;
   streaming: boolean;
   drawerOpen: boolean;
+  deviceProfile?: DeviceProfile;
+  engineDecision?: EngineDecision;
   onToggleDrawer: () => void;
   onDisconnect: () => void;
   onKill: () => void;
@@ -42,6 +46,8 @@ export default function Dashboard({
   screen,
   streaming,
   drawerOpen,
+  deviceProfile,
+  engineDecision,
   onToggleDrawer,
   onDisconnect,
   onKill,
@@ -52,10 +58,10 @@ export default function Dashboard({
   onToggleScreenStream,
   onSwitchNode,
 }: Props) {
-  // Phase 4 v2.1: avatar mode derived from agent state.
   const busy = agentStatus.kind === "thinking" || agentStatus.kind === "executing";
   const avatarMode = busy ? "listening" : "idle";
 
+  // Responsive layout: avatar occupies primary viewport idle, HUD position when busy
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -75,26 +81,44 @@ export default function Dashboard({
         onToggleDrawer={onToggleDrawer}
       />
 
+      {/* Engine tier subtle bar when provided */}
+      {deviceProfile && engineDecision && (
+        <div className="flex items-center justify-center gap-2 border-b border-neon/10 bg-carbon/30 px-4 py-1 font-mono text-[10px] text-slate-500 md:hidden">
+          <span className={`h-1.5 w-1.5 rounded-full ${engineDecision.mode === "local" ? "bg-ok" : "bg-amber-400"}`} />
+          Tier {deviceProfile.tier} · {engineDecision.mode === "local" ? "On-Device" : "Cloud"} · {deviceProfile.ramGB}GB
+        </div>
+      )}
+
       <div className="flex min-h-0 flex-1">
         {/* main chat area */}
         <div className="flex min-h-0 flex-1 flex-col">
-          {/* Phase 4 v2.1: 3D avatar — centered idle/chat, translating into the
-              top widget bar when the agent is busy. */}
+          {/* Phase 3 — High-fidelity avatar: primary interactive viewport (idle) → HUD position (busy) */}
           <motion.div
-            className="relative z-10 flex items-center justify-center"
+            className="relative z-10 flex shrink-0 items-center justify-center overflow-visible"
             animate={
               busy
-                ? { scale: 0.35, top: 12, marginTop: -160, opacity: 0.92 }
-                : { scale: 1, top: 24, marginTop: 24, opacity: 1 }
+                ? { scale: 0.36, y: -8, opacity: 0.96 }
+                : { scale: 1, y: 0, opacity: 1 }
             }
-            transition={{ type: "spring", stiffness: 120, damping: 18 }}
+            transition={{ type: "spring", stiffness: 140, damping: 18 }}
+            style={{ transformOrigin: "top center" }}
           >
-            <CyberAvatar mode={avatarMode} size={busy ? 220 : 300} />
+            <div className={busy ? "mt-3" : "mt-6"}>
+              <CyberAvatar
+                mode={avatarMode}
+                size={busy ? 200 : 320}
+                faceTrack={!busy}
+                audioLevel={busy ? 0.35 : 0}
+              />
+            </div>
           </motion.div>
 
-          <Transcript chat={chat} agentStatus={agentStatus} />
+          {/* When idle, avatar background integrates seamlessly; transcript scrolls independently */}
+          <div className="flex min-h-0 flex-1 flex-col">
+            <Transcript chat={chat} agentStatus={agentStatus} />
+          </div>
 
-          {/* Phase 4 v2.1: holographic HUD under the collapsed avatar */}
+          {/* Phase 4 — holographic HUD (only visible when busy) */}
           <HolographicHud chat={chat} agentStatus={agentStatus} telemetry={telemetry} />
 
           <ActivityBar chat={chat} agentStatus={agentStatus} onKill={onKill} onContinue={onContinue} />

@@ -2,9 +2,12 @@ import { AnimatePresence } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
 import ConnectionHub from "./components/ConnectionHub";
 import Dashboard from "./components/Dashboard";
+import PermissionOnboarding, { shouldShowOnboarding } from "./components/PermissionOnboarding";
 import UpdateModal from "./components/UpdateModal";
 import { useGenioSocket } from "./hooks/useGenioSocket";
 import { checkForUpdates } from "./lib/updater";
+import { useDeviceProfile } from "./lib/deviceProfiler";
+import { decideEngine } from "./lib/adaptiveEngine";
 import type { Attachment, ServerNode } from "./lib/types";
 
 export default function App() {
@@ -30,6 +33,9 @@ export default function App() {
   const [update, setUpdate] = useState<{ version: string; notes?: string } | null>(null);
   const lastPromptRef = useRef("");
   const lastPromptFileRef = useRef<Attachment[] | undefined>(undefined);
+  const [showOnboarding, setShowOnboarding] = useState(() => shouldShowOnboarding());
+  const deviceProfile = useDeviceProfile();
+  const engineDecision = decideEngine();
 
   useEffect(() => {
     let alive = true;
@@ -76,9 +82,26 @@ export default function App() {
     }
   }
 
+  if (showOnboarding) {
+    return (
+      <PermissionOnboarding
+        onComplete={() => setShowOnboarding(false)}
+        onSkip={() => setShowOnboarding(false)}
+      />
+    );
+  }
+
   return (
     <div className="relative h-screen overflow-hidden">
       <div className="pointer-events-none absolute inset-0 -z-20 bg-grid-neon bg-grid [mask-image:radial-gradient(ellipse_70%_60%_at_50%_40%,black,transparent)]" />
+      {/* Adaptive engine tier badge — reactive to deviceProfiler */}
+      <div className="pointer-events-none absolute right-3 top-3 z-50 hidden select-none items-center gap-2 rounded-full border border-neon/15 bg-carbon/70 px-3 py-1 font-mono text-[10px] backdrop-blur md:flex">
+        <span className={`h-2 w-2 rounded-full ${engineDecision.mode === "local" ? "bg-ok shadow-[0_0_8px_rgba(52,211,153,0.8)]" : "bg-amber-400 shadow-[0_0_8px_rgba(251,146,60,0.8)]"}`} />
+        <span className="text-slate-300">Tier {deviceProfile.tier}</span>
+        <span className="text-slate-500">·</span>
+        <span className={engineDecision.mode === "local" ? "text-ok" : "text-amber-300"}>{engineDecision.mode === "local" ? "On-Device" : "Cloud"}</span>
+        <span className="text-slate-600">{deviceProfile.ramGB}GB · {deviceProfile.cores} cores</span>
+      </div>
 
       <AnimatePresence mode="wait">
         {connected && target ? (
@@ -94,6 +117,8 @@ export default function App() {
             screen={screen}
             streaming={streaming}
             drawerOpen={drawerOpen}
+            deviceProfile={deviceProfile}
+            engineDecision={engineDecision}
             onToggleDrawer={() => setDrawerOpen((o) => !o)}
             onDisconnect={handleDisconnect}
             onKill={kill}
