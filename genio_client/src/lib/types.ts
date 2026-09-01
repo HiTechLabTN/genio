@@ -67,8 +67,7 @@ export type ChatEvent =
   | { type: "killed" | "armed" }
   | { type: "artifact"; title?: string; content?: string; artifact_type?: string; mime?: string }
   | { type: "session"; session?: Record<string, unknown> }
-  | { type: "user"; text: string; attachments?: { name: string; content?: string }[]; audio?: AudioPayload; timestamp?: number }
-  | { type: string; [key: string]: unknown }; // tolerant fallback — unknown future types don't crash
+  | { type: "user"; text: string; attachments?: { name: string; content?: string }[]; audio?: AudioPayload; timestamp?: number };
 
 export type GenioEvent =
   | ({ type: "telemetry" } & Record<string, unknown>)
@@ -77,7 +76,7 @@ export type GenioEvent =
   | { type: "browser_view"; data_b64: string }
   | { type: "screen_stream"; active?: boolean; interval?: number }
   | { type: "voice_ready"; path?: string; duration?: number }
-  | { type: string; [key: string]: unknown } // tolerant fallback
+  | { type: string; [key: string]: unknown } // tolerant fallback — unknown future types don't crash
   | ChatEvent;
 
 export interface TelemetrySnapshot {
