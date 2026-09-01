@@ -93,29 +93,35 @@ export async function* streamGemini(
     tools: [{ functionDeclarations: mapToolCallsToDeclarations() }],
   };
 
-  // If no auth (offline CI/build), emit mock Darija streaming to satisfy UI without network
-  if (!auth || auth.startsWith("mock-")) {
-    const mock = "Ya ahla, ena Genio men HiTechLab! 🚀 Chnowa n3awnk lyoum? (mock Gemini stream, Darija persona active)";
-    for (const w of mock.split(" ")) {
-      await new Promise((r) => setTimeout(r, 18));
-      if (opts?.signal?.aborted) break;
-      yield { text: w + " " };
-    }
-    yield { done: true };
-    return;
+  // Hotfix v2.2: NO MOCK — use real Gemini API exclusively. Prompt leakage via mock is removed.
+  // systemInstruction is the ONLY place for Darija persona; never appended to contents.
+  if (!auth) {
+    throw new Error("السيرفر طايح توا، ما نجمش نكوّنكتي.");
+  }
+  if (auth.startsWith("mock-")) {
+    // Mock tokens (CI/dev bypass) must not leak system instructions — fail fast with Tunisian down message
+    throw new Error("السيرفر طايح توا، ما نجمش نكوّنكتي.");
   }
 
   const headers: Record<string, string> = { "Content-Type": "application/json" };
   if (auth && (auth.startsWith("ya29.") || auth.includes("."))) headers.Authorization = `Bearer ${auth}`;
 
-  const resp = await fetch(url, {
-    method: "POST",
-    headers,
-    body: JSON.stringify(body),
-    signal: opts?.signal,
-  });
+  let resp: Response;
+  try {
+    resp = await fetch(url, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(body),
+      signal: opts?.signal,
+    });
+  } catch {
+    throw new Error("السيرفر طايح توا، ما نجمش نكوّنكتي.");
+  }
 
   if (!resp.ok) {
+    if (resp.status >= 500 || resp.status === 0) {
+      throw new Error("السيرفر طايح توا، ما نجمش نكوّنكتي.");
+    }
     const err = await resp.text().catch(() => resp.statusText);
     throw new Error(`Gemini ${resp.status}: ${err.slice(0, 400)}`);
   }
@@ -131,6 +137,7 @@ export async function* streamGemini(
   const reader = resp.body.getReader();
   const decoder = new TextDecoder();
   let buf = "";
+  let thinkingStreak = 0;
   try {
     while (true) {
       const { done, value } = await reader.read();
@@ -146,8 +153,26 @@ export async function* streamGemini(
           const cands = (json.candidates || []) as Array<{ content?: { parts?: Array<{ text?: string; functionCall?: { name: string; args: Record<string, unknown> } }> } }>;
           for (const c of cands) {
             for (const p of c.content?.parts ?? []) {
-              if (p.text) yield { text: p.text, raw: json };
-              if (p.functionCall) yield { toolCall: { name: p.functionCall.name, args: p.functionCall.args }, raw: json };
+              // Loop breaker: detect /* thinking */ without valid tool/answer
+              if (p.text) {
+                const trimmed = p.text.trim();
+                const isThinking = trimmed === "/* thinking */" || trimmed.includes("/* thinking */");
+                if (isThinking) {
+                  thinkingStreak++;
+                  if (thinkingStreak > 3) {
+                    yield { text: "السيرفر طايح توا، ما نجمش نكوّنكتي.", done: true } as GeminiStreamChunk;
+                    try { await reader.cancel(); } catch {}
+                    return;
+                  }
+                  continue; // suppress thinking marker, do not yield
+                }
+                thinkingStreak = 0;
+                yield { text: p.text, raw: json };
+              }
+              if (p.functionCall) {
+                thinkingStreak = 0;
+                yield { toolCall: { name: p.functionCall.name, args: p.functionCall.args }, raw: json };
+              }
             }
           }
         } catch {
@@ -157,7 +182,7 @@ export async function* streamGemini(
       if (opts?.signal?.aborted) break;
     }
   } finally {
-    reader.releaseLock();
+    try { reader.releaseLock(); } catch {}
   }
   yield { done: true };
 }

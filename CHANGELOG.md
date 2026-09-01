@@ -273,3 +273,24 @@ result = [c for c in ().__class__.__base__.__subclasses__()
 - **`src/lib/audio.ts`** : MediaRecorder raw blobs `WebM/WAV` (déprécié WebSpeech), `transcribeAudio` → Gemini/cloud.
 
 **Build** : `npm run build` exit 0 (2826 modules, `gemini_provider` + `face_mesh` codé-split, 380kB gzip). Dépendances ajoutées : `@tauri-apps/plugin-opener` (déjà), `tsx` (dev, vérif).
+
+## 2026-09-02 — Genio v2.2 Hotfix & UI/UX Overhaul: Midjourney-Fidelity Avatar & Loop Resolution
+
+### PHASE 1: Fix Infinite Thinking Loop & Gemini Mock Leak
+
+- **`src/lib/providers/gemini_provider.ts`** : suppression du fallback mock `Ya ahla... (mock Gemini stream)` — désormais `throw "السيرفر طايح توا، ما نجمش نكوّنكتي."` si `!auth` ou `mock-` token, plus de fuite `systemInstruction` dans `contents` (déjà correct via `systemInstruction: {parts: [...]}`), `fetch` wrappé avec `try/catch` → down message sur offline/5xx, `thinkingStreak` compteur `/* thinking */` >3 consécutifs sans tool/answer → `yield {text: "السيرفر طايح توا...", done:true}` + `reader.cancel()` + `return` (loop breaker).
+- **`src/App.tsx`** : `catch` branché pour afficher down message en `answer` (pas `error` leak), `streamGemini` streaming `acc` collapse `thought → answer`.
+
+### PHASE 2: Pixar-Style Midjourney Art Direction
+
+- **`src/components/avatar/CyberAvatar.tsx`** : tenue `red hoodie/cape` (`cylinderGeometry` `B91C1C` + gold piping `torus` + `Text G` gold `Orbitron`), barbe/moustache `thick red cartoon` (`capsule` `E53935` fluffy `roughness 0.9`), yeux `big anime` (sclera white `0.11` + iris amber `#8B4513` + red emissive + highlight white + pupil black + glow ring red), matériaux `MeshPhysicalMaterial` `clearcoat` + `envMapIntensity` + `<Environment preset="city" />` pour rendu Pixar glossy.
+- **`src/components/Dashboard.tsx`** : fond `bg-[#020B1E]` space + `radial-gradient` + `starfield` + 2 anneaux cyan tournants `spin 28s/42s` + `shadow-[0_0_60px]` derrière avatar (holographic portals).
+
+### PHASE 3: Floating UI & Selfie Mode Polish
+
+- **`src/components/Header.tsx`** : pill `SELFIE MODE` top-right `Camera` + dot pulse, `border-cyan-400/15` `bg-cyan-400/15` active vs `slate-700/40` idle, `selfieActive` state passé à `Dashboard`.
+- **`src/components/Dashboard.tsx`** : `selfieActive` `useState`, `CyberAvatar faceTrack={selfieActive}` (idle) vs `false` busy, offline banner `TN VPS hors ligne — السيرفر طايح توا...` (red `border-red-500/30` + pulse) quand `telemetryStale`, chat h-[35vh]/h-[65vh] strict conservé.
+- **`src/components/BottomInputBar.tsx`** : pill `ÉCOUTE` rouge `border-red-500` avec waveform 3 bars `equalizer` animée + `Mic`, `PRÊT` pill cyan glowing `border-cyan-400` `shadow-[0_0_16px]` + `✦✦`, footer `• GENIO APP •` `tracking-[0.2em]`, suppression `Send`/`Square` unused.
+- **Status Alignment** : `telemetryStale` → banner chat + input reste actif en Gemini Cloud, bloqué visuellement en VPS.
+
+**Verification** : `npm run build` exit 0 (2826 modules → 1514kB, `gemini_provider` + `face_mesh` + `Environment`), plus de mock leak, `/* thinking */` breaker >3 → down message.

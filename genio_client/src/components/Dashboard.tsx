@@ -60,6 +60,7 @@ export default function Dashboard({
 }: Props) {
   const busy = agentStatus.kind === "thinking" || agentStatus.kind === "executing";
   const avatarMode = busy ? "listening" : "idle";
+  const [selfieActive, setSelfieActive] = useState(false);
 
   // Responsive layout: avatar occupies primary viewport idle, HUD position when busy
   return (
@@ -76,6 +77,8 @@ export default function Dashboard({
         telemetry={telemetry}
         telemetryStale={telemetryStale}
         agentStatus={agentStatus}
+        selfieActive={selfieActive}
+        onToggleSelfie={() => setSelfieActive((v) => !v)}
         onKill={onKill}
         onDisconnect={onDisconnect}
         onToggleDrawer={onToggleDrawer}
@@ -114,20 +117,35 @@ export default function Dashboard({
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="relative flex h-[35vh] shrink-0 items-center justify-center overflow-hidden border-b border-neon/5 bg-gradient-to-b from-transparent via-neon/[0.03] to-transparent"
+                className="relative flex h-[35vh] shrink-0 items-center justify-center overflow-hidden border-b border-neon/5 bg-[#020B1E]"
                 style={{ pointerEvents: "auto" }}
               >
-                <div className="pointer-events-auto">
-                  <CyberAvatar mode={avatarMode} size={340} faceTrack={true} audioLevel={0} />
+                {/* Deep dark-blue space + glowing cyan portals */}
+                <div className="pointer-events-none absolute inset-0">
+                  <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_40%,rgba(0,229,255,0.12),transparent_70%)]" />
+                  <div className="absolute inset-0 opacity-40" style={{ backgroundImage: "radial-gradient(white 1px, transparent 1px)", backgroundSize: "32px 32px" }} />
+                  <div className="absolute left-1/2 top-1/2 h-[480px] w-[480px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-cyan-400/20 shadow-[0_0_60px_rgba(0,229,255,0.25)] animate-spin" style={{ animationDuration: "28s" }} />
+                  <div className="absolute left-1/2 top-1/2 h-[620px] w-[620px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-cyan-400/10 shadow-[0_0_80px_rgba(0,229,255,0.15)] animate-spin" style={{ animationDuration: "42s", animationDirection: "reverse" }} />
+                  <div className="absolute left-1/2 top-1/2 h-[360px] w-[360px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/5" />
                 </div>
-                {/* seamless background integration */}
-                <div className="pointer-events-none absolute inset-0 bg-grid-neon opacity-[0.03]" />
+                <div className="pointer-events-auto relative z-10">
+                  <CyberAvatar mode={avatarMode} size={340} faceTrack={selfieActive} audioLevel={0} />
+                </div>
+                <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-[#020B1E] to-transparent" />
               </motion.div>
             )}
           </AnimatePresence>
 
           {/* Chat history — strict h-[65vh] idle, flex-1 when busy (HUD occupies part) */}
           <div className={busy ? "flex min-h-0 flex-1 flex-col pt-2" : "flex h-[65vh] min-h-0 flex-col overflow-hidden pb-2"}>
+            {/* TN VPS offline — visual alert in chat layer */}
+            {telemetryStale && (
+              <div className="mx-4 mb-2 flex items-center gap-2 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-2.5 text-xs font-medium text-red-300 shadow-[0_0_12px_rgba(239,68,68,0.15)]">
+                <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.8)]" />
+                <span>TN VPS hors ligne — السيرفر طايح توا، ما نجمش نكوّنكتي.</span>
+                <span className="ml-auto hidden text-[10px] text-red-300/70 sm:inline">Basculer vers Gemini Cloud</span>
+              </div>
+            )}
             <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
               <Transcript chat={chat} agentStatus={agentStatus} />
             </div>

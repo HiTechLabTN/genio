@@ -77,7 +77,12 @@ export default function App() {
             }
           } catch (e: unknown) {
             const msg = e instanceof Error ? e.message : String(e);
-            setGeminiChat((prev) => [...prev.slice(-299), { type: "error", message: msg }]);
+            // Hotfix v2.2: loop/offline → Tunisian down message as answer, not leaked error
+            if (msg.includes("السيرفر طايح")) {
+              setGeminiChat((prev) => [...prev.slice(-299), { type: "answer", text: msg }]);
+            } else {
+              setGeminiChat((prev) => [...prev.slice(-299), { type: "error", message: msg }]);
+            }
             setGeminiStatus({ kind: "idle" });
           }
         })();

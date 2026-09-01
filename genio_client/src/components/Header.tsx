@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import {
   Activity,
+  Camera,
   Cpu,
   LogOut,
   MemoryStick,
@@ -17,6 +18,8 @@ interface Props {
   telemetry: TelemetrySnapshot | null;
   telemetryStale: boolean;
   agentStatus: AgentStatus;
+  selfieActive?: boolean;
+  onToggleSelfie?: () => void;
   onKill: () => void;
   onDisconnect: () => void;
   onToggleDrawer: () => void;
@@ -28,6 +31,8 @@ export default function Header({
   telemetry,
   telemetryStale,
   agentStatus,
+  selfieActive = false,
+  onToggleSelfie,
   onKill,
   onDisconnect,
   onToggleDrawer,
@@ -104,6 +109,20 @@ export default function Header({
       </div>
 
       <div className="flex items-center gap-2">
+        {/* SELFIE MODE pill — top right, Midjourney fidelity */}
+        <button
+          onClick={onToggleSelfie}
+          className={`hidden items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] font-bold tracking-wider backdrop-blur transition-all sm:flex ${
+            selfieActive
+              ? "border-cyan-400 bg-cyan-400/15 text-cyan-300 shadow-[0_0_16px_rgba(0,229,255,0.4)]"
+              : "border-slate-700/40 bg-slate-900/40 text-slate-500 hover:border-cyan-400/30 hover:text-cyan-300"
+          }`}
+          title="Toggle selfie face tracking"
+        >
+          <Camera size={14} className={selfieActive ? "text-cyan-300" : "text-slate-500"} />
+          SELFIE MODE
+          <span className={`h-2 w-2 rounded-full ${selfieActive ? "bg-cyan-400 shadow-[0_0_8px_rgba(0,229,255,0.8)] animate-pulse" : "bg-slate-600"}`} />
+        </button>
         <AgentStatusBadge status={agentStatus} />
         {agentStatus.kind === "executing" || agentStatus.kind === "thinking" ? (
           <button

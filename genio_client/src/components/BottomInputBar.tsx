@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Mic, Paperclip, Send, Square, X } from "lucide-react";
+import { Mic, Paperclip, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type { Attachment } from "../lib/types";
 import { setIntermediateTranscript, startVoiceRecording, stopVoiceRecording, speechRecognitionSupported } from "../lib/audio";
@@ -186,33 +186,39 @@ export default function BottomInputBar({ onSendPrompt, onSendVoice, disabled }: 
           disabled={disabled || recording}
         />
 
-        {/* voice */}
+        {/* voice - ÉCOUTE pill */}
         <button
           onClick={toggleMic}
-          title={recording ? "Stop recording" : "Voice prompt"}
-          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-all duration-200 ${
+          title={recording ? "Stop recording" : "Écoute"}
+          className={`flex h-10 shrink-0 items-center justify-center gap-2 rounded-full border px-4 text-[12px] font-bold tracking-wider backdrop-blur transition-all duration-200 ${
             recording
-              ? "bg-danger text-white shadow-neon-lg"
-              : "border border-slate-700/50 bg-slate-900/60 text-slate-400 hover:border-neon/40 hover:bg-neon/5 hover:text-neon"
+              ? "border-red-500 bg-red-500/15 text-red-300 shadow-[0_0_16px_rgba(239,68,68,0.5)] animate-pulse"
+              : "border-red-500/40 bg-red-500/5 text-red-300 hover:border-red-500/70 hover:bg-red-500/10 hover:shadow-[0_0_12px_rgba(239,68,68,0.25)]"
           }`}
         >
-          {recording ? (
-            <span className="relative flex items-center justify-center">
-              <span className="absolute inset-0 animate-ping rounded-full bg-danger/40" />
-              <Square size={14} />
+          <span className="flex items-center gap-1">
+            <span className={`flex gap-0.5 ${recording ? "opacity-100" : "opacity-60"}`}>
+              <span className="h-3 w-0.5 bg-red-400" style={{ animation: recording ? "equalizer 0.6s ease-in-out infinite" : undefined }} />
+              <span className="h-4 w-0.5 bg-red-400" style={{ animation: recording ? "equalizer 0.6s 0.1s ease-in-out infinite" : undefined }} />
+              <span className="h-3 w-0.5 bg-red-400" style={{ animation: recording ? "equalizer 0.6s 0.2s ease-in-out infinite" : undefined }} />
             </span>
-          ) : (
-            <Mic size={16} />
-          )}
+            <Mic size={14} className={recording ? "text-red-300" : "text-red-400/70"} />
+          </span>
+          ÉCOUTE
         </button>
 
-        {/* send */}
+        {/* send - PRÊT pill */}
         <button
           onClick={handleSubmit}
           disabled={disabled || recording || (!value.trim() && attachments.length === 0)}
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-neon text-slate-950 font-bold transition-all hover:bg-neon-soft hover:shadow-neon-lg active:scale-95 disabled:opacity-30 disabled:hover:shadow-none"
+          className={`flex h-10 shrink-0 items-center justify-center gap-2 rounded-full border px-5 text-[12px] font-bold tracking-wider backdrop-blur transition-all ${
+            !value.trim() && attachments.length === 0
+              ? "border-slate-700/30 bg-slate-900/30 text-slate-600"
+              : "border-cyan-400 bg-cyan-400/10 text-cyan-300 shadow-[0_0_16px_rgba(0,229,255,0.35)] hover:bg-cyan-400/15 hover:shadow-[0_0_20px_rgba(0,229,255,0.5)] active:scale-95"
+          } disabled:opacity-40`}
         >
-          <Send size={16} />
+          <span className="text-cyan-300">✦✦</span>
+          PRÊT
         </button>
       </div>
 
@@ -234,6 +240,13 @@ export default function BottomInputBar({ onSendPrompt, onSendVoice, disabled }: 
             : "release to send via Web Audio"}
         </motion.p>
       )}
+
+      {/* GENIO APP footer — Midjourney fidelity */}
+      <div className="mt-3 flex items-center justify-center gap-3 font-mono text-[10px] tracking-[0.2em] text-slate-500">
+        <span className="h-1 w-1 rounded-full bg-slate-600" />
+        GENIO APP
+        <span className="h-1 w-1 rounded-full bg-slate-600" />
+      </div>
     </div>
   );
 }
