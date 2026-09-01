@@ -20,6 +20,11 @@ from typing import Dict
 
 DEFAULT_TIMEOUT = 30  # seconds
 
+# Cap any single command's captured output so giant dumps (e.g. ``ls -R``)
+# can never overflow the LLM context window.
+MAX_OUTPUT = 3000
+TRUNCATE_MARKER = "\n... [Output truncated to preserve context window]"
+
 # Commands we never allow the agent to run from the harness.
 DENIED_PREFIXES = (
     "rm -rf /",
@@ -28,6 +33,14 @@ DENIED_PREFIXES = (
     "mkfs.",
     "> /dev/sd",
 )
+
+
+def truncate_output(text: str) -> str:
+    """Cap captured output to ``MAX_OUTPUT`` chars, appending a marker."""
+    text = text or ""
+    if len(text) <= MAX_OUTPUT:
+        return text
+    return text[:MAX_OUTPUT] + TRUNCATE_MARKER
 
 
 class BashToolError(RuntimeError):
@@ -68,8 +81,8 @@ def run_command(command: str, timeout: int = DEFAULT_TIMEOUT) -> Dict[str, objec
         )
         return {
             "command": command,
-            "stdout": proc.stdout or "",
-            "stderr": proc.stderr or "",
+            "stdout": truncate_output(proc.stdout),
+            "stderr": truncate_output(proc.stderr),
             "returncode": proc.returncode,
             "duration": round(time.monotonic() - started, 3),
             "timed_out": False,

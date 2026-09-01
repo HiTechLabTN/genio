@@ -36,9 +36,16 @@ from genio_server.tools import invoke, tool_specs
 
 DEFAULT_MODEL = os.environ.get("GENIO_MODEL", "gemma4:12b")
 OLLAMA_URL = os.environ.get("GENIO_OLLAMA_URL", "http://127.0.0.1:11434")
-DEFAULT_MAX_ITERATIONS = int(os.environ.get("GENIO_MAX_ITERATIONS", "24"))
+DEFAULT_MAX_ITERATIONS = int(os.environ.get("GENIO_MAX_ITERATIONS", "15"))
 DEFAULT_MODE = os.environ.get("GENIO_MODE", "autonomous")
 STEP_TIMEOUT = 120  # seconds per model request
+
+# Safety: cap any single tool output so giant dumps (e.g. ``ls -R``) can never
+# overflow the LLM context window and crash the loop into a premature terminal
+# state. When the cap is hit a marker is appended so the model knows the
+# result was truncated rather than complete.
+MAX_TOOL_OUTPUT = 3000
+TRUNCATE_MARKER = "\n... [Output truncated to preserve context window]"
 
 SYSTEM_PROMPT = (
     "You are Genio, the fully autonomous AI engineer for HiTech Lab. "
@@ -166,21 +173,52 @@ def _last_json(text: str) -> Optional[Dict[str, object]]:
     return None
 
 
+def truncate_output(text: str, limit: int = MAX_TOOL_OUTPUT) -> str:
+    """Cap tool output to ``limit`` chars, appending a truncation marker.
+
+    Prevents oversized command output (e.g. ``ls -R``, huge logs) from
+    overflowing the model's context window and corrupting the ReAct loop.
+    """
+    text = text or ""
+    if len(text) <= limit:
+        return text
+    return text[:limit] + TRUNCATE_MARKER
+
+
 def _feedback_for(result: Dict[str, object], assistant: str) -> str:
-    """Human/LLM-readable tool feedback for the next model turn."""
+    """Human/LLM-readable tool feedback for the next model turn.
+
+    Truncates long output and, on a non-zero exit code or tool error, injects
+    an explicit self-correction directive so the model retries/repairs instead
+    of collapsing the loop into a premature terminal state.
+    """
     if not isinstance(result, dict):
-        return f"Tool output:\n{(result or '(no output)')}"
+        flat = str(result or "(no output)")
+        return f"Tool output:\n{truncate_output(flat)}"
     if "returncode" in result:  # bash-style result
-        out = str(result.get("stdout") or "")
-        err = str(result.get("stderr") or "")
-        code = result.get("returncode", -1)
-        return f"Tool output (exit code {code}):\n{out or err or '(no output)'}"
+        out = truncate_output(str(result.get("stdout") or ""))
+        err = truncate_output(str(result.get("stderr") or ""))
+        code = result.get("returncode")
+        code = int(code) if code is not None else -1
+        body = out or err or "(no output)"
+        if code == 0:
+            return f"Tool output (exit code 0):\n{body}"
+        # Self-correction: surface the failure and ask the model to adapt.
+        return (
+            f"TOOL FAILED (exit code {code}):\n{body}\n\n"
+            "The command above did not succeed. Diagnose the error, adjust your "
+            "approach and retry until it works — do not give up and do not report "
+            "success prematurely. If it is genuinely impossible, explain that in "
+            "your final answer."
+        )
     if result.get("error"):
-        return f"Tool output (ERROR): {result['error']}"
+        return (
+            f"TOOL FAILED (ERROR): {result['error']}\n\n"
+            "The tool raised an error. Inspect it, correct your call and retry; "
+            "only stop with a final answer once the task is actually resolved."
+        )
     flat = json.dumps(result, ensure_ascii=False)
-    if len(flat) > 4000:
-        flat = flat[:4000] + "…[truncated]"
-    return f"Tool output:\n{flat}"
+    return f"Tool output:\n{truncate_output(flat)}"
 
 
 class AgentLoop:
@@ -281,6 +319,12 @@ class AgentLoop:
                 # Tools (playwright / pyautogui / mss) are blocking — run them
                 # in a worker thread so the async loop stays responsive.
                 result = await asyncio.to_thread(invoke, call["tool"], command)
+                # Bound the stored result fields too so the client transcript
+                # and any persisted state stay within a sane size.
+                if isinstance(result, dict):
+                    for k in ("stdout", "stderr"):
+                        if isinstance(result.get(k), str):
+                            result[k] = truncate_output(result[k])
                 yield {"type": "tool_result", "result": result}
 
                 feedback = _feedback_for(result, assistant)
