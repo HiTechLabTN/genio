@@ -154,3 +154,89 @@ result = [c for c in ().__class__.__base__.__subclasses__()
 | D | Fuite ressources : conteneurs `genio-session-*` jamais nettoyés | `genio_server/tools/session_container.py:188` `cleanup_container`, `genio_server/server/main.py:513` `finally` WS, `genio_server/server/main.py:127` periodic | `finally` WS nettoie `cleanup_container` + `_CWD_MAP/_LAST_USED` pour `_SESSION_IDS[conn]`, tâche périodique `asyncio` 60s `docker ps` + idle `> GENIO_SESSION_CONTAINER_IDLE_TIMEOUT=1800` (Q3 30min), kill-switch détruit immédiatement (Q3) | `test_phase_D_container_lifecycle.py` (4 cas) : WS close mock `docker rm`, idle avance `last_used+2000>1800` nettoyé, kill immediate, env override |
 | E | ModelRouter non branché, kill non propagé (double-check avant/après, pas race) | `genio_server/core/agent_loop.py:305` `_chat` direct `httpx.post`, `core/model_router.py:95` `generate` sans `chat`, `genio_server/server/main.py:217` `/api/v1/status` sans router | `AgentLoop._chat` via `ModelRouter.chat(messages, cancel_event)` Q4 endpoints inchangés, race `asyncio.wait(FIRST_COMPLETED)` `chat_task` vs `_wait_cancel` + `chat_task.cancel()` pour fermer HTTP, `/_telemetry` expose `router` health | `test_phase_E_model_routing.py` (3 cas) : `_chat` direct mock sleep 2s, cancel 200ms → `CancelledError` <1s et flag `was_cancelled` True, sans cancel OK, status expose router |
 | F | CI incomplet : `test_genio_core` absent, pas de lint, security n'inclut pas Phases A-E | `.github/workflows/ci.yml:26` backend sans `test_genio_core`, sans `ruff`, security sans Phase A-E | Backend `pytest` inclut `test_phase_A-E` + `test_genio_core -k "not 2 flaky"` + `ruff check` (`python -m ruff`), security `pytest test_bash_tool_safety + test_phase_A-E` | CI vert `33478285161` → `backend` 22s, `frontend` 25s, `security` 14s (après fix `-k dangerous` et `pip install` manquant) |
+
+## 2026-09-01 — Genio v2.1 Architecture & Interface Overhaul (Phases 1-4)
+
+### Phase 1 — Backend async non-bloquant + watchdog d'exécution
+
+- **`genio_server/tools/bash_tool.py`** : nouveau `async_run_command()` via
+  `asyncio.create_subprocess_exec` (jamais `subprocess.run` sur le event loop) ;
+  `run_command()` synchrone conservé pour rétro-compat ; builder `_result()`
+  partagé.
+- **`genio_server/tools/session_container.py`** : variantes async
+  `async_exec_in_container()` / `async_ensure_container()` /
+  `async_cleanup_container()` — tout docker (`run/exec/inspect/rm`, bash `-lc`)
+  via `create_subprocess_exec`. Fallback docker absent → `async_run_command`
+  (comportement identique au chemin sync, gardes Phase C/D intactes).
+- **`core/model_router.py`** : watchdog strict `GENIO_MODEL_TURN_TIMEOUT`
+  (défaut `30`s) appliqué à `chat()` ET `generate()` via `asyncio.wait_for` :
+  dépasse → log `⏱ ${ep} exceeded turn timeout`, `_mark_failure`, failover au
+  endpoint suivant — plus jamais de `THINKING…` figé 120s+.
+- **`genio_server/core/agent_loop.py`** : `_feedback_for()` injecte une
+  directive de continuation automatique quand un outil retourne exit 0 avec
+  sortie triviale (`cat`/`touch`/`mkdir`/`pwd`/`echo -n`) → le modèle exécute
+  l'étape suivante du plan au lieu de tomber en idle.
+- **Benchmark** : commande `sleep 0.3` sous `async_run_command` = event loop
+  reste ouvert (un ticker concurrent continue de ticker) ; timeout watchdog
+  ​​`0.05s` sur un mock de 5s → failover en <2s (au lieu de 5s).
+- **Nouveau** `test_phase_v2_1_watchdog.py` (4 cas). Suite complète :
+  `121 passed, 1 xfailed`.
+
+### Phase 2 — System 1 Reflex Engine & compilation de skills autonome
+
+- **Nouveau** `genio_server/core/reflex_engine.py` : `ReflexEngine` avec
+  fast-path déterministe <100ms pour les intents haute-fréquence (system
+  health `uptime`+`free`+`df`, list dir, read file, process status, kill pid,
+  git status, python version) — zéro token Ollama. Auto-fixes déterministes
+  connus : `ModuleNotFoundError: No module named 'X'` → `pip install X`,
+  `command not found`, `Permission denied` → commande corrective, résolus
+  AVANT la réflexion LLM.
+- **Compilateur de trajectoires** `compile_skill()` : un ReAct run à >1 tour
+  d'outil se terminant par une vraie réponse est sérialisé en skill
+  paramétré (`state/skills_library/patterns.json`) ; replayé via fast-path sur
+  prompts identiques/similaires.
+- **Intégration loop** : `AgentLoop.run()` évalue `ReflexEngine.match(prompt)`
+  AVANT `ModelRouter` ; sur match → `tool_result`+`answer` directs (aucun
+  appel LLM). Sur outil en échec → `auto_fix()` appliqué avant retour.
+- **Feature flag** : `GENIO_REFLEX_FASTPATH=1` (défaut ON).
+- **Benchmark** : audit système fast-path mesuré <100ms, `test_reflex_loop_
+  never_calls_ollama` prouve zéro `_chat`.
+- **Nouveau** `test_phase_v2_2_reflex.py` (5 cas).
+
+### Phase 3 — Pipeline audio natif Android
+
+- **`genio_server/server/voice_pipeline.py`** (nouveau) : transcribe raw audio
+  (WAV/WebM/Opus/M4A) via `faster-whisper` > `whisper`, fallback déterministe
+  structuré (jamais de raise). Gated `GENIO_AUDIO_PIPELINE=1`.
+- **`genio_server/server/main.py`** : `POST /api/v1/voice/transcribe`
+  (multipart `audio` + `language`) → `asyncio.to_thread(transcribe_audio)`.
+  WS `voice_wav` (final) transcrit et cache le texte dans
+  `_PENDING_TRANSCRIPT[conn]` ; l'action `prompt` suivante préfixe le prompt
+  avec ce texte → l'audio brut route dans le ReAct proprement. Nettoyage sur
+  déconnexion.
+- **`genio_client/src/lib/audio.ts`** : `webkitSpeechRecognition` déprécié
+  (non fonctionnel sur WebView Android/Tauri) ; capture prima MediaRecorder
+  (blobs raw audio/webm·opus / wav) ; nouveau helper `transcribeAudio(blob,
+  apiBase?, apiKey?)` → POST multipart avec `X-API-Key`.
+- **Nouveau** `test_phase_v2_3_audio.py` (6 cas) : fallback/whisper routing,
+  gate 403 quand désactivé / 200 quand activé, injection transcript dans le
+  prochain prompt.
+
+### Phase 4 — Cyber-avatar 3D tunisien & HUD holographique
+
+- **Deps** : `@react-three/fiber`, `@react-three/drei`, `three`,
+  `@types/three`, `@mediapipe/face_mesh` installés.
+- **`genio_client/src/components/avatar/CyberAvatar.tsx`** (nouveau) : tête
+  robotique stylisée avec Chachia (شاشية) cybernétique (bandeau + bec néon),
+  accents faciaux lumineux, holo-rim ; morphs idle breathing / listening /
+  speaking (mâchoire lipsync) ; look-at pointer + FaceMesh webcam opt-in
+  (`faceTrack`, import dynamique découpé en chunk séparé, chargement
+  `cdn.jsdelivr.net/@mediapipe/face_mesh`) ; fallback 2D néon si WebGL absent.
+- **`genio_client/src/components/avatar/HolographicHud.tsx`** (nouveau) :
+  HUD double panneau quand `busy` — gauche Task Matrix (checklist tools
+  complétés/pending), droite Telemetry gauges (CPU/RAM/GPU/tokens/s).
+- **`genio_client/src/components/Dashboard.tsx`** : avatar centré en idle/chat ;
+  sur `busy` → translation+cale vers la top widget bar (`scale 0.35`,
+  `top 12px`) avec HUD qui se déploie dessous (spring, stiffness 120/damping 18).
+- **Build** : `npm run build` exit 0 (tsc + vite). Chunk warning 3D (≈1.3MB)
+  bénin ; `face_mesh` codé-split.
