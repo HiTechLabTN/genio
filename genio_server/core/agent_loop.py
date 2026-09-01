@@ -29,6 +29,7 @@ import logging
 import os
 import re
 import threading
+import time
 from typing import TYPE_CHECKING, AsyncIterator, Callable, Dict, List, Optional, Tuple
 
 import httpx
@@ -502,6 +503,26 @@ class AgentLoop:
         await self._save_message("user", user_input)
         final_answer = ""
 
+        # Phase 2 v2.1: System 1 Reflex fast-path — resolve deterministic
+        # high-frequency intents without any Ollama tokens.
+        if os.getenv("GENIO_REFLEX_FASTPATH", "1").strip().lower() not in ("0", "false", "no"):
+            try:
+                from genio_server.core.reflex_engine import get_reflex_engine
+                fast = get_reflex_engine().match(user_input)
+                if fast is not None:
+                    res = fast.get("result") or fast
+                    yield {"type": "tool_call", "command": res.get("command", "")}
+                    yield {"type": "tool_result", "result": res}
+                    final_answer = f"[Reflex fast-path] {res.get('stdout', '').strip()}"
+                    await self._save_message("assistant", final_answer)
+                    yield {"type": "answer", "text": final_answer}
+                    return
+            except Exception:
+                logger.exception("reflex fast-path failed; falling through to LLM")
+
+        # Phase 2 v2.1: trajectory tracking for skill compilation.
+        trajectory: List[Dict[str, object]] = []
+
         async with httpx.AsyncClient(base_url=self.ollama_url) as client:
             for _ in range(self.max_iterations):
                 # Yield to the event loop each iteration so surrounding tasks
@@ -525,6 +546,17 @@ class AgentLoop:
                     final_answer = assistant.strip()
                     await self._save_message("assistant", final_answer)
                     yield {"type": "answer", "text": final_answer}
+                    # Phase 2 v2.1: trajectory compiler — a >1 tool-turn run that
+                    # ends with a real answer is serialized as a reusable skill.
+                    if len(trajectory) > 1 \
+                            and os.getenv("GENIO_REFLEX_FASTPATH", "1").strip().lower() \
+                            not in ("0", "false", "no"):
+                        try:
+                            from genio_server.core.reflex_engine import get_reflex_engine
+                            get_reflex_engine().compile_skill(
+                                f"auto-{int(time.time())}", user_input, trajectory)
+                        except Exception:
+                            logger.exception("skill compilation failed")
                     return
 
                 command = call["command"]
@@ -536,12 +568,37 @@ class AgentLoop:
                 # Tools (playwright / pyautogui / mss) are blocking — run them
                 # in a worker thread so the async loop stays responsive.
                 result = await asyncio.to_thread(invoke, call["tool"], command, self.session_id)
+                # Phase 2 v2.1: deterministic auto-fix — map a known fatal
+                # stderr pattern (e.g. ModuleNotFoundError) to an immediate
+                # corrective command, before feeding it back for LLM reflection.
+                if isinstance(result, dict) and result.get("returncode") not in (0, None) \
+                        and os.getenv("GENIO_REFLEX_FASTPATH", "1").strip().lower() \
+                        not in ("0", "false", "no"):
+                    try:
+                        from genio_server.core.reflex_engine import get_reflex_engine
+                        fix_cmd = get_reflex_engine().auto_fix(
+                            str(result.get("stderr") or result.get("stdout") or "")
+                        )
+                        if fix_cmd:
+                            yield {"type": "thought",
+                                   "text": f"[Reflex auto-fix] {fix_cmd}"}
+                            fix_result = await asyncio.to_thread(
+                                invoke, "bash", fix_cmd, self.session_id)
+                            if isinstance(fix_result, dict):
+                                for k in ("stdout", "stderr"):
+                                    if isinstance(fix_result.get(k), str):
+                                        fix_result[k] = truncate_output(fix_result[k])
+                                fix_result["reflex_fix"] = True
+                            result = fix_result
+                    except Exception:
+                        logger.exception("reflex auto-fix failed")
                 # Bound the stored result fields too so the client transcript
                 # and any persisted state stay within a sane size.
                 if isinstance(result, dict):
                     for k in ("stdout", "stderr"):
                         if isinstance(result.get(k), str):
                             result[k] = truncate_output(result[k])
+                trajectory.append({"command": command, "result": result})
                 yield {"type": "tool_result", "result": result}
 
                 feedback = _feedback_for(result, assistant)
@@ -554,6 +611,17 @@ class AgentLoop:
                 "type": "answer",
                 "text": final_answer or "Max iterations reached without a final answer.",
             }
+            # Phase 2 v2.1: Trajectory compiler — a >1 tool-turn run that ended
+            # with a final answer qualifies for skill serialization.
+            if final_answer and len(trajectory) > 1 \
+                    and os.getenv("GENIO_REFLEX_FASTPATH", "1").strip().lower() \
+                    not in ("0", "false", "no"):
+                try:
+                    from genio_server.core.reflex_engine import get_reflex_engine
+                    get_reflex_engine().compile_skill(
+                        f"auto-{int(time.time())}", user_input, trajectory)
+                except Exception:
+                    logger.exception("skill compilation failed")
 
 
 async def run_repl_default_prompt() -> None:
