@@ -69,3 +69,69 @@ documentées ici, par phase.
   `prompt` accepte désormais `session_id`.
 - **Nouveau** `test_phase2_session_checkpoint.py` (3 cas : crash/resume + fenêtre
   sous budget token explicite + unknown session).
+
+## Phase 3 — Self-healing générique
+
+- **`sandbox/self_healer.py`** : extraction de `GenericHealer` (base avec
+  `GENERIC_PATTERNS` : ModuleNotFoundError, ImportError, SyntaxError,
+  FileNotFound, NameError, AttributeError, TypeError, ValueError, KeyError,
+  IndexError, ConnectionError, ZeroDivision, AssertionError + fallback
+  générique). `SelfHealer` hérite de `GenericHealer`, conserve ses 4 patterns
+  infra et fallback vers le générique. Toggle via `GENIO_GENERIC_HEAL=0`.
+- **`genio_server/core/agent_loop.py`** : `_feedback_for()` append une
+  `[HEALER SUGGESTION]` via `GenericHealer` quand `GENIO_GENERIC_HEAL` activé.
+- **Nouveau** `test_phase3_generic_healer.py` (6 cas).
+
+## Phase 4 — Tool Forge
+
+- **Nouveau** `genio_server/tools/tool_forge.py` : registre dynamique persistant
+  `state/tool_forge.json`, validation du nom (alphanum, pas de conflit
+  built-in), `create/list/get/delete/invoke`, `handle()` pour le tool
+  `tool_forge`. Toggle `GENIO_TOOL_FORGE=0`.
+- **`genio_server/tools/__init__.py`** : ajout du tool `tool_forge` à `TOOLS`,
+  `invoke(tool, payload, session_id)` vérifie les tools forgés avant
+  l'erreur `unknown tool`, gère `session_id` vers `bash`.
+- **Nouveau** `test_phase4_tool_forge.py` (4 cas).
+
+## Phase 5 — Per-session container sandboxing
+
+- **Nouveau** `genio_server/tools/session_container.py` : `exec_in_container()`,
+  `_ensure_container()`, `cleanup_container()`, nom `genio-session-<id>`,
+  image via `SandboxConfig` / `GENIO_SANDBOX_IMAGE`, fallback local si docker
+  indisponible (`sandbox_fallback` + reason). Toggle `GENIO_SANDBOX_MODE=container`.
+- **`genio_server/tools/bash_tool.py`** : `run_command(..., session_id)` route
+  vers `session_container` quand `GENIO_SANDBOX_MODE=container`.
+- **`genio_server/tools/__init__.py`** + `genio_server/core/agent_loop.py` +
+  `genio_server/server/main.py` : propagation de `session_id` jusqu'à l'exec.
+- **Nouveau** `test_phase5_sandbox.py` (4 cas).
+
+## Phase 6 — Rich artifacts + tolerant WS typing
+
+- **Nouveau** `genio_client/src/components/ArtifactPanel.tsx` : rend les
+  artifacts (`code|markdown|image|table|file`), export `artifactsFromChat()`.
+- **`genio_client/src/lib/types.ts`** : `ChatEvent` + `GenioEvent` étendus avec
+  `artifact`/`session` et fallback `type: string` tolérant (index signature).
+- **`genio_client/src/lib/ws.ts`** : `CHAT_EVENT_TYPES` élargi, `isChatEvent`
+  tolérant (vérifie type string), `onmessage` ne drop plus les frames
+  non-JSON ou sans type — les surface en `error` tolérant, coerce manquant.
+- **`genio_client/src/hooks/useGenioSocket.ts`** : gère `artifact`/`session`,
+  fallback inconnu → `setChat` (UI ne perd jamais un message).
+- **Nouveau** `test_phase6_tolerant_ws.py` (4 cas).
+
+## Phase 7 — Model routing + kill propagation
+
+- **`core/model_router.py`** : `ModelRouter.generate(..., cancel_event)` vérifie
+  `cancel_event.is_set()` avant chaque endpoint/tentative (`_check_cancelled`),
+  lève `asyncio.CancelledError` si tué, toggle `GENIO_ROUTER_KILL=0`. Propagation
+  à `_call_endpoint`.
+- **`genio_server/core/agent_loop.py`** : `_chat()` vérifie `cancelled()` avant
+  et après l'appel HTTP, lève `CancelledError` si tué.
+- **`genio_server/server/main.py`** : WS `kill` propage à tous les
+  `_KILL_EVENTS` (global halt), pas seulement la connexion courante.
+- **Nouveau** `test_phase7_routing_kill.py` (4 cas).
+
+## Phase 8 — CI/CD
+
+- **Nouveau** `.github/workflows/ci.yml` : jobs `backend` (pytest 8 suites),
+  `frontend` (tsc + build), `security` (bash safety + prod guard), déclenché
+  sur push `main/develop` et PR `main`.

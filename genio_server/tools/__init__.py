@@ -34,6 +34,9 @@ TOOLS = {
            "Payload: JSON {\"action\": \"list|search|execute|load\", "
            "\"name\": <skill name>, \"query\": ..., \"method\": ..., \"path\": ..., "
            "\"params\": {...}, \"body\": {...}, \"source\": <url or file>}",
+    "tool_forge": "forge/manage dynamic tools at runtime. Payload: JSON {\"action\": "
+                  "\"create|list|delete|invoke\", \"name\": ..., \"description\": ..., "
+                  "\"code\": ..., \"payload\": ...}",
 }
 
 
@@ -53,12 +56,22 @@ def parse_payload(payload: Any) -> Any:
     return payload
 
 
-def invoke(tool: str, payload: Any) -> Dict[str, object]:
+def invoke(tool: str, payload: Any, session_id: str | None = None) -> Dict[str, object]:
     """Dispatch a tool call returned by the LLM.
 
     ``bash`` accepts a command string (or ``{"command": ...}``);
     ``social_post`` accepts a JSON string (or dict) of its arguments.
     """
+    # Dynamic forged tools (Phase 4) — checked before built-in unknown error
+    try:
+        import os as _os
+        if _os.getenv("GENIO_TOOL_FORGE", "1").lower() not in ("0", "false", "no"):
+            from genio_server.tools.tool_forge import get_forge
+            forged = get_forge().get_tool(tool)
+            if forged is not None:
+                return get_forge().invoke(tool, payload)
+    except Exception:
+        pass
     if tool not in TOOLS:
         return {"tool": tool, "error": f"unknown tool '{tool}' (known: {', '.join(sorted(TOOLS))})"}
     try:
@@ -67,7 +80,7 @@ def invoke(tool: str, payload: Any) -> Dict[str, object]:
                 command = str(payload.get("command", ""))
             else:
                 command = str(payload or "")
-            return run_command(command)
+            return run_command(command, session_id=session_id)
         if tool == "social_post":
             return invoke_social_post(payload)
         if tool == "browser":
@@ -79,6 +92,9 @@ def invoke(tool: str, payload: Any) -> Dict[str, object]:
         if tool == "api":
             from genio_server.server.api_engine import handle as api_handle
             return api_handle(payload)
+        if tool == "tool_forge":
+            from genio_server.tools.tool_forge import handle as forge_handle
+            return forge_handle(payload)
     except Exception as exc:
         return {"tool": tool, "error": f"{tool} raised: {exc}"}
     return {"tool": tool, "error": f"not implemented: {tool}"}

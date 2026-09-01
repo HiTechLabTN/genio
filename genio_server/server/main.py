@@ -352,6 +352,9 @@ async def ws_agent(ws: WebSocket, node: str = Query(default=None)) -> None:
             if action == "kill":
                 SAFETY.halt(str(msg.get("reason") or "KILL SWITCH — operator"))
                 _KILL_EVENTS[conn_id].set()
+                # Propagate kill to all active runners (global halt)
+                for ev in _KILL_EVENTS.values():
+                    ev.set()
                 await safe_send(ws, {"type": "killed", **SAFETY.snapshot()})
                 continue
 
@@ -437,7 +440,8 @@ async def ws_agent(ws: WebSocket, node: str = Query(default=None)) -> None:
                     await safe_send(ws, {"type": "error", "message": "empty command"})
                     continue
                 await safe_send(ws, {"type": "tool_call", "command": command})
-                result = await asyncio.to_thread(invoke_tool, "bash", command)
+                sid = str(msg.get("session_id") or "").strip() or None
+                result = await asyncio.to_thread(invoke_tool, "bash", command, sid)
                 await safe_send(ws, {"type": "tool_result", "result": result})
                 continue
 

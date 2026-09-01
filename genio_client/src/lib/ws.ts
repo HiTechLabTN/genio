@@ -10,10 +10,15 @@ export const CHAT_EVENT_TYPES = new Set([
   "attached",
   "killed",
   "armed",
+  "artifact",
+  "session",
+  "user",
 ]);
 
 export function isChatEvent(event: GenioEvent): event is ChatEvent {
-  return CHAT_EVENT_TYPES.has(event.type);
+  // Tolerant: missing type or unknown types are NOT chat events — caller handles generically
+  return typeof (event as Record<string, unknown>).type === "string" &&
+    CHAT_EVENT_TYPES.has((event as Record<string, unknown>).type as string);
 }
 
 export function buildWsUrl(target: ServerNode): string {
@@ -69,9 +74,15 @@ export class GenioSocket {
       socket.onmessage = (event) => {
         try {
           const parsed = JSON.parse(String(event.data)) as GenioEvent;
+          // Tolerant: ensure type is string, coerce missing/invalid to error-like event
+          if (!parsed || typeof (parsed as Record<string, unknown>).type !== "string") {
+            this.onEvent({ type: "error", message: "malformed event (missing type)", raw: String(event.data) } as unknown as GenioEvent);
+            return;
+          }
           this.onEvent(parsed);
         } catch {
-          // non-JSON frames are ignored by the agent protocol
+          // non-JSON frames are surfaced as tolerant error, not dropped
+          this.onEvent({ type: "error", message: "non-JSON frame", raw: String(event.data) } as unknown as GenioEvent);
         }
       };
     });

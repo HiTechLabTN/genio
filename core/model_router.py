@@ -34,7 +34,7 @@ class RouterState:
 
 
 class ModelRouter:
-    """Intelligent LLM dispatch with failover chain."""
+    """Intelligent LLM dispatch with failover chain and kill propagation."""
 
     def __init__(self):
         cfg = get_config()
@@ -85,21 +85,33 @@ class ModelRouter:
         self.state.last_success[ep.name] = time.monotonic()
         self.state.cooldown_until[ep.name] = 0
 
+    def _check_cancelled(self, cancel_event) -> None:
+        import os
+        if os.getenv("GENIO_ROUTER_KILL", "1").lower() in ("0", "false", "no"):
+            return
+        if cancel_event is not None and getattr(cancel_event, "is_set", lambda: False)():
+            raise asyncio.CancelledError("killed — router cancelled via kill switch")
+
     async def generate(self, prompt: str, temperature: float = 0.6,
-                       max_tokens: int = 4096, images: Optional[list] = None) -> str:
+                       max_tokens: int = 4096, images: Optional[list] = None,
+                       cancel_event=None) -> str:
         """Generate text with automatic failover across all endpoints.
 
         `images` (list of base64 strings) enables multimodal inference on
         Ollama endpoints (passed through as /api/generate `images`).
+        If `cancel_event` is set (threading.Event), checks it before each
+        endpoint and aborts with CancelledError when killed.
         """
         errors = []
         for ep in self.endpoints:
+            self._check_cancelled(cancel_event)
             if not self._is_available(ep):
                 continue
             for attempt in range(1, 3):  # one retry for gemma4 empty-generation bug
+                self._check_cancelled(cancel_event)
                 try:
                     result = await self._call_endpoint(ep, prompt, temperature,
-                                                       max_tokens, images)
+                                                       max_tokens, images, cancel_event)
                     if result:
                         self._mark_success(ep)
                         logger.info(f"[router] ✅ {ep.name} succeeded (attempt {attempt})")
@@ -108,16 +120,20 @@ class ModelRouter:
                         logger.warning(f"[router] {ep.name} returned empty result, retrying")
                         await asyncio.sleep(0.5)
                         continue
+                except asyncio.CancelledError:
+                    raise
                 except Exception as exc:
                     self._mark_failure(ep)
                     errors.append(f"{ep.name}: {exc}")
                     logger.warning(f"[router] ❌ {ep.name} failed: {exc}")
                     break
+        self._check_cancelled(cancel_event)
         raise RuntimeError(f"All LLM endpoints failed: {errors}")
 
     async def _call_endpoint(self, ep: ModelEndpoint, prompt: str,
                              temperature: float, max_tokens: int,
-                             images: Optional[list] = None) -> str:
+                             images: Optional[list] = None,
+                             cancel_event=None) -> str:
         headers = {}
         if ep.api_key:
             headers["Authorization"] = f"Bearer {ep.api_key}"

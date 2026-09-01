@@ -233,7 +233,18 @@ def _feedback_for(result: Dict[str, object], assistant: str) -> str:
     Truncates long output and, on a non-zero exit code or tool error, injects
     an explicit self-correction directive so the model retries/repairs instead
     of collapsing the loop into a premature terminal state.
+    When GENIO_GENERIC_HEAL is enabled, appends a GenericHealer suggestion.
     """
+    def _heal_hint(text: str) -> str:
+        if os.getenv("GENIO_GENERIC_HEAL", "1").lower() in ("0", "false", "no"):
+            return ""
+        try:
+            from sandbox.self_healer import GenericHealer
+            hint = GenericHealer().inspect_and_heal(text)
+            return f"\n\n[HEALER SUGGESTION]: {hint}" if hint else ""
+        except Exception:
+            return ""
+
     if not isinstance(result, dict):
         flat = str(result or "(no output)")
         return f"Tool output:\n{truncate_output(flat)}"
@@ -251,13 +262,13 @@ def _feedback_for(result: Dict[str, object], assistant: str) -> str:
             "The command above did not succeed. Diagnose the error, adjust your "
             "approach and retry until it works — do not give up and do not report "
             "success prematurely. If it is genuinely impossible, explain that in "
-            "your final answer."
+            "your final answer." + _heal_hint(body)
         )
     if result.get("error"):
         return (
             f"TOOL FAILED (ERROR): {result['error']}\n\n"
             "The tool raised an error. Inspect it, correct your call and retry; "
-            "only stop with a final answer once the task is actually resolved."
+            "only stop with a final answer once the task is actually resolved." + _heal_hint(str(result['error']))
         )
     flat = json.dumps(result, ensure_ascii=False)
     return f"Tool output:\n{truncate_output(flat)}"
@@ -294,6 +305,8 @@ class AgentLoop:
     async def _chat(self, client: httpx.AsyncClient,
                     messages: List[Dict[str, str]]) -> Tuple[str, int, float]:
         """POST to Ollama; return ``(content, eval_count, tokens_per_second)``."""
+        if self.cancelled():
+            raise asyncio.CancelledError("killed before chat")
         try:
             resp = await client.post(
                 f"{self.ollama_url}/api/chat",
@@ -311,6 +324,9 @@ class AgentLoop:
                 f"cannot reach Ollama at {self.ollama_url} — is `ollama serve` "
                 f"running and is the model '{self.model}' pulled?"
             ) from exc
+        # Check kill immediately after network IO
+        if self.cancelled():
+            raise asyncio.CancelledError("killed after chat response")
         data = resp.json()
         if not isinstance(data, dict):
             return "", 0, 0.0
@@ -422,7 +438,7 @@ class AgentLoop:
 
                 # Tools (playwright / pyautogui / mss) are blocking — run them
                 # in a worker thread so the async loop stays responsive.
-                result = await asyncio.to_thread(invoke, call["tool"], command)
+                result = await asyncio.to_thread(invoke, call["tool"], command, self.session_id)
                 # Bound the stored result fields too so the client transcript
                 # and any persisted state stay within a sane size.
                 if isinstance(result, dict):

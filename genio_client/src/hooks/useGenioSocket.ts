@@ -119,32 +119,39 @@ export function useGenioSocket(): UseGenioSocket {
       disconnect();
       setStatus({ kind: "connecting" });
 
-      const socket = new GenioSocket(
+       const socket = new GenioSocket(
         () => setStatus({ kind: "connected", node: target.host }),
         (event: GenioEvent) => {
-          if (event.type === "screen" || event.type === "browser_view") {
-            setScreen(event.data_b64);
+          const ev = event as Record<string, unknown>;
+          if (ev.type === "screen" || ev.type === "browser_view") {
+            setScreen(ev.data_b64 as string);
             return;
           }
-          if (event.type === "telemetry") {
+          if (ev.type === "telemetry") {
             setTelemetry(event as unknown as TelemetrySnapshot);
             lastTelemetryAtRef.current = Date.now();
             return;
           }
+          // tolerant: artifact/session are handled as chat but also generic fallback
           if (isChatEvent(event)) {
-            setChat((prev) => [...prev.slice(-299), event]);
+            // coerce unknown future types to ChatEvent via tolerant fallback
+            const chatEv = event as ChatEvent;
+            setChat((prev) => [...prev.slice(-299), chatEv]);
             // update agent status from chat events
-            if (event.type === "tool_call") {
-              const toolName = extractToolName(event.command);
+            if ((chatEv as Record<string, unknown>).type === "tool_call") {
+              const toolName = extractToolName((chatEv as { command: string }).command || "");
               setAgentStatus({ kind: "executing", tool: toolName });
-            } else if (event.type === "stats" || event.type === "answer") {
+            } else if (chatEv.type === "stats" || chatEv.type === "answer" || chatEv.type === "artifact") {
               setAgentStatus({ kind: "completed" });
-            } else if (event.type === "error") {
+            } else if (chatEv.type === "error") {
               setAgentStatus({ kind: "idle" });
-            } else if (event.type === "killed") {
+            } else if (chatEv.type === "killed") {
               setAgentStatus({ kind: "idle" });
             }
+            return;
           }
+          // Unknown tolerant fallback: surface as chat so UI never loses message
+          setChat((prev) => [...prev.slice(-299), event as unknown as ChatEvent]);
         },
         () => setStatus({ kind: "error", message: `WebSocket error on ${target.host}` }),
         () => {
