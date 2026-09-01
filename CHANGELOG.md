@@ -293,4 +293,26 @@ result = [c for c in ().__class__.__base__.__subclasses__()
 - **`src/components/BottomInputBar.tsx`** : pill `ÉCOUTE` rouge `border-red-500` avec waveform 3 bars `equalizer` animée + `Mic`, `PRÊT` pill cyan glowing `border-cyan-400` `shadow-[0_0_16px]` + `✦✦`, footer `• GENIO APP •` `tracking-[0.2em]`, suppression `Send`/`Square` unused.
 - **Status Alignment** : `telemetryStale` → banner chat + input reste actif en Gemini Cloud, bloqué visuellement en VPS.
 
-**Verification** : `npm run build` exit 0 (2826 modules → 1514kB, `gemini_provider` + `face_mesh` + `Environment`), plus de mock leak, `/* thinking */` breaker >3 → down message.
+ **Verification** : `npm run build` exit 0 (2826 modules → 1514kB, `gemini_provider` + `face_mesh` + `Environment`), plus de mock leak, `/* thinking */` breaker >3 → down message.
+
+## 2026-09-02 — Genio v2.2.2 Critical Hotfix: UI Thread Unblock, WebGL Crash Fix & Interactive Avatars
+
+### PHASE 1: UI Thread Unblocking & FaceMesh Optimization
+- **`src/components/avatar/useFaceTracking.ts`** : throttled `setAngles` to 15 FPS (66ms cap via `performance.now()` guard) — stops 60Hz React state churn that froze main thread.
+- **`src/components/avatar/CyberAvatar.tsx`** : `React.memo(SceneCanvas)` + `React.memo(CyberAvatar)` — 3D Canvas no longer re-renders on every chat keystroke or audio level change; 60 FPS scrolling preserved while canvas active.
+
+### PHASE 2: WebGL Crash Fix & Material Simplification
+- **`src/components/avatar/CyberAvatar.tsx`** : all `MeshPhysicalMaterial` → `MeshStandardMaterial` (drops `clearcoat`/`envMapIntensity`/`metalness` complexity that failed to compile on Android WebView); geometries simplified (head `64→16` seg, beard `24→12`, cape `32→16`); white sphere head + red cylinder Chachia + solid red beard + red torso with golden "G" `Text`.
+- **`src/components/avatar/CyberAvatar.tsx`** : `<Canvas>` wrapped in `<Suspense fallback={<LoadingUI />}>` — WebGL crash shows spinner instead of invisible/unresponsive canvas.
+
+### PHASE 3: Interactive Animations
+- **`AvatarMode`** extended with `"greeting"` — first-launch wave animation.
+- **`listening`** → right arm raises to ear + head tilts forward.
+- **`greeting`** → right arm oscillates left-right 3× over 3s.
+- **`speaking`** → lip-sync continues based on `audioLevel`.
+- **`idle`** → gentle breathing bob + arms down.
+
+### PHASE 4: Audio Input Unblocking
+- **`src/lib/audio.ts`** : `startVoiceRecording` defers `new MediaRecorder()` to `queueMicrotask` — `toggleMic` stays snappy, never blocks React render cycle; removed wasteful double `getUserMedia` call.
+
+**Build** : `npm run build` exit 0 (2826 modules, 4.97s, 1515kB gzip).
