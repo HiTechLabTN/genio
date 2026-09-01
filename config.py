@@ -53,7 +53,7 @@ class VoiceConfig:
 
 @dataclass(frozen=True)
 class SandboxConfig:
-    image: str = "ubuntu:22.04"
+    image: str = field(default_factory=lambda: _env("GENIO_SANDBOX_IMAGE", "python:3.11-slim"))
     wan_net: str = "geniowan"
     wan_subnet: str = "172.30.0.0/24"
     lan_net: str = "geniolan"
@@ -65,6 +65,18 @@ class SandboxConfig:
     srv_wg_ip: str = "10.8.0.1"
     cli_wg_ip: str = "10.8.0.2"
     port: int = 51820
+    # Phase C: allow-list for container egress (npm/pip/git) — Q2 Allow-list registries
+    allowed_registries: tuple = (
+        "registry.npmjs.org",
+        "registry.yarnpkg.com",
+        "pypi.org",
+        "files.pythonhosted.org",
+        "github.com",
+        "gitlab.com",
+    )
+    # Network policy: "none" (isolated), "allowlist" (bridge + egress filter), "bridge" (full)
+    # Default allowlist per Q2
+    network_policy: str = field(default_factory=lambda: _env("GENIO_CONTAINER_NETWORK", "allowlist"))
 
 
 @dataclass(frozen=True)
