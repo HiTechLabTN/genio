@@ -13,8 +13,8 @@ jobs:
   backend:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.11"
           cache: pip
@@ -38,8 +38,8 @@ jobs:
       run:
         working-directory: genio_client
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: 20
           cache: npm
@@ -54,13 +54,13 @@ jobs:
   security:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.11"
       - name: Bash safety audit
         run: |
-          python -m pytest test_bash_tool_safety.py -v -k "dangerous"
+          python -m pytest test_bash_tool_safety.py -v
       - name: Check GENIO_ENV guard
         run: |
           GENIO_ENV=prod GENIO_API_KEY= python -c "import genio_server.server.main" && echo "should have failed" && exit 1 || echo "prod guard OK"
