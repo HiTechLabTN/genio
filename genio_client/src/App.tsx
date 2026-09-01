@@ -5,6 +5,7 @@ import Dashboard from "./components/Dashboard";
 import GoogleAuthOnboarding, { shouldShowGoogleAuth } from "./components/GoogleAuthOnboarding";
 import PermissionOnboarding, { shouldShowOnboarding } from "./components/PermissionOnboarding";
 import UpdateModal from "./components/UpdateModal";
+import ChronosPortal from "./components/ChronosPortal/ChronosPortal";
 import { useGenioSocket } from "./hooks/useGenioSocket";
 import { checkForUpdates } from "./lib/updater";
 import { useDeviceProfile } from "./lib/deviceProfiler";
@@ -18,6 +19,7 @@ export default function App() {
   const deviceProfile = useDeviceProfile();
   const engineDecision = decideEngine();
   const isGeminiCloud = hasGoogleAuth();
+  const [task, setTask] = useState<string | null>(null);
 
   const {
     agentStatus: wsAgentStatus,
@@ -134,6 +136,7 @@ export default function App() {
     lastPromptRef.current = text;
     lastPromptFileRef.current = attachments;
     sendPrompt(text, attachments);
+    setTask(text);
   }
 
   function handleContinue() {
@@ -239,6 +242,8 @@ export default function App() {
       </AnimatePresence>
 
       {update && <UpdateModal version={update.version} notes={update.notes} onClose={() => setUpdate(null)} />}
+
+      <ChronosPortal task={task} onDismiss={() => setTask(null)} />
     </div>
   );
 }

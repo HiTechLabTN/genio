@@ -1,0 +1,495 @@
+/* ChronosPortal.module.css — Deep Space + Pixara Avatar + System Metrics */
+
+/* === Overlay === */
+.portalOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(2, 11, 30, 0.92);
+  backdrop-filter: blur(24px);
+  animation: fadeIn 0.4s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* === Portal Container === */
+.portalContainer {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 48px;
+  max-width: 720px;
+  width: 90%;
+  padding: 32px;
+  border-radius: 24px;
+  background: radial-gradient(ellipse at 30% 40%, rgba(0, 229, 255, 0.06) 0%, transparent 60%),
+              radial-gradient(ellipse at 70% 60%, rgba(224, 64, 251, 0.04) 0%, transparent 50%),
+              linear-gradient(135deg, rgba(8, 24, 48, 0.6) 0%, rgba(2, 11, 30, 0.8) 100%);
+  border: 1px solid rgba(0, 229, 255, 0.15);
+  box-shadow: 0 0 80px rgba(0, 229, 255, 0.1), 0 0 160px rgba(224, 64, 251, 0.05);
+}
+
+/* === Avatar Section === */
+.avatarSection {
+  position: relative;
+  flex-shrink: 0;
+  width: 200px;
+  height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.avatarRing {
+  position: relative;
+  width: 180px;
+  height: 180px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(0, 229, 255, 0.08) 0%, transparent 70%);
+  border: 2px solid rgba(0, 229, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: float 4s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-8px); }
+}
+
+.avatarInner {
+  position: relative;
+  width: 160px;
+  height: 160px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Rotating Chronos ring */
+.chronosRing {
+  position: absolute;
+  inset: -10px;
+  border-radius: 50%;
+  border: 2px dashed rgba(0, 229, 255, 0.3);
+  animation: rotateGalaxy 28s linear infinite;
+}
+
+@keyframes rotateGalaxy {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* === Pixar Avatar === */
+.avatar {
+  position: relative;
+  width: 140px;
+  height: 140px;
+}
+
+/* Chachia (red hat) */
+.chachia {
+  position: absolute;
+  top: 2px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 64px;
+  height: 24px;
+  background: #DC0A0A;
+  border-radius: 6px 6px 12px 12px;
+}
+
+.chachiaDome {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 68px;
+  height: 36px;
+  background: #DC0A0A;
+  border-radius: 50% 50% 0 0;
+}
+
+/* Head */
+.head {
+  position: absolute;
+  top: 32px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 72px;
+  height: 68px;
+  background: #F8F9FA;
+  border-radius: 50%;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+/* Eyes */
+.eyeLeft, .eyeRight {
+  position: absolute;
+  top: 20px;
+  width: 18px;
+  height: 18px;
+  background: #ffffff;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+.eyeLeft { left: 16px; }
+.eyeRight { right: 16px; }
+
+.pupil {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 8px;
+  height: 8px;
+  background: #8B4513;
+  border-radius: 50%;
+  box-shadow: inset 0 0 2px rgba(255, 26, 26, 0.4), 0 0 4px rgba(255, 26, 26, 0.3);
+}
+
+/* Beard */
+.beard {
+  position: absolute;
+  bottom: -2px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 50px;
+  height: 28px;
+  background: #E53935;
+  border-radius: 0 0 50% 50%;
+}
+
+/* Mouth */
+.mouth {
+  position: absolute;
+  bottom: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 16px;
+  height: 4px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 2px;
+}
+
+/* Cape */
+.cape {
+  position: absolute;
+  bottom: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 80px;
+  height: 32px;
+  background: #B91C1C;
+  border-radius: 4px 4px 50% 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(185, 28, 28, 0.4);
+}
+
+.capeG {
+  font-family: "Orbitron", monospace;
+  font-size: 18px;
+  font-weight: 900;
+  color: #FFD700;
+  text-shadow: 0 0 8px rgba(255, 215, 0, 0.4);
+}
+
+/* === Info Section === */
+.infoSection {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.portalTitle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  font-family: "Orbitron", sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  color: #00E5FF;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.titleIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: rgba(0, 229, 255, 0.1);
+  border: 1px solid rgba(0, 229, 255, 0.2);
+  color: #00E5FF;
+}
+
+/* === System Metrics === */
+.metricsContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.barGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.barHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.barLabel {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 10px;
+  font-weight: 600;
+  color: #94a3b8;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.barValue {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 10px;
+  color: #64748b;
+}
+
+.barTrack {
+  width: 100%;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.barFill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 1.5s ease-out;
+  box-shadow: 0 0 8px currentColor;
+}
+
+/* === Thinking Stream === */
+.thinkingStream {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.thinkingStep {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 12px;
+  color: #00E5FF;
+  animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateX(-8px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+.stepDot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #00E5FF;
+  box-shadow: 0 0 6px rgba(0, 229, 255, 0.6);
+  flex-shrink: 0;
+}
+
+.stepDot.active {
+  animation: pulseDot 1s ease-in-out infinite;
+}
+
+@keyframes pulseDot {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 1; }
+}
+
+.pulse {
+  opacity: 0.6;
+}
+
+/* === Result === */
+.resultBox {
+  margin-top: 4px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: rgba(52, 211, 153, 0.08);
+  border: 1px solid rgba(52, 211, 153, 0.2);
+  font-family: "JetBrains Mono", monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #6ee7b7;
+  animation: fadeIn 0.4s ease-out;
+}
+
+/* === Minimize & Close Buttons === */
+.portalButtons {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  display: flex;
+  gap: 8px;
+}
+
+.minimizeBtn {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid rgba(0, 229, 255, 0.2);
+  background: rgba(0, 229, 255, 0.06);
+  color: #00E5FF;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.minimizeBtn:hover {
+  background: rgba(0, 229, 255, 0.12);
+  border-color: rgba(0, 229, 255, 0.4);
+  box-shadow: 0 0 12px rgba(0, 229, 255, 0.3);
+}
+
+.closeBtn {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid rgba(244, 63, 94, 0.2);
+  background: rgba(244, 63, 94, 0.06);
+  color: #F43F5E;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.closeBtn:hover {
+  background: rgba(244, 63, 94, 0.12);
+  border-color: rgba(244, 63, 94, 0.4);
+  box-shadow: 0 0 12px rgba(244, 63, 94, 0.3);
+}
+
+/* === Minimized Floating Button === */
+.minimizedContainer {
+  position: fixed;
+  top: 60px;
+  right: 16px;
+  z-index: 9999;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  animation: fadeIn 0.3s ease-out;
+}
+
+.minimizedButton {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: 50px;
+  background: linear-gradient(135deg, rgba(0, 229, 255, 0.15) 0%, rgba(224, 64, 251, 0.1) 100%);
+  border: 1px solid rgba(0, 229, 255, 0.3);
+  box-shadow: 0 0 24px rgba(0, 229, 255, 0.2);
+  transition: all 0.2s;
+}
+
+.minimizedButton:hover {
+  box-shadow: 0 0 32px rgba(0, 229, 255, 0.35);
+  transform: scale(1.04);
+}
+
+.minimizedIcon {
+  color: #00E5FF;
+  display: flex;
+  align-items: center;
+}
+
+.minimizedText {
+  font-family: "Orbitron", sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  color: #00E5FF;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.minimizedTooltip {
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: rgba(8, 24, 48, 0.95);
+  border: 1px solid rgba(0, 229, 255, 0.2);
+  font-family: "JetBrains Mono", monospace;
+  font-size: 11px;
+  color: #6ee7b7;
+  max-width: 280px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+  animation: fadeIn 0.2s ease-out;
+}
+
+/* === Responsive Mobile === */
+@media (max-width: 768px) {
+  .portalContainer {
+    flex-direction: column;
+    gap: 24px;
+    padding: 24px 20px;
+  }
+
+  .avatarSection {
+    width: 140px;
+    height: 140px;
+  }
+
+  .avatarRing {
+    width: 130px;
+    height: 130px;
+  }
+
+  .avatarInner {
+    width: 110px;
+    height: 110px;
+  }
+
+  .avatar {
+    width: 100px;
+    height: 100px;
+    transform: scale(0.72);
+  }
+
+  .portalTitle {
+    font-size: 14px;
+  }
+
+  .thinkingStep {
+    font-size: 11px;
+  }
+
+  .resultBox {
+    font-size: 11px;
+  }
+}
