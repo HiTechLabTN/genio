@@ -130,6 +130,68 @@ class ModelRouter:
         self._check_cancelled(cancel_event)
         raise RuntimeError(f"All LLM endpoints failed: {errors}")
 
+    async def chat(self, messages: list, cancel_event=None) -> tuple[str, int, float]:
+        """Chat with failover — Q4 endpoints valid as-is, used by AgentLoop._chat.
+
+        Returns (content, eval_count, tok_per_s) matching AgentLoop._chat signature.
+        Cancellation via cancel_event is checked before each endpoint and propagated
+        via CancelledError; the caller should race this against cancel_event and
+        cancel the task to close the HTTP connection.
+        """
+        errors = []
+        for ep in self.endpoints:
+            self._check_cancelled(cancel_event)
+            if not self._is_available(ep):
+                continue
+            try:
+                content, eval_count, tok_per_s = await self._call_chat_endpoint(ep, messages, cancel_event)
+                if content or eval_count:
+                    self._mark_success(ep)
+                    return content, eval_count, tok_per_s
+            except asyncio.CancelledError:
+                raise
+            except Exception as exc:
+                self._mark_failure(ep)
+                errors.append(f"{ep.name}: {exc}")
+                continue
+        self._check_cancelled(cancel_event)
+        raise RuntimeError(f"All chat endpoints failed: {errors}")
+
+    async def _call_chat_endpoint(self, ep: ModelEndpoint, messages: list, cancel_event=None) -> tuple[str, int, float]:
+        headers = {}
+        if ep.api_key:
+            headers["Authorization"] = f"Bearer {ep.api_key}"
+        # Use Ollama chat API for Ollama endpoints, OpenRouter chat for cloud
+        if "11434" in ep.base_url:
+            url = f"{ep.base_url}/api/chat"
+            payload = {
+                "model": ep.model,
+                "messages": messages,
+                "stream": False,
+                "options": {"temperature": 0.3},
+            }
+        else:
+            url = f"{ep.base_url}/chat/completions"
+            payload = {
+                "model": ep.model,
+                "messages": messages,
+                "temperature": 0.3,
+            }
+        async with httpx.AsyncClient(timeout=ep.timeout) as client:
+            resp = await client.post(url, json=payload, headers=headers)
+            resp.raise_for_status()
+            data = resp.json()
+            if not isinstance(data, dict):
+                return "", 0, 0.0
+            # Ollama chat returns message.content + eval_count
+            content = str(data.get("message", {}).get("content", "")) if "message" in data else ""
+            if not content and "choices" in data:
+                content = str(data["choices"][0]["message"]["content"])
+            eval_count = int(data.get("eval_count") or 0)
+            eval_ns = int(data.get("eval_duration") or 0)
+            tok_per_s = (eval_count / (eval_ns / 1e9)) if eval_ns > 0 else 0.0
+            return content, eval_count, round(tok_per_s, 1)
+
     async def _call_endpoint(self, ep: ModelEndpoint, prompt: str,
                              temperature: float, max_tokens: int,
                              images: Optional[list] = None,

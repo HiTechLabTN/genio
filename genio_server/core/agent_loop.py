@@ -302,9 +302,68 @@ class AgentLoop:
     def cancelled(self) -> bool:
         return bool(self.cancel_event is not None and self.cancel_event.is_set())
 
+    async def _wait_cancel(self):
+        """Wait until cancel_event is set — for race with chat."""
+        while not self.cancelled():
+            await asyncio.sleep(0.05)
+        raise asyncio.CancelledError("killed")
+
     async def _chat(self, client: httpx.AsyncClient,
                     messages: List[Dict[str, str]]) -> Tuple[str, int, float]:
-        """POST to Ollama; return ``(content, eval_count, tokens_per_second)``."""
+        """POST via ModelRouter with true cancellation race (Phase E).
+
+        Q4: endpoints from core/model_router.py kept as-is (Ollama backups + OpenRouter).
+        Uses asyncio.wait FIRST_COMPLETED to race chat vs cancel, and cancels the
+        HTTP task explicitly so the connection is closed immediately, not just ignored.
+        """
+        # Use ModelRouter (shared failover) instead of direct httpx post
+        try:
+            from core.model_router import ModelRouter
+            router = ModelRouter()
+        except Exception:
+            # Fallback to direct httpx if router not available (should not happen)
+            router = None
+
+        if router is not None:
+            chat_task = asyncio.create_task(router.chat(messages, cancel_event=self.cancel_event))
+            cancel_task = asyncio.create_task(self._wait_cancel())
+            # If already cancelled, cancel_task will complete immediately
+            if self.cancelled():
+                cancel_task.cancel()
+                chat_task.cancel()
+                raise asyncio.CancelledError("killed before chat")
+            done, pending = await asyncio.wait(
+                [chat_task, cancel_task], return_when=asyncio.FIRST_COMPLETED
+            )
+            if cancel_task in done:
+                # Kill won — cancel the HTTP request explicitly
+                chat_task.cancel()
+                try:
+                    await chat_task
+                except asyncio.CancelledError:
+                    pass
+                # Also try to cancel the underlying httpx via router's cancellation
+                # The mock in tests sets a flag when cancelled
+                for t in pending:
+                    t.cancel()
+                raise asyncio.CancelledError("killed during chat")
+            else:
+                # Chat won — cancel the waiter
+                cancel_task.cancel()
+                try:
+                    await cancel_task
+                except asyncio.CancelledError:
+                    pass
+                try:
+                    return await chat_task
+                except asyncio.CancelledError:
+                    raise
+                except Exception as exc:
+                    # Map router errors to OllamaConnectionError for compatibility
+                    if "All chat" in str(exc) or "All LLM" in str(exc):
+                        raise OllamaConnectionError(str(exc)) from exc
+                    raise
+        # Fallback direct (should not be used, but keep for compat)
         if self.cancelled():
             raise asyncio.CancelledError("killed before chat")
         try:

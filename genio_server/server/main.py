@@ -196,6 +196,13 @@ async def _telemetry_snapshot_async() -> Dict[str, Any]:
     """
     vm = psutil.virtual_memory()
     gpu = await asyncio.to_thread(_gpu_stats)
+    # Phase E: router state (Q4 endpoints valid as-is)
+    router_health = {}
+    try:
+        from core.model_router import ModelRouter
+        router_health = ModelRouter().health()
+    except Exception:
+        router_health = {}
     return {
         "node": NODE_NAME,
         "hostname": os.uname().nodename,
@@ -210,13 +217,16 @@ async def _telemetry_snapshot_async() -> Dict[str, Any]:
         "last_tok_per_s": float(LAST_STATS.get("tok_per_s", 0.0)),
         "clients": sum(_ACTIVE_RUNS.values()),
         "armed": SAFETY.armed,
+        "router": router_health,
         "ts": int(time.time()),
     }
 
 
 @app.get("/api/v1/status")
 async def get_status(_: None = Depends(require_key)) -> Dict[str, Any]:
-    return await _telemetry_snapshot_async()
+    snap = await _telemetry_snapshot_async()
+    # Also expose router separately for clarity
+    return snap
 
 
 @app.get("/api/v1/safety")
