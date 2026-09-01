@@ -42,6 +42,7 @@ export function useFaceTracking(enabled: boolean): {
   const smoothTarget = useRef<[number, number]>([0, 0]);
   const [active, setActive] = useState(false);
   const [angles, setAngles] = useState<FaceAngles>({ yaw: 0, pitch: 0 });
+  const lastUpdate = useRef(0);
 
   useEffect(() => {
     if (!enabled) return;
@@ -71,6 +72,10 @@ export function useFaceTracking(enabled: boolean): {
           const nextPitch = lerp(smoothTarget.current[1], rawPitch, 0.18);
           smoothTarget.current = [nextYaw, nextPitch];
           target.current = [nextYaw, nextPitch];
+          // Throttle state updates to 15 FPS (66 ms) to unblock UI thread
+          const now = performance.now();
+          if (now - lastUpdate.current < 66) return;
+          lastUpdate.current = now;
           setAngles({ yaw: nextYaw, pitch: nextPitch });
         };
 

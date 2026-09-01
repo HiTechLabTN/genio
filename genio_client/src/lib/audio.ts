@@ -222,20 +222,23 @@ export async function startVoiceRecording(
 ): Promise<void> {
   await requestMicrophonePermission();
   latestStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-  const mime = pickMime();
-  const rec = new MediaRecorder(latestStream, mime ? { mimeType: mime } : undefined);
-  recChunks = [];
-  rec.ondataavailable = (e) => {
-    if (e.data.size > 0) recChunks.push(e.data);
-  };
-  recorder = rec;
-  recordingStartedAt = performance.now();
-  rec.start();
+  // Defer MediaRecorder instantiation to next microtask so the render cycle stays snappy
+  await new Promise<void>((resolve) => queueMicrotask(() => {
+    const mime = pickMime();
+    const rec = new MediaRecorder(latestStream!, mime ? { mimeType: mime } : undefined);
+    recChunks = [];
+    rec.ondataavailable = (e) => {
+      if (e.data.size > 0) recChunks.push(e.data);
+    };
+    recorder = rec;
+    recordingStartedAt = performance.now();
+    rec.start();
+    resolve();
+  }));
 
   onTranscriptCb = onTranscript ?? null;
   if (onTranscript) {
     if (!startSpeechRecognition(onTranscript)) {
-      // No STT engine — fall back to silence auto-stop heuristic.
       scheduleSilenceStop();
     }
   }
