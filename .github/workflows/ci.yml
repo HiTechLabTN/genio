@@ -21,7 +21,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install aiosqlite psutil fastapi uvicorn httpx pytest pytest-asyncio loguru ruff
+          pip install aiosqlite psutil fastapi uvicorn httpx pytest pytest-asyncio loguru ruff python-multipart
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
       - name: Run backend tests
         env:
@@ -47,7 +47,7 @@ jobs:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
           cache-dependency-path: genio_client/package-lock.json
       - name: Install frontend deps
@@ -68,7 +68,8 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install aiosqlite psutil fastapi uvicorn httpx pytest pytest-asyncio loguru
+          pip install aiosqlite psutil fastapi uvicorn httpx pytest pytest-asyncio loguru python-multipart
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
       - name: Bash safety audit
         run: |
           python -m pytest test_bash_tool_safety.py test_phase_A_tool_forge_rce.py test_phase_B_tool_forge_container.py test_phase_C_session_volume.py test_phase_D_container_lifecycle.py test_phase_E_model_routing.py -v

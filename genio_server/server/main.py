@@ -284,34 +284,51 @@ async def get_session(sid: str,
     return session
 
 
-@app.post("/api/v1/voice/transcribe")
-async def voice_transcribe(
-    audio: UploadFile = File(...),
-    language: str = "auto",
-    _: None = Depends(require_key),
-) -> Dict[str, Any]:
-    """Phase 3 v2.1 — Native audio pipeline transcription endpoint.
-
-    Accepts a multipart upload of raw audio (WAV / WebM/Opus / M4A) and routes
-    to the best available local transcriber (faster-whisper > whisper) with a
-    deterministic fallback. Gated by ``GENIO_AUDIO_PIPELINE=1``.
-    """
-    if os.getenv("GENIO_AUDIO_PIPELINE", "0").strip().lower() not in ("1", "true", "yes"):
-        raise HTTPException(status_code=403,
-                            detail="audio pipeline disabled (set GENIO_AUDIO_PIPELINE=1)")
-    data = await audio.read()
-    if not data or len(data) == 0:
-        raise HTTPException(status_code=400, detail="empty audio payload")
+def _has_multipart() -> bool:
     try:
-        from genio_server.server.voice_pipeline import transcribe_audio
-        result = await asyncio.to_thread(
-            transcribe_audio, data,
-            audio.content_type or "audio/wav",
-            None if language in ("auto", "") else language,
-        )
-    except Exception as exc:
-        raise HTTPException(status_code=500, detail=f"transcription failed: {exc}")
-    return result
+        import python_multipart  # noqa: F401
+        return True
+    except ImportError:
+        try:
+            import multipart  # noqa: F401
+            return True
+        except ImportError:
+            return False
+
+if _has_multipart():
+    @app.post("/api/v1/voice/transcribe")
+    async def voice_transcribe(
+        audio: UploadFile = File(...),
+        language: str = "auto",
+        _: None = Depends(require_key),
+    ) -> Dict[str, Any]:
+        """Phase 3 v2.1 — Native audio pipeline transcription endpoint.
+
+        Accepts a multipart upload of raw audio (WAV / WebM/Opus / M4A) and routes
+        to the best available local transcriber (faster-whisper > whisper) with a
+        deterministic fallback. Gated by ``GENIO_AUDIO_PIPELINE=1``.
+        """
+        if os.getenv("GENIO_AUDIO_PIPELINE", "0").strip().lower() not in ("1", "true", "yes"):
+            raise HTTPException(status_code=403,
+                                detail="audio pipeline disabled (set GENIO_AUDIO_PIPELINE=1)")
+        data = await audio.read()
+        if not data or len(data) == 0:
+            raise HTTPException(status_code=400, detail="empty audio payload")
+        try:
+            from genio_server.server.voice_pipeline import transcribe_audio
+            result = await asyncio.to_thread(
+                transcribe_audio, data,
+                audio.content_type or "audio/wav",
+                None if language in ("auto", "") else language,
+            )
+        except Exception as exc:
+            raise HTTPException(status_code=500, detail=f"transcription failed: {exc}")
+        return result
+else:
+    @app.post("/api/v1/voice/transcribe")
+    async def voice_transcribe(_: None = Depends(require_key)) -> Dict[str, Any]:  # type: ignore[no-redef]
+        raise HTTPException(status_code=500,
+                            detail='Form data requires "python-multipart" to be installed. pip install python-multipart')
 
 
 # --------------------------------------------------------------------------- #
