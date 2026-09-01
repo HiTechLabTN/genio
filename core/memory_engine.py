@@ -100,7 +100,8 @@ class MemoryEngine:
             except json.JSONDecodeError:
                 logger.warning("feedback_memory.json corrupted -> reseeding")
         data = {"version": 1, "rules": list(DEFAULT_RULES),
-                "lessons": [], "stats": {"runs": 0, "rejections": 0}}
+                "lessons": [], "session_context": [],
+                "stats": {"runs": 0, "rejections": 0}}
         self._write(data)
         return data
 
@@ -140,6 +141,49 @@ class MemoryEngine:
             return prompt
         return (prompt + "\n\nMEMORY RULES (learned from past rejections - "
                 "MUST be followed):\n" + block)
+
+    # ------------------------------------------------------------------ #
+    # session_context — durable project/user facts, DISTINCT from rules.
+    # These are editorial/publishing rules above (content pipeline); this
+    # category holds interactive-agent context facts for the chat loop.
+    # ------------------------------------------------------------------ #
+    @property
+    def session_context(self) -> List[Dict[str, str]]:
+        ctx = self.data.setdefault("session_context", [])
+        if not isinstance(ctx, list):
+            ctx = []
+            self.data["session_context"] = ctx
+        return ctx
+
+    def add_context(self, text: str, category: str = "general") -> None:
+        """Persist a durable project/user fact for the interactive agent."""
+        text = str(text or "").strip()
+        if not text:
+            return
+        entry = {
+            "ts": datetime.datetime.utcnow().isoformat(),
+            "category": str(category or "general").strip() or "general",
+            "text": text,
+        }
+        ctx = self.session_context
+        # De-duplicate identical recent facts (avoid unbounded growth).
+        if ctx and ctx[-1].get("text") == text:
+            ctx[-1]["ts"] = entry["ts"]
+        else:
+            ctx.append(entry)
+            self.data["session_context"] = ctx[-200:]
+        self._write(self.data)
+
+    def context_text(self, limit: int = 20) -> str:
+        """Render up to ``limit`` recent context facts as a prompt block."""
+        ctx = self.session_context[-limit:]
+        if not ctx:
+            return ""
+        lines = [
+            f"- [{c.get('category', 'general')}] {c.get('text', '')}"
+            for c in ctx
+        ]
+        return "\n".join(lines)
 
     def record_rejection(self, codes: List[str], source: str = "auditor") -> List[str]:
         """Synthesize auditor/user rejection codes into durable rules."""

@@ -26,3 +26,18 @@ documentées ici, par phase.
     `GENIO_API_KEY` vide fait échouer le démarrage avec un message explicite ;
   - `allow_origins` passé de `*` à une liste lue depuis `GENIO_CORS_ORIGINS`
     (CSV), défaut `["http://localhost:1420"]` (port Tauri dev).
+
+## Phase 1 — Unification mémoire / agent interactif
+
+- **`core/memory_engine.py`** : nouvelle catégorie de données `session_context`
+  (liste de faits projet/utilisateur `{ts, category, text}`), distincte des
+  `rules` éditoriales de contenu. Méthodes : `add_context(text, category)` et
+  `context_text(limit=20)` (bornée, déduplique les faits consécutifs).
+  Aucune modification des règles Darija/SVG existantes (pipeline de contenu
+  intact).
+- **`genio_server/core/agent_loop.py`** : `build_instructions()` injecte
+  `get_memory().context_text()` (le contexte de session, PAS les rules
+  éditoriales) dans le system prompt. Paramètre optionnel `memory=` pour un
+  test propre ; import de `core.memory_engine` en best-effort avec dégradation
+  silencieuse si non résolvable.
+- **Nouveau** `test_phase1_memory_agent.py` (4 cas).

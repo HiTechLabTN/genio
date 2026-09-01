@@ -108,8 +108,27 @@ REACT_INSTRUCTIONS = (
 )
 
 
-def build_instructions(mode: str = DEFAULT_MODE) -> str:
-    base = REACT_INSTRUCTIONS
+def _session_context_block(memory=None) -> str:
+    """Durable project/user facts for the interactive agent (NOT editorial
+    rules, which belong to the content pipeline). Best-effort: if the root
+    `core.memory_engine` isn't importable, degrade to an empty block."""
+    try:
+        if memory is None:
+            from core.memory_engine import get_memory
+            memory = get_memory()
+        text = memory.context_text()
+    except Exception:
+        text = ""
+    if not text:
+        return ""
+    return (
+        "\n\nSESSION CONTEXT (durable facts about the project/user, treat as "
+        "authoritative ground truth):\n" + text
+    )
+
+
+def build_instructions(mode: str = DEFAULT_MODE, memory=None) -> str:
+    base = REACT_INSTRUCTIONS + _session_context_block(memory)
     return base + (AUTONOMY_MODE if mode == "autonomous" else "")
 
 
