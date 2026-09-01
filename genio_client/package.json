@@ -2,6 +2,8 @@
   "name": "genio-client",
   "private": true,
   "version": "2.3.1",
+  "description": "Genio — Assistant IA intelligent avec Chronos Portal, Avatar 3D et multilingue (Darija/FR/EN)",
+  "author": "HiTechLabTN",
   "main": "electron/main.js",
   "type": "module",
   "scripts": {
