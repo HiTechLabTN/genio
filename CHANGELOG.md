@@ -316,3 +316,21 @@ result = [c for c in ().__class__.__base__.__subclasses__()
 - **`src/lib/audio.ts`** : `startVoiceRecording` defers `new MediaRecorder()` to `queueMicrotask` — `toggleMic` stays snappy, never blocks React render cycle; removed wasteful double `getUserMedia` call.
 
 **Build** : `npm run build` exit 0 (2826 modules, 4.97s, 1515kB gzip).
+
+## 2026-09-02 — Genio v2.3.0: Chronos Portal, Pixar Avatar & System Metrics
+
+### Hook Custom: useTaskProcessor
+- **`src/hooks/useTaskProcessor.ts`** (nouveau) : recoit `task` (string | null), retourne `isMinimized`, `thinkingSteps` (5 etapes animees toutes les 1.2s), `metrics` (CPU/GPU/RAM/VRAM simules toutes les 2s), `result` (texte de succes), `isProcessing`.
+- `setIsMinimized(false)` pour rouvrir le portail apres traitement termine.
+
+### Composant SystemMetrics
+- **`src/components/ChronosPortal/SystemMetrics.tsx`** (nouveau) : 4 barres de progression (CPU cyan, GPU magenta, RAM orange, VRAM rouge) avec animation de transition.
+
+### Chronos Portal
+- **`src/components/ChronosPortal/ChronosPortal.tsx`** (nouveau) : layout flex (Avatar Pixar a gauche, SystemMetrics + thinkingStream + result a droite), anne Chronos tournant `rotateGalaxy 28s`, mode minimized (icone flottante en haut a droite avec tooltip), bouton fermer pour clear la tache.
+- **`src/components/ChronosPortal/ChronosPortal.module.css`** (nouveau) : deep space `#020B1E` avec gradients, animations `rotateGalaxy`/`float`/`slideIn`, responsive `@media (max-width: 768px)` (colonne unique, Avatar reduit), `z-index: 9999` pour minimizedContainer.
+
+### Integration App.tsx
+- **`src/App.tsx`** : `useState<string | null>(null)` pour `task`, `handleSendPrompt` met a jour `setTask(text)`, `<ChronosPortal task={task} onDismiss={() => setTask(null)} />` en bas du layout.
+
+**Build** : `npm run build` exit 0 (2830 modules, 5.15s, 1522kB gzip). Release `v2.3.0` avec `Genio-Web-v2.3.0.zip` (477KB).
