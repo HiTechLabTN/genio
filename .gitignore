@@ -57,3 +57,18 @@ token*.json
 
 # Server attachments
 tmp/
+
+# Transient training / local evolution artifacts (not part of harness)
+feedback_memory.json.lock
+core/autonomous_runner.py
+core/evolution/
+core/skills/
+genio_client/src-tauri/gen/
+scripts/generate_post_audio.py
+scripts/render_real_terminal_short.py
+training/genio_brain_lora/
+training/gguf/
+training/merge_lora.py
+training/merged_model/
+training/unsloth_compiled_cache/
+unsloth_compiled_cache/
