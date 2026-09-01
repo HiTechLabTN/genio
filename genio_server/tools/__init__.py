@@ -69,7 +69,7 @@ def invoke(tool: str, payload: Any, session_id: str | None = None) -> Dict[str, 
             from genio_server.tools.tool_forge import get_forge
             forged = get_forge().get_tool(tool)
             if forged is not None:
-                return get_forge().invoke(tool, payload)
+                return get_forge().invoke(tool, payload, session_id=session_id)
     except Exception:
         pass
     if tool not in TOOLS:
@@ -94,7 +94,7 @@ def invoke(tool: str, payload: Any, session_id: str | None = None) -> Dict[str, 
             return api_handle(payload)
         if tool == "tool_forge":
             from genio_server.tools.tool_forge import handle as forge_handle
-            return forge_handle(payload)
+            return forge_handle(payload, session_id=session_id)
     except Exception as exc:
         return {"tool": tool, "error": f"{tool} raised: {exc}"}
     return {"tool": tool, "error": f"not implemented: {tool}"}

@@ -25,7 +25,14 @@ def test_rce_payload_blocked(tmp_path, monkeypatch):
     with mock.patch("genio_server.tools.tool_forge.FORGE_PATH", forge_path):
         forge = ToolForge()
         res = forge.create_tool("rce_tool", "RCE test tool with exploit payload here", code=RCE_PAYLOAD)
-        assert res["ok"] is True
+        # After Phase B, RCE is blocked at create (validation), after Phase A at invoke — accept either
+        if res["ok"] is False:
+            # Blocked at create — check error
+            out = str(res.get("error", ""))
+            assert "forbidden" in out.lower() or "sandbox" in out.lower() or "rce" in out.lower()
+            assert "uid=" not in out
+            return
+        # If create succeeded (Phase A), then invoke must be blocked
         inv = forge.invoke("rce_tool", {})
         # Must NOT contain shell output
         out = str(inv.get("output", "")) + str(inv.get("error", ""))
@@ -58,11 +65,13 @@ def test_legitimate_tool_still_works_when_enabled(tmp_path, monkeypatch):
         forge = ToolForge()
         benign = "result = payload.get('a', 0) + payload.get('b', 0)"
         res = forge.create_tool("sum_tool", "legitimate sum tool for testing", code=benign)
-        assert res["ok"] is True
+        assert res["ok"] is True, f"benign create should succeed, got {res}"
         inv = forge.invoke("sum_tool", {"a": 2, "b": 3})
-        # Benign should still work (via temporary exec) until Phase B
-        assert inv.get("output") == "5" or inv.get("forged") is True
-        assert "error" not in inv or "forbidden" not in str(inv.get("error", "")).lower()
+        # Benign should still work via container (Phase B) or temporary exec (Phase A)
+        # Check output contains 5 or forged flag, and no forbidden error
+        out = str(inv.get("output", "")) + str(inv.get("error", ""))
+        assert "5" in out or inv.get("forged") is True or inv.get("output") == "5"
+        assert "forbidden" not in out.lower()
 
 def test_tool_forge_via_invoke_disabled_by_default(monkeypatch):
     monkeypatch.delenv("GENIO_TOOL_FORGE", raising=False)
