@@ -135,3 +135,22 @@ documentées ici, par phase.
 - **Nouveau** `.github/workflows/ci.yml` : jobs `backend` (pytest 8 suites),
   `frontend` (tsc + build), `security` (bash safety + prod guard), déclenché
   sur push `main/develop` et PR `main`.
+
+## 2026-09-01 — Remédiation RCE audit (Phases A-F) — faille tool_forge exec
+
+Preuve d'audit ayant motivé l'ensemble du correctif (reprise telle quelle Phase A) :
+```
+result = [c for c in ().__class__.__base__.__subclasses__()
+           if c.__name__ == "catch_warnings"][0]()._module.__builtins__[
+           "__import__"]("os").popen("id").read()
+→ shell root obtenu, hors de toute liste noire, hors du conteneur bash.
+```
+
+| Phase | Faille | Fichier(s) | Correctif | Test |
+|-------|--------|------------|-----------|------|
+| A | RCE via `exec()` in-process contournable (builtins restreints) | `genio_server/tools/tool_forge.py:77` `ToolForge.invoke()` `exec(code, {"__builtins__": {...}})` + `genio_server/tools/__init__.py:66` `GENIO_TOOL_FORGE` défaut `1` opt-out | Défaut `1`→`0` opt-in (fail-safe), suppression `exec()` in-process, blocage patterns `__class__/__subclasses__/catch_warnings/__builtins__/popen/os.` avant tout exec, retour `sandbox exec disabled` | `test_phase_A_tool_forge_rce.py:13` (4 cas) reproduit littéralement le payload, vérifie pas de `uid=`/`gid=` |
+| B | Exécution forgée non sandboxée (même après blocage, pas de container) | `genio_server/tools/tool_forge.py:88` `_exec_via_container`, `genio_server/tools/__init__.py:66` propagation `session_id` | Route via `session_container.exec_in_container(session_id, f"python3 {script}")` jamais `exec()`, validation smoke-test container avant `state/tool_forge.json`, Q1 Docker dispo partout → si docker absent refuse (pas fallback insecure, commenté) | `test_phase_B_tool_forge_container.py` (3 cas) : RCE bloqué à create, sum légitime via container, bad script non listé |
+| C | Conteneur inutilisable : pas de volume, réseau `none` fixe, cwd non persistant | `genio_server/tools/session_container.py:95` `_ensure_container` `--network none` sans `-v`, `config.py:55` `SandboxConfig` sans `allowed_registries` | `-v <state/session_workdirs/<sid>>:/work -w /work` isolé par session (Q2), `SandboxConfig.allowed_registries` + `network_policy=allowlist` → `--network bridge` (allow-list via config, Q2), `_CWD_MAP` + `wrapped rc=$?; echo __GENIO_CWD__` + `cd <cwd> &&` | `test_phase_C_session_volume.py` (4 passed+1 xfail) : cwd `cd sub`→`pwd` `/work/sub`, env xfail, fichier `/work/out.txt` visible hôte, urllib pypi.org via bridge, isolation workdir |
+| D | Fuite ressources : conteneurs `genio-session-*` jamais nettoyés | `genio_server/tools/session_container.py:188` `cleanup_container`, `genio_server/server/main.py:513` `finally` WS, `genio_server/server/main.py:127` periodic | `finally` WS nettoie `cleanup_container` + `_CWD_MAP/_LAST_USED` pour `_SESSION_IDS[conn]`, tâche périodique `asyncio` 60s `docker ps` + idle `> GENIO_SESSION_CONTAINER_IDLE_TIMEOUT=1800` (Q3 30min), kill-switch détruit immédiatement (Q3) | `test_phase_D_container_lifecycle.py` (4 cas) : WS close mock `docker rm`, idle avance `last_used+2000>1800` nettoyé, kill immediate, env override |
+| E | ModelRouter non branché, kill non propagé (double-check avant/après, pas race) | `genio_server/core/agent_loop.py:305` `_chat` direct `httpx.post`, `core/model_router.py:95` `generate` sans `chat`, `genio_server/server/main.py:217` `/api/v1/status` sans router | `AgentLoop._chat` via `ModelRouter.chat(messages, cancel_event)` Q4 endpoints inchangés, race `asyncio.wait(FIRST_COMPLETED)` `chat_task` vs `_wait_cancel` + `chat_task.cancel()` pour fermer HTTP, `/_telemetry` expose `router` health | `test_phase_E_model_routing.py` (3 cas) : `_chat` direct mock sleep 2s, cancel 200ms → `CancelledError` <1s et flag `was_cancelled` True, sans cancel OK, status expose router |
+| F | CI incomplet : `test_genio_core` absent, pas de lint, security n'inclut pas Phases A-E | `.github/workflows/ci.yml:26` backend sans `test_genio_core`, sans `ruff`, security sans Phase A-E | Backend `pytest` inclut `test_phase_A-E` + `test_genio_core -k "not 2 flaky"` + `ruff check` (`python -m ruff`), security `pytest test_bash_tool_safety + test_phase_A-E` | CI vert `33478285161` → `backend` 22s, `frontend` 25s, `security` 14s (après fix `-k dangerous` et `pip install` manquant) |
