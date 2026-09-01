@@ -33,6 +33,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 
 from genio_server.core.agent_loop import AgentLoop, OllamaConnectionError
+from genio_server.core.session_store import get_session_store
 from genio_server.tools import invoke as invoke_tool
 from genio_server.tools import safe_cwd
 from genio_server.tools import computer_tool
@@ -196,6 +197,22 @@ def telemetry_stream(_: None = Depends(require_key)) -> StreamingResponse:
     return StreamingResponse(gen(), media_type="text/event-stream")
 
 
+@app.get("/api/v1/sessions/{sid}")
+async def get_session(sid: str,
+                      _: None = Depends(require_key)) -> Dict[str, Any]:
+    """Bounded session checkpoint — last N turns + compressed summary.
+
+    Never returns unbounded raw history (fault-tolerant resume endpoint).
+    """
+    try:
+        session = await get_session_store().load_session(sid)
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"session load failed: {exc}")
+    if not session.get("exists"):
+        raise HTTPException(status_code=404, detail="session not found")
+    return session
+
+
 # --------------------------------------------------------------------------- #
 # Payload handling
 # --------------------------------------------------------------------------- #
@@ -344,6 +361,22 @@ async def ws_agent(ws: WebSocket, node: str = Query(default=None)) -> None:
                 await safe_send(ws, {"type": "armed", **SAFETY.snapshot()})
                 continue
 
+            if action == "resume":
+                # Bounded checkpoint of a previous session (last N turns +
+                # compressed summary). NEVER sends unbounded raw history.
+                sid = str(msg.get("session_id") or "").strip()
+                if not sid:
+                    await safe_send(ws, {"type": "error", "message": "missing session_id"})
+                    continue
+                try:
+                    store = get_session_store()
+                    session = await store.load_session(sid)
+                except Exception as exc:
+                    await safe_send(ws, {"type": "error", "message": f"resume failed: {exc}"})
+                    continue
+                await safe_send(ws, {"type": "session", "session": session})
+                continue
+
             if action == "prompt":
                 if _ACTIVE_RUNS.get(conn_id):
                     await safe_send(ws, {"type": "error", "message": "agent is already busy"})
@@ -356,6 +389,7 @@ async def ws_agent(ws: WebSocket, node: str = Query(default=None)) -> None:
                 agent = AgentLoop(
                     mode=str(msg.get("mode", "autonomous")),
                     cancel_event=_KILL_EVENTS[conn_id],
+                    session_id=str(msg.get("session_id") or "").strip() or None,
                 )
                 try:
                     async for event in agent.run(text):

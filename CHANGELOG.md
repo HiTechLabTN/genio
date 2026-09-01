@@ -41,3 +41,31 @@ documentées ici, par phase.
   test propre ; import de `core.memory_engine` en best-effort avec dégradation
   silencieuse si non résolvable.
 - **Nouveau** `test_phase1_memory_agent.py` (4 cas).
+
+## Phase 2 — Checkpointing des sessions (tolérance aux pannes)
+
+- **Nouveau** `genio_server/core/session_store.py` (SQLite via `aiosqlite`) :
+  schéma `sessions(id, created_at, updated_at, mode, status, summary)` et
+  `messages(session_id, seq, role, content, ts)`. Fonctions :
+  `create_session()`, `append_message()` (persistance immédiate), `load_session(id,
+  max_history_turns=10)` — cette dernière NE retourne JAMAIS l'historique brut
+  complet, seulement les `N` derniers tours + un `summary` compacté.
+  Politique de fenêtre obligatoire (mandatory) : prompt final =
+  `[system_prompt] + [session_context borné déjà dans system_prompt] + [summary si > N] +
+  [N derniers tours bruts]`. Dès que `len(messages) > max_history_turns`,
+  les plus anciens tours sont résumés par batch en `sessions.summary`
+  (via `summarize_session_batch()` — heuristique extractive capée à 600 chars,
+  merge capé à 4000 chars) et les lignes `messages` sont renumérotées
+  densément pour garder le compactor correct. Stockage borné par construction.
+- **`genio_server/core/agent_loop.py`** : ajout du param `session_id` (+ `store`
+  injectable), `summarize_session_batch()`, helpers `_session_store()`,
+  `_build_initial_messages()` (reconstitue le prompt selon la windowing policy
+  via `build_prompt_from_session`), `_save_message()` ; `run(user_input)` charge
+  d'abord la fenêtre bornée puis persiste chaque nouveau message (user/assistant/
+  feedback) immédiatement — tolérant aux crash serveur.
+- **`genio_server/server/main.py`** : nouvelle route `GET /api/v1/sessions/{id}`
+  (historique borné + summary) et action WS `resume` (charge la session
+  checkpointée sans jamais renvoyer l'historique brut complet) ; l'action WS
+  `prompt` accepte désormais `session_id`.
+- **Nouveau** `test_phase2_session_checkpoint.py` (3 cas : crash/resume + fenêtre
+  sous budget token explicite + unknown session).

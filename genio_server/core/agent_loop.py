@@ -25,14 +25,20 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 import os
 import re
 import threading
-from typing import AsyncIterator, Callable, Dict, List, Optional, Tuple
+from typing import TYPE_CHECKING, AsyncIterator, Callable, Dict, List, Optional, Tuple
 
 import httpx
 
 from genio_server.tools import invoke, tool_specs
+
+logger = logging.getLogger(__name__)
+
+if TYPE_CHECKING:
+    from genio_server.core.session_store import SessionStore
 
 DEFAULT_MODEL = os.environ.get("GENIO_MODEL", "gemma4:12b")
 OLLAMA_URL = os.environ.get("GENIO_OLLAMA_URL", "http://127.0.0.1:11434")
@@ -204,6 +210,23 @@ def truncate_output(text: str, limit: int = MAX_TOOL_OUTPUT) -> str:
     return text[:limit] + TRUNCATE_MARKER
 
 
+async def summarize_session_batch(conversation_text: str,
+                                  max_chars: int = 600) -> str:
+    """Compress an overflow batch of old turns into a short extractive summary.
+
+    Pure local heuristic (first/last lines + a count) so the store has no hard
+    dependency on the model being reachable. A model-written summarizer can
+    replace the body later without changing the call signature.
+    """
+    lines = [ln for ln in (conversation_text or "").splitlines() if ln.strip()]
+    if not lines:
+        return ""
+    snippet = "\n".join(lines[:3] + ["…"] + lines[-3:])
+    summary = (f"[conversation summary — {len(lines)} turns] "
+               f"earlier: {lines[0][:140]} … later: {lines[-1][:140]}")
+    return summary[:max_chars]
+
+
 def _feedback_for(result: Dict[str, object], assistant: str) -> str:
     """Human/LLM-readable tool feedback for the next model turn.
 
@@ -252,6 +275,8 @@ class AgentLoop:
         mode: str = DEFAULT_MODE,
         cancel_event: Optional[threading.Event] = None,
         system_prompt: Optional[str] = None,
+        session_id: Optional[str] = None,
+        store: Optional["SessionStore"] = None,
     ) -> None:
         self.model = model
         self.ollama_url = ollama_url.rstrip("/")
@@ -259,6 +284,8 @@ class AgentLoop:
         self.step_timeout = step_timeout
         self.mode = mode
         self.cancel_event = cancel_event
+        self.session_id = session_id
+        self._store = store
         self.system_prompt = system_prompt or build_instructions(mode)
 
     def cancelled(self) -> bool:
@@ -293,16 +320,73 @@ class AgentLoop:
         tok_per_s = (eval_count / (eval_ns / 1e9)) if eval_ns > 0 else 0.0
         return content, eval_count, round(tok_per_s, 1)
 
+    async def _session_store(self) -> "Optional[SessionStore]":
+        if not self.session_id:
+            return None
+        if self._store is not None:
+            return self._store
+        try:
+            from genio_server.core.session_store import get_session_store
+            return get_session_store()
+        except Exception:
+            return None
+
+    async def _build_initial_messages(self) -> Optional[List[Dict[str, str]]]:
+        """Resume a prior session from its bounded rolling window + summary.
+
+        Returns the full message list to seed the loop (system + resumed
+        turns), or ``None`` to fall back to a fresh single-turn conversation.
+        Never loads unbounded raw history.
+        """
+        store = await self._session_store()
+        if store is None:
+            return None
+        session = await store.load_session(self.session_id)
+        if not session.get("exists"):
+            return None
+        # Assemble per mandatory windowing policy, then unpack to messages.
+        try:
+            from genio_server.core.session_store import build_prompt_from_session
+        except Exception:
+            return [{"role": "system", "content": self.system_prompt}]
+        prompt = build_prompt_from_session(self.system_prompt, session)
+        messages: List[Dict[str, str]] = [{"role": "system", "content": prompt}]
+        for t in session.get("turns") or []:
+            messages.append({"role": t["role"], "content": t["content"]})
+        # If a summary exists but no raw turns are in the window, the system
+        # prompt already carries it; add nothing extra here.
+        return messages
+
+    async def _save_message(self, role: str, content: str) -> None:
+        if self.session_id:
+            store = await self._session_store()
+            if store is not None:
+                try:
+                    await store.append_message(self.session_id, role, content)
+                except Exception:
+                    logger.exception("failed to persist message")
+
     async def run(self, user_input: str) -> AsyncIterator[Dict[str, str]]:
         """Execute the ReAct loop for ``user_input`` and yield events.
 
         In autonomous mode the loop chains tool calls without confirmation.
         If ``cancel_event`` is set (KILL SWITCH) the loop halts immediately.
+        When ``session_id`` is set, prior turns (bounded window + summary) are
+        resumed and every new message is persisted immediately (crash-tolerant).
         """
-        messages: List[Dict[str, str]] = [
-            {"role": "system", "content": self.system_prompt},
-            {"role": "user", "content": user_input},
-        ]
+        # Load the bounded window FIRST (otherwise we'd double-count the new
+        # user turn if we saved before the load — it would appear both in the
+        # stored history and as the new turn).
+        resumed = await self._build_initial_messages()
+        if resumed is not None:
+            messages = resumed + [{"role": "user", "content": user_input}]
+            self.system_prompt = messages[0]["content"]
+        else:
+            messages: List[Dict[str, str]] = [
+                {"role": "system", "content": self.system_prompt},
+                {"role": "user", "content": user_input},
+            ]
+        await self._save_message("user", user_input)
         final_answer = ""
 
         async with httpx.AsyncClient(base_url=self.ollama_url) as client:
@@ -326,6 +410,7 @@ class AgentLoop:
 
                 if call is None:
                     final_answer = assistant.strip()
+                    await self._save_message("assistant", final_answer)
                     yield {"type": "answer", "text": final_answer}
                     return
 
@@ -349,6 +434,8 @@ class AgentLoop:
                 feedback = _feedback_for(result, assistant)
                 messages.append({"role": "assistant", "content": assistant})
                 messages.append({"role": "user", "content": feedback})
+                await self._save_message("assistant", assistant)
+                await self._save_message("user", feedback)
 
             yield {
                 "type": "answer",
