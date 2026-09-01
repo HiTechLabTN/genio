@@ -12,13 +12,16 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 18
-      - run: npm install
-      - run: npm run build
+      - name: Install & Build Web
+        working-directory: genio_client
+        run: |
+          npm install
+          npm run build
       - name: Upload Web Artifact
         uses: actions/upload-artifact@v4
         with:
           name: web-dist
-          path: dist
+          path: genio_client/dist
 
   build-electron:
     needs: build-web
@@ -31,17 +34,21 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 18
-      - run: npm install
+      - name: Install deps
+        working-directory: genio_client
+        run: npm install
       - name: Download Web dist
         uses: actions/download-artifact@v4
         with:
           name: web-dist
-          path: dist
+          path: genio_client/dist
       - name: Build Electron (Windows)
         if: matrix.os == 'windows-latest'
+        working-directory: genio_client
         run: npm run electron:build:win
       - name: Build Electron (Linux)
         if: matrix.os == 'ubuntu-latest'
+        working-directory: genio_client
         run: npm run electron:build:linux
       - name: Upload EXE
         if: matrix.os == 'windows-latest'
@@ -50,7 +57,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ github.event.release.upload_url }}
-          asset_path: ./release-builds/Genio Setup.exe
+          asset_path: ./genio_client/release-builds/Genio Setup.exe
           asset_name: Genio-Setup.exe
           asset_content_type: application/octet-stream
       - name: Upload DEB
@@ -60,7 +67,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ github.event.release.upload_url }}
-          asset_path: ./release-builds/genio_*.deb
+          asset_path: ./genio_client/release-builds/genio_*.deb
           asset_name: genio_amd64.deb
           asset_content_type: application/octet-stream
 
@@ -72,12 +79,14 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 18
-      - run: npm install
+      - name: Install deps
+        working-directory: genio_client
+        run: npm install
       - name: Download Web dist
         uses: actions/download-artifact@v4
         with:
           name: web-dist
-          path: dist
+          path: genio_client/dist
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
@@ -86,10 +95,11 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
       - name: Sync Capacitor
+        working-directory: genio_client
         run: npx cap sync android
       - name: Build APK
         run: |
-          cd android
+          cd genio_client/android
           chmod +x gradlew
           ./gradlew assembleDebug
       - name: Upload APK
@@ -98,6 +108,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ github.event.release.upload_url }}
-          asset_path: ./android/app/build/outputs/apk/debug/app-debug.apk
+          asset_path: ./genio_client/android/app/build/outputs/apk/debug/app-debug.apk
           asset_name: Genio.apk
           asset_content_type: application/vnd.android.package-archive
