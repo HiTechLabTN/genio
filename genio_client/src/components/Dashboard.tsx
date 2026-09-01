@@ -5,6 +5,8 @@ import AudioPlayer, { stopAllAudio } from "./AudioPlayer";
 import BottomInputBar from "./BottomInputBar";
 import Header from "./Header";
 import RightDrawer from "./RightDrawer";
+import CyberAvatar from "./avatar/CyberAvatar";
+import { HolographicHud } from "./avatar/HolographicHud";
 import type { AgentStatus, Attachment, ChatEvent, TelemetrySnapshot, ToolResultMap } from "../lib/types";
 
 interface Props {
@@ -50,6 +52,10 @@ export default function Dashboard({
   onToggleScreenStream,
   onSwitchNode,
 }: Props) {
+  // Phase 4 v2.1: avatar mode derived from agent state.
+  const busy = agentStatus.kind === "thinking" || agentStatus.kind === "executing";
+  const avatarMode = busy ? "listening" : "idle";
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -72,7 +78,25 @@ export default function Dashboard({
       <div className="flex min-h-0 flex-1">
         {/* main chat area */}
         <div className="flex min-h-0 flex-1 flex-col">
+          {/* Phase 4 v2.1: 3D avatar — centered idle/chat, translating into the
+              top widget bar when the agent is busy. */}
+          <motion.div
+            className="relative z-10 flex items-center justify-center"
+            animate={
+              busy
+                ? { scale: 0.35, top: 12, marginTop: -160, opacity: 0.92 }
+                : { scale: 1, top: 24, marginTop: 24, opacity: 1 }
+            }
+            transition={{ type: "spring", stiffness: 120, damping: 18 }}
+          >
+            <CyberAvatar mode={avatarMode} size={busy ? 220 : 300} />
+          </motion.div>
+
           <Transcript chat={chat} agentStatus={agentStatus} />
+
+          {/* Phase 4 v2.1: holographic HUD under the collapsed avatar */}
+          <HolographicHud chat={chat} agentStatus={agentStatus} telemetry={telemetry} />
+
           <ActivityBar chat={chat} agentStatus={agentStatus} onKill={onKill} onContinue={onContinue} />
         </div>
 
