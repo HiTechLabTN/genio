@@ -240,3 +240,36 @@ result = [c for c in ().__class__.__base__.__subclasses__()
   `top 12px`) avec HUD qui se déploie dessous (spring, stiffness 120/damping 18).
 - **Build** : `npm run build` exit 0 (tsc + vite). Chunk warning 3D (≈1.3MB)
   bénin ; `face_mesh` codé-split.
+
+## 2026-09-02 — The Ultimate Genio Mobile Overhaul: Adaptive Gemini Cloud, 3D Cyber-Tunisian Avatar & Native Darija Persona
+
+### PHASE 1: Zero-Config Google Auth & Gemini Integration
+
+- **`src/lib/googleAuth.ts`** (nouveau) : `hasGoogleAuth`/`getGoogleToken`/`setGoogleToken` avec `localStorage` + fallback Tauri Store, `signInWithGoogle` via Tauri `plugin-opener` (system browser) ou GIS `google.accounts.id`, mock token pour CI/build, `signOutGoogle`.
+- **`src/components/GoogleAuthOnboarding.tsx`** (nouveau) : modal "Sign in with Google" (Globe/Sparkles, Chrome-less via lucide `Globe`), secure token display, bypass logic — si token existe, `shouldShowGoogleAuth()=false` et `App.tsx` saute directement au Dashboard.
+- **`src/lib/providers/gemini_provider.ts`** (nouveau) : `GEMINI_MODEL=gemini-2.0-flash`, `GEMINI_API_BASE`, `streamGemini` (SSE via `streamGenerateContent` + `systemInstruction` Darija persona + `functionDeclarations` mapping `bash`/`browser`/`computer`), mock Darija stream si `mock-*` token (CI), `geminiToGenioEvents`.
+- **`src/App.tsx`** : double onboarding `GoogleAuth → PermissionOnboarding`, `isGeminiCloud=hasGoogleAuth()` → `geminiChat`/`geminiStatus` state, `sendPrompt` branché `streamGemini` avec `thought`/`tool_call`/`answer` streaming, `connected` bypass — `isGeminiCloud` affiche `Dashboard` avec `node="Gemini Cloud"` sans passer par `ConnectionHub`.
+
+### PHASE 2: Strict Genio Persona
+
+- **`src/lib/persona.ts`** (nouveau) : `GENIO_PERSONA_PROMPT` hardcodé exact (4 règles Tunisian cyber-identity, NEVER Gemini/Google, Darija + Arabizi, multilingual mix, concise warm technical).
+- **`src/lib/adaptiveEngine.ts`** + **`genio_server/core/adaptive_gateway.py`** + **`web/server.py`** : tous alignés sur `GENIO_PERSONA_PROMPT` (remplace ancien Darija arabe), `getDarijaPrompt`/`wrap_with_darija` exposés.
+
+### PHASE 3: High-Fidelity Cyborg & Gaze Tracking
+
+- **Overhaul `CyberAvatar.tsx`** : chassis `MeshPhysicalMaterial` white-ceramic (`clearcoat 1.0`) + chrome (`metalness 0.95`), Chachia crimson metallic `#a11a2f` avec micro-texture + neon torus band + tassel, yeux cyan `emissiveIntensity` pulse + eyelid blink mesh, moustache/beard neon capsules/torus, mâchoire articulée `lip-sync` via `audioLevel` (speaking mode fallback sinus 8Hz), breathing bob `sin(1.35)`, `useFaceTrackingContext` lerp.
+- **`src/components/avatar/useFaceTracking.ts`** (nouveau) : front camera `facingMode:user 640x480`, `FaceMesh` `locateFile` CDN, `lerp` 0.18 vers `yaw`/`pitch` (landmarks 1,33,263,199), `FaceLookContext` provider.
+- **Dashboard** : `faceTrack` passé `!busy`, `audioLevel` 0.45 busy.
+
+### PHASE 4: UI/UX Layout Fixes
+
+- **`src/components/Dashboard.tsx`** : strict viewport — `Idle` avatar `h-[35vh]` dedicated top avec gradient + grid, chat `h-[65vh]` `overflow-y-auto` + bottom padding ; `Busy` avatar absolute `right-3 top-3 w-28 h-28` corner widget (pointer-events none outer, auto inner), HUD expand `HolographicHud` avec `AnimatePresence`, `z-index`/`pointer-events` fixés (avatar `pointer-events-auto` seul, chat scroll jamais bloqué par Canvas).
+- **Verification** : `npm run build` 0, layout scale sans overlap (avatar ne couvre jamais chat).
+
+### PHASE 5: Native Android Audio & Permissions
+
+- **`android-overlay/AndroidManifest.xml`** + **`gen/android/...`** : `CAMERA`, `RECORD_AUDIO`, `INTERNET`, `ACCESS_NETWORK_STATE`, `READ_EXTERNAL_STORAGE` (maxSdk 32), `WRITE_EXTERNAL_STORAGE` (29), `READ_MEDIA_IMAGES/VIDEO/AUDIO`, `MODIFY_AUDIO_SETTINGS` + `hardware.camera`/`microphone` features.
+- **`src/lib/permissions.ts`** + **`PermissionOnboarding.tsx`** déjà couverts (checklist launch).
+- **`src/lib/audio.ts`** : MediaRecorder raw blobs `WebM/WAV` (déprécié WebSpeech), `transcribeAudio` → Gemini/cloud.
+
+**Build** : `npm run build` exit 0 (2826 modules, `gemini_provider` + `face_mesh` codé-split, 380kB gzip). Dépendances ajoutées : `@tauri-apps/plugin-opener` (déjà), `tsx` (dev, vérif).

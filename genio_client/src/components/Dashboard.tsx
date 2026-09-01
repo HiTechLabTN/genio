@@ -90,36 +90,55 @@ export default function Dashboard({
       )}
 
       <div className="flex min-h-0 flex-1">
-        {/* main chat area */}
-        <div className="flex min-h-0 flex-1 flex-col">
-          {/* Phase 3 — High-fidelity avatar: primary interactive viewport (idle) → HUD position (busy) */}
-          <motion.div
-            className="relative z-10 flex shrink-0 items-center justify-center overflow-visible"
-            animate={
-              busy
-                ? { scale: 0.36, y: -8, opacity: 0.96 }
-                : { scale: 1, y: 0, opacity: 1 }
-            }
-            transition={{ type: "spring", stiffness: 140, damping: 18 }}
-            style={{ transformOrigin: "top center" }}
-          >
-            <div className={busy ? "mt-3" : "mt-6"}>
-              <CyberAvatar
-                mode={avatarMode}
-                size={busy ? 200 : 320}
-                faceTrack={!busy}
-                audioLevel={busy ? 0.35 : 0}
-              />
+        {/* main chat area — strict viewport */}
+        <div className="relative flex min-h-0 flex-1 flex-col">
+          {/* PHASE 4 STRICT RESPONSIVE VIEWPORT
+              Idle: avatar dedicated top h-[35vh], chat below h-[65vh] with overflow
+              Busy: avatar shrinks to top-corner widget, HUD expands in place */}
+          <AnimatePresence mode="wait">
+            {busy ? (
+              <motion.div
+                key="busy-avatar"
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0 }}
+                className="pointer-events-none absolute right-3 top-3 z-20 flex h-28 w-28 items-center justify-center rounded-2xl border border-neon/20 bg-carbon/60 backdrop-blur md:right-4 md:top-4 md:h-32 md:w-32"
+              >
+                <div className="pointer-events-auto">
+                  <CyberAvatar mode={avatarMode} size={112} faceTrack={false} audioLevel={0.45} />
+                </div>
+              </motion.div>
+            ) : (
+              <motion.div
+                key="idle-avatar"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="relative flex h-[35vh] shrink-0 items-center justify-center overflow-hidden border-b border-neon/5 bg-gradient-to-b from-transparent via-neon/[0.03] to-transparent"
+                style={{ pointerEvents: "auto" }}
+              >
+                <div className="pointer-events-auto">
+                  <CyberAvatar mode={avatarMode} size={340} faceTrack={true} audioLevel={0} />
+                </div>
+                {/* seamless background integration */}
+                <div className="pointer-events-none absolute inset-0 bg-grid-neon opacity-[0.03]" />
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Chat history — strict h-[65vh] idle, flex-1 when busy (HUD occupies part) */}
+          <div className={busy ? "flex min-h-0 flex-1 flex-col pt-2" : "flex h-[65vh] min-h-0 flex-col overflow-hidden pb-2"}>
+            <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+              <Transcript chat={chat} agentStatus={agentStatus} />
             </div>
-          </motion.div>
-
-          {/* When idle, avatar background integrates seamlessly; transcript scrolls independently */}
-          <div className="flex min-h-0 flex-1 flex-col">
-            <Transcript chat={chat} agentStatus={agentStatus} />
+            {/* Busy: expand Holographic HUD in place of avatar's former space */}
+            {busy && (
+              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="shrink-0 px-3 pb-2">
+                <HolographicHud chat={chat} agentStatus={agentStatus} telemetry={telemetry} />
+              </motion.div>
+            )}
+            {/* Idle: HUD hidden to keep chat clean */}
           </div>
-
-          {/* Phase 4 — holographic HUD (only visible when busy) */}
-          <HolographicHud chat={chat} agentStatus={agentStatus} telemetry={telemetry} />
 
           <ActivityBar chat={chat} agentStatus={agentStatus} onKill={onKill} onContinue={onContinue} />
         </div>

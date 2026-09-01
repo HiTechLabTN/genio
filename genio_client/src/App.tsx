@@ -2,30 +2,88 @@ import { AnimatePresence } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
 import ConnectionHub from "./components/ConnectionHub";
 import Dashboard from "./components/Dashboard";
+import GoogleAuthOnboarding, { shouldShowGoogleAuth } from "./components/GoogleAuthOnboarding";
 import PermissionOnboarding, { shouldShowOnboarding } from "./components/PermissionOnboarding";
 import UpdateModal from "./components/UpdateModal";
 import { useGenioSocket } from "./hooks/useGenioSocket";
 import { checkForUpdates } from "./lib/updater";
 import { useDeviceProfile } from "./lib/deviceProfiler";
 import { decideEngine } from "./lib/adaptiveEngine";
+import { getGoogleToken, hasGoogleAuth } from "./lib/googleAuth";
 import type { Attachment, ServerNode } from "./lib/types";
 
 export default function App() {
+  const [showGoogleAuth, setShowGoogleAuth] = useState(() => shouldShowGoogleAuth());
+  const [showOnboarding, setShowOnboarding] = useState(() => shouldShowOnboarding());
+  const deviceProfile = useDeviceProfile();
+  const engineDecision = decideEngine();
+  const isGeminiCloud = hasGoogleAuth();
+
   const {
-    agentStatus,
+    agentStatus: wsAgentStatus,
     telemetry,
     telemetryStale,
-    chat,
+    chat: wsChat,
     screen,
     streaming,
     connect,
     disconnect,
     send,
-    sendPrompt,
+    sendPrompt: wsSendPrompt,
     kill,
     requestScreenshot,
     toggleScreenStream,
   } = useGenioSocket();
+  const [geminiChat, setGeminiChat] = useState<typeof wsChat>([]);
+  const [geminiStatus, setGeminiStatus] = useState<typeof wsAgentStatus>({ kind: "idle" });
+  // Merge: use Gemini chat when in cloud mode, otherwise WS chat
+  const chat = isGeminiCloud ? geminiChat : wsChat;
+  const agentStatus = isGeminiCloud ? geminiStatus : wsAgentStatus;
+  const sendPrompt = isGeminiCloud
+    ? (text: string, attachments?: Attachment[]) => {
+        // Gemini cloud path — stream via gemini_provider with Darija persona
+        setGeminiChat((prev) => [...prev.slice(-299), { type: "user", text, timestamp: Date.now() } as const]);
+        setGeminiStatus({ kind: "thinking" });
+        void (async () => {
+          try {
+            const { streamGemini } = await import("./lib/providers/gemini_provider");
+            let acc = "";
+            setGeminiStatus({ kind: "executing", tool: "gemini" });
+            for await (const chunk of streamGemini(text, { attachments })) {
+              if (chunk.text) {
+                acc += chunk.text;
+                setGeminiChat((prev) => {
+                  const last = prev[prev.length - 1];
+                  if (last?.type === "thought" && (last as { text: string }).text === acc.slice(0, -chunk.text!.length)) {
+                    return [...prev.slice(0, -1), { type: "thought", text: acc }];
+                  }
+                  // Append incremental thought
+                  return [...prev.slice(-299), { type: "thought", text: acc }];
+                });
+              }
+              if (chunk.toolCall) {
+                setGeminiChat((prev) => [...prev.slice(-299), { type: "tool_call", command: JSON.stringify(chunk.toolCall) }]);
+              }
+              if (chunk.done) {
+                setGeminiChat((prev) => {
+                  // Collapse last thought into answer
+                  const last = prev[prev.length - 1];
+                  if (last?.type === "thought") return [...prev.slice(0, -1), { type: "answer", text: acc.trim() }];
+                  return [...prev.slice(-299), { type: "answer", text: acc.trim() || "Saha, ena Genio! Chnowa n3awnk?" }];
+                });
+                setGeminiStatus({ kind: "completed" });
+                setTimeout(() => setGeminiStatus({ kind: "idle" }), 1200);
+              }
+            }
+          } catch (e: unknown) {
+            const msg = e instanceof Error ? e.message : String(e);
+            setGeminiChat((prev) => [...prev.slice(-299), { type: "error", message: msg }]);
+            setGeminiStatus({ kind: "idle" });
+          }
+        })();
+        return true;
+      }
+    : wsSendPrompt;
 
   const [connected, setConnected] = useState(false);
   const [target, setTarget] = useState<ServerNode | null>(null);
@@ -33,9 +91,6 @@ export default function App() {
   const [update, setUpdate] = useState<{ version: string; notes?: string } | null>(null);
   const lastPromptRef = useRef("");
   const lastPromptFileRef = useRef<Attachment[] | undefined>(undefined);
-  const [showOnboarding, setShowOnboarding] = useState(() => shouldShowOnboarding());
-  const deviceProfile = useDeviceProfile();
-  const engineDecision = decideEngine();
 
   useEffect(() => {
     let alive = true;
@@ -82,6 +137,18 @@ export default function App() {
     }
   }
 
+  if (showGoogleAuth) {
+    return (
+      <GoogleAuthOnboarding
+        onAuthed={() => {
+          setShowGoogleAuth(false);
+          // After Google auth, proceed to permissions onboarding if needed
+        }}
+        onSkip={() => setShowGoogleAuth(false)}
+      />
+    );
+  }
+
   if (showOnboarding) {
     return (
       <PermissionOnboarding
@@ -121,6 +188,36 @@ export default function App() {
             engineDecision={engineDecision}
             onToggleDrawer={() => setDrawerOpen((o) => !o)}
             onDisconnect={handleDisconnect}
+            onKill={kill}
+            onContinue={handleContinue}
+            onSendPrompt={handleSendPrompt}
+            onSendVoice={(dataB64, durationSec) =>
+              send({ action: "voice_wav", data_b64: dataB64, duration: durationSec, final: true })
+            }
+            onRequestScreenshot={requestScreenshot}
+            onToggleScreenStream={toggleScreenStream}
+            onSwitchNode={handleSwitchNode}
+          />
+        ) : isGeminiCloud ? (
+          <Dashboard
+            key="dashboard-gemini"
+            node="Gemini Cloud"
+            host="generativelanguage.googleapis.com"
+            apiKey={getGoogleToken() || undefined}
+            telemetry={telemetry}
+            telemetryStale={telemetryStale}
+            agentStatus={agentStatus}
+            chat={chat}
+            screen={screen}
+            streaming={streaming}
+            drawerOpen={drawerOpen}
+            deviceProfile={deviceProfile}
+            engineDecision={engineDecision}
+            onToggleDrawer={() => setDrawerOpen((o) => !o)}
+            onDisconnect={() => {
+              // Sign out resets to Google auth screen
+              setShowGoogleAuth(true);
+            }}
             onKill={kill}
             onContinue={handleContinue}
             onSendPrompt={handleSendPrompt}

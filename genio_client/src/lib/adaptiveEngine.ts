@@ -7,8 +7,10 @@
  */
 
 import { getDeviceProfile, type DeviceProfile, type DeviceTier } from "./deviceProfiler";
+import { GENIO_PERSONA_PROMPT } from "./persona";
 
-export const DARIJA_SYSTEM_PROMPT = `Enti Genio, mousa3ed dhkiy men HiTech Lab. Tehki ken b Darija Tounesiya safiya, bla 3arbi fos7a w bla fransawi. Koul ijebtek b lahjet tounsi tabi3iya, w dima 3awn l'utilisateur b wdhuh.`;
+// Re-export for legacy callers
+export const DARIJA_SYSTEM_PROMPT = GENIO_PERSONA_PROMPT;
 
 export const LOCAL_MODEL_ID = "qwen2.5-1.5b-instruct-q4_k_m.gguf";
 export const LOCAL_WHISPER_MODEL = "whisper-small-q5_0.bin";
