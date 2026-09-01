@@ -17,7 +17,7 @@ _BUILTIN_TOOLS = {"bash", "social_post", "browser", "computer", "screen", "api",
 
 
 def _enabled() -> bool:
-    return os.getenv("GENIO_TOOL_FORGE", "1").strip().lower() not in ("0", "false", "no")
+    return os.getenv("GENIO_TOOL_FORGE", "0").strip().lower() not in ("0", "false", "no")
 
 
 def _load() -> Dict[str, Dict[str, str]]:
@@ -78,10 +78,23 @@ class ToolForge:
         tool = self.get_tool(name)
         if not tool:
             return {"tool": name, "error": f"forged tool '{name}' not found"}
+        if not _enabled():
+            return {"tool": name, "error": "tool_forge disabled — set GENIO_TOOL_FORGE=1 to enable (opt-in)"}
         code = tool.get("code", "")
         if not code:
             return {"tool": name, "output": f"forged tool '{name}' invoked with {payload!r}", "forged": True}
-        # Execute code in restricted context (no dangerous ops)
+        # Phase A — RCE mitigation: block known bypass patterns before any exec.
+        # The remaining exec() is TEMPORARY for benign code until Phase B routes
+        # to session_container.exec_in_container; it will be removed entirely then.
+        forbidden = [
+            "__class__", "__bases__", "__subclasses__", "__import__",
+            "catch_warnings", "_module", "__builtins__", "popen", "subprocess",
+            "os.", "sys.", "eval(", "exec(", "open(", "compile(",
+        ]
+        low = code.lower()
+        if any(p.lower() in low for p in forbidden):
+            return {"tool": name, "error": "sandbox exec disabled — code contains forbidden pattern (RCE blocked)"}
+        # TEMPORARY exec for benign code — removed in Phase B
         try:
             # Provide payload as variable, capture output
             local = {"payload": payload, "result": None}

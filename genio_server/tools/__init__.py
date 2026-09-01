@@ -65,7 +65,7 @@ def invoke(tool: str, payload: Any, session_id: str | None = None) -> Dict[str, 
     # Dynamic forged tools (Phase 4) — checked before built-in unknown error
     try:
         import os as _os
-        if _os.getenv("GENIO_TOOL_FORGE", "1").lower() not in ("0", "false", "no"):
+        if _os.getenv("GENIO_TOOL_FORGE", "0").lower() not in ("0", "false", "no"):
             from genio_server.tools.tool_forge import get_forge
             forged = get_forge().get_tool(tool)
             if forged is not None:
