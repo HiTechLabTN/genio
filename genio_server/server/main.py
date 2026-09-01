@@ -5,6 +5,8 @@ The daemon runs on the target node (Pop!_OS GPU box, TN VPS, ...) and exposes:
 * ``GET /api/v1/status``       — one-shot JSON snapshot (CPU/RAM/GPU/model/uptime).
 * ``GET /api/v1/telemetry``    — SSE stream of real-time CPU/RAM/GPU telemetry.
 * ``POST /api/v1/safety``      — kill / re-arm the autonomous actuators.
+* ``POST /api/v1/voice/transcribe`` — Phase 3: multipart raw audio → local
+  faster-whisper/whisper transcription (gated by GENIO_AUDIO_PIPELINE=1).
 * ``WS /ws/agent``             — bidirectional agent channel:
     * client → server: ``{"action":"prompt"|"attach_file"|"attach_image"|
       "voice_wav"|"exec"|"screenshot"|"screen_stream"|"kill"|"rearm"|"ping"}``
@@ -19,6 +21,7 @@ from __future__ import annotations
 import asyncio
 import base64
 import json
+import logging
 import os
 import shutil
 import subprocess
@@ -28,7 +31,7 @@ import uuid
 from typing import Any, Dict, List, Optional
 
 import psutil
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Depends, Header, HTTPException, Query
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Depends, Header, HTTPException, Query, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 
@@ -38,6 +41,8 @@ from genio_server.tools import invoke as invoke_tool
 from genio_server.tools import safe_cwd
 from genio_server.tools import computer_tool
 from genio_server.tools.safety import SAFETY
+
+logger = logging.getLogger(__name__)
 
 API_KEY = os.environ.get("GENIO_API_KEY", "")
 NODE_NAME = os.environ.get("GENIO_NODE_NAME", "HiTech-Node")
@@ -279,6 +284,36 @@ async def get_session(sid: str,
     return session
 
 
+@app.post("/api/v1/voice/transcribe")
+async def voice_transcribe(
+    audio: UploadFile = File(...),
+    language: str = "auto",
+    _: None = Depends(require_key),
+) -> Dict[str, Any]:
+    """Phase 3 v2.1 — Native audio pipeline transcription endpoint.
+
+    Accepts a multipart upload of raw audio (WAV / WebM/Opus / M4A) and routes
+    to the best available local transcriber (faster-whisper > whisper) with a
+    deterministic fallback. Gated by ``GENIO_AUDIO_PIPELINE=1``.
+    """
+    if os.getenv("GENIO_AUDIO_PIPELINE", "0").strip().lower() not in ("1", "true", "yes"):
+        raise HTTPException(status_code=403,
+                            detail="audio pipeline disabled (set GENIO_AUDIO_PIPELINE=1)")
+    data = await audio.read()
+    if not data or len(data) == 0:
+        raise HTTPException(status_code=400, detail="empty audio payload")
+    try:
+        from genio_server.server.voice_pipeline import transcribe_audio
+        result = await asyncio.to_thread(
+            transcribe_audio, data,
+            audio.content_type or "audio/wav",
+            None if language in ("auto", "") else language,
+        )
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"transcription failed: {exc}")
+    return result
+
+
 # --------------------------------------------------------------------------- #
 # Payload handling
 # --------------------------------------------------------------------------- #
@@ -308,6 +343,9 @@ def _save_wav(data_b64: str, session_id: str, final: bool) -> Optional[str]:
 
 
 _VOICE_STATE: Dict[str, bytearray] = {}
+# Phase 3 v2.1: conn_id -> last transcribed voice text, injected into the next
+# prompt action so the raw audio flows into the agent transcript cleanly.
+_PENDING_TRANSCRIPT: Dict[str, str] = {}
 
 
 # --------------------------------------------------------------------------- #
@@ -467,6 +505,11 @@ async def ws_agent(ws: WebSocket, node: str = Query(default=None)) -> None:
                     await safe_send(ws, {"type": "error", "message": "agent is already busy"})
                     continue
                 text = str(msg.get("text", "")).strip()
+                # Phase 3 v2.1: prepend a pending voice transcript (if any) so
+                # the audio pipeline routes into the agent prompt cleanly.
+                pending = _PENDING_TRANSCRIPT.pop(str(conn_id), "")
+                if pending and pending not in text:
+                    text = (pending + "\n" + text).strip() if text else pending
                 if not text:
                     await safe_send(ws, {"type": "error", "message": "empty prompt"})
                     continue
@@ -514,8 +557,27 @@ async def ws_agent(ws: WebSocket, node: str = Query(default=None)) -> None:
                 final = bool(msg.get("final", True))
                 path = _save_wav(msg["data_b64"], str(conn_id), final)
                 if path:
+                    # Phase 3 v2.1: transcribe the raw audio and cache the
+                    # result so the next prompt action can route it cleanly.
+                    pending = _PENDING_TRANSCRIPT.pop(str(conn_id), "")
+                    if os.getenv("GENIO_AUDIO_PIPELINE", "0").strip().lower() \
+                            in ("1", "true", "yes"):
+                        try:
+                            from genio_server.server.voice_pipeline import transcribe_audio
+                            with open(path, "rb") as fh:
+                                audio_bytes = fh.read()
+                            res = await asyncio.to_thread(
+                                transcribe_audio, audio_bytes, "audio/wav", None)
+                            pending = (pending + " " + str(res.get("text") or "")) \
+                                if pending and res.get("text") else \
+                                (str(res.get("text") or "") or pending)
+                        except Exception:
+                            logger.exception("voice transcription failed")
+                    if pending:
+                        _PENDING_TRANSCRIPT[str(conn_id)] = pending
                     await safe_send(ws, {"type": "voice_ready", "path": path,
-                                         "duration": float(msg.get("duration", 0.0))})
+                                         "duration": float(msg.get("duration", 0.0)),
+                                         "transcript": pending or None})
                 continue
 
             if action == "exec":
@@ -542,6 +604,7 @@ async def ws_agent(ws: WebSocket, node: str = Query(default=None)) -> None:
         _ACTIVE_RUNS.pop(conn_id, None)
         _KILL_EVENTS.pop(conn_id, None)
         _VOICE_STATE.pop(str(conn_id), None)
+        _PENDING_TRANSCRIPT.pop(str(conn_id), None)
         # Phase D: cleanup containers for this connection's sessions
         for sid in _SESSION_IDS.pop(conn_id, set()):
             try:
@@ -567,7 +630,7 @@ def root() -> Dict[str, Any]:
         "service": "Genio Server",
         "version": app.version,
         "node": NODE_NAME,
-        "endpoints": ["/api/v1/status", "/api/v1/telemetry", "/ws/agent"],
+        "endpoints": ["/api/v1/status", "/api/v1/telemetry", "/api/v1/voice/transcribe", "/ws/agent"],
         "auth_required": bool(API_KEY),
         "model": AgentLoop().model,
     }

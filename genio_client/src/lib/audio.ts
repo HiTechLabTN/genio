@@ -106,7 +106,13 @@ export async function requestMicrophonePermission(): Promise<void> {
   }
 }
 
-/** Start SpeechRecognition for live transcription (best-effort; returns true if supported). */
+/** Start SpeechRecognition for live transcription — DEPRECATED (Phase 3 v2.1).
+ *
+ * Browser WebSpeech is non-functional on Android/Tauri WebView; we keep this
+ * only as a best-effort live *preview* on desktop. The authoritative transcript
+ * comes from the server-side `/api/v1/voice/transcribe` pipeline via
+ * transcribeAudio() on the recorded blob.
+ */
 function startSpeechRecognition(onTranscript: (text: string, final: boolean) => void): boolean {
   const w = window as unknown as Record<string, unknown>;
   const SR = (w.SpeechRecognition || w.webkitSpeechRecognition) as
@@ -168,6 +174,46 @@ function scheduleSilenceStop() {
 export function speechRecognitionSupported(): boolean {
   const w = window as unknown as Record<string, unknown>;
   return Boolean(w.SpeechRecognition || w.webkitSpeechRecognition);
+}
+
+/** POST a raw audio blob to the server-side transcription pipeline.
+ *
+ * Phase 3 v2.1: sends the recorded blob to `/api/v1/voice/transcribe` and
+ * returns the transcript text (or "" on any failure). The server prefers
+ * faster-whisper/whisper and falls back deterministically so the agent prompt
+ * flow is unaffected on devices without a local STT backend.
+ */
+export async function transcribeAudio(
+  blob: Blob,
+  apiBase?: string,
+  apiKey?: string,
+): Promise<string> {
+  try {
+    const base = (apiBase ?? "").replace(/\/+$/, "") || "http://localhost:8000";
+    const form = new FormData();
+    const name = blob.type.includes("wav") ? "audio.wav" : `audio.${extFromMime(blob.type)}`;
+    form.append("audio", blob, name);
+    form.append("language", "auto");
+    const headers: Record<string, string> = {};
+    if (apiKey) headers["X-API-Key"] = apiKey;
+    const resp = await fetch(`${base}/api/v1/voice/transcribe`, {
+      method: "POST",
+      headers,
+      body: form,
+    });
+    if (!resp.ok) return "";
+    const data = (await resp.json()) as { text?: string; status?: string };
+    return data.text ?? "";
+  } catch {
+    return "";
+  }
+}
+
+function extFromMime(mime: string): string {
+  const m = (mime || "").toLowerCase();
+  if (m.includes("wav")) return "wav";
+  if (m.includes("m4a") || m.includes("mp4")) return "m4a";
+  return "webm";
 }
 
 /** Start collecting microphone audio with optional live transcription callback. */
