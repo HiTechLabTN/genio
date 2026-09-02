@@ -38,6 +38,7 @@ audio/
 !genio_client/public/**/*.png
 !genio_client/public/*.ico
 !genio_client/resources/**/*.png
+!genio_client/src/assets/**/*.png
 !genio_client/README-assets/**/*.png
 !.github/**/*.png
 !docs/**/*.png

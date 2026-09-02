@@ -56,12 +56,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  animation: float 4s ease-in-out infinite;
-}
-
-@keyframes float {
-  0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(-8px); }
+  /* float animation now handled by framer-motion (see ChronosPortal.tsx) —
+     kept as a plain container here, no CSS keyframe to avoid double-animating. */
 }
 
 .avatarInner {
@@ -73,134 +69,30 @@
   justify-content: center;
 }
 
+/* Soft radial glow behind the avatar image — color/intensity driven by agent status */
+.avatarGlow {
+  position: absolute;
+  inset: -20px;
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+/* Real mascot artwork (see docs/BRANDING.md for source) — replaces the former
+   hand-drawn CSS shapes so the UI matches the actual brand illustration. */
+.avatarImg {
+  position: relative;
+  width: 152px;
+  height: 152px;
+  object-fit: contain;
+  filter: drop-shadow(0 8px 24px rgba(0, 0, 0, 0.45));
+}
+
 /* Rotating Chronos ring */
 .chronosRing {
   position: absolute;
   inset: -10px;
   border-radius: 50%;
   border: 2px dashed rgba(0, 229, 255, 0.3);
-  animation: rotateGalaxy 28s linear infinite;
-}
-
-@keyframes rotateGalaxy {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
-
-/* === Pixar Avatar === */
-.avatar {
-  position: relative;
-  width: 140px;
-  height: 140px;
-}
-
-/* Chachia (red hat) */
-.chachia {
-  position: absolute;
-  top: 2px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 64px;
-  height: 24px;
-  background: #DC0A0A;
-  border-radius: 6px 6px 12px 12px;
-}
-
-.chachiaDome {
-  position: absolute;
-  top: 10px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 68px;
-  height: 36px;
-  background: #DC0A0A;
-  border-radius: 50% 50% 0 0;
-}
-
-/* Head */
-.head {
-  position: absolute;
-  top: 32px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 72px;
-  height: 68px;
-  background: #F8F9FA;
-  border-radius: 50%;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-}
-
-/* Eyes */
-.eyeLeft, .eyeRight {
-  position: absolute;
-  top: 20px;
-  width: 18px;
-  height: 18px;
-  background: #ffffff;
-  border-radius: 50%;
-  border: 1px solid rgba(0, 0, 0, 0.1);
-}
-.eyeLeft { left: 16px; }
-.eyeRight { right: 16px; }
-
-.pupil {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 8px;
-  height: 8px;
-  background: #8B4513;
-  border-radius: 50%;
-  box-shadow: inset 0 0 2px rgba(255, 26, 26, 0.4), 0 0 4px rgba(255, 26, 26, 0.3);
-}
-
-/* Beard */
-.beard {
-  position: absolute;
-  bottom: -2px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 50px;
-  height: 28px;
-  background: #E53935;
-  border-radius: 0 0 50% 50%;
-}
-
-/* Mouth */
-.mouth {
-  position: absolute;
-  bottom: 14px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 16px;
-  height: 4px;
-  background: rgba(0, 0, 0, 0.2);
-  border-radius: 2px;
-}
-
-/* Cape */
-.cape {
-  position: absolute;
-  bottom: 8px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 80px;
-  height: 32px;
-  background: #B91C1C;
-  border-radius: 4px 4px 50% 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 4px 12px rgba(185, 28, 28, 0.4);
-}
-
-.capeG {
-  font-family: "Orbitron", monospace;
-  font-size: 18px;
-  font-weight: 900;
-  color: #FFD700;
-  text-shadow: 0 0 8px rgba(255, 215, 0, 0.4);
 }
 
 /* === Info Section === */
@@ -408,15 +300,35 @@
 }
 
 .minimizedButton {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 10px 16px;
-  border-radius: 50px;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
   background: linear-gradient(135deg, rgba(0, 229, 255, 0.15) 0%, rgba(224, 64, 251, 0.1) 100%);
   border: 1px solid rgba(0, 229, 255, 0.3);
   box-shadow: 0 0 24px rgba(0, 229, 255, 0.2);
-  transition: all 0.2s;
+}
+
+/* Real mascot artwork, small round "floating status" bubble — mirrors the
+   reference illustrations (small avatar flying to a task in a corner). */
+.minimizedAvatarImg {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  object-fit: contain;
+  border-radius: 50%;
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.4));
+}
+
+.minimizedPulseRing {
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  border: 2px solid rgba(0, 229, 255, 0.35);
+  pointer-events: none;
 }
 
 .minimizedButton:hover {
@@ -475,10 +387,9 @@
     height: 110px;
   }
 
-  .avatar {
-    width: 100px;
-    height: 100px;
-    transform: scale(0.72);
+  .avatarImg {
+    width: 108px;
+    height: 108px;
   }
 
   .portalTitle {
