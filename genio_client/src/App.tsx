@@ -19,7 +19,7 @@ export default function App() {
   const deviceProfile = useDeviceProfile();
   const engineDecision = decideEngine();
   const isGeminiCloud = hasGoogleAuth();
-  const [task, setTask] = useState<string | null>(null);
+  const [chronosDismissed, setChronosDismissed] = useState(false);
 
   const {
     agentStatus: wsAgentStatus,
@@ -135,8 +135,8 @@ export default function App() {
   function handleSendPrompt(text: string, attachments?: Attachment[]) {
     lastPromptRef.current = text;
     lastPromptFileRef.current = attachments;
+    setChronosDismissed(false);
     sendPrompt(text, attachments);
-    setTask(text);
   }
 
   function handleContinue() {
@@ -243,7 +243,9 @@ export default function App() {
 
       {update && <UpdateModal version={update.version} notes={update.notes} onClose={() => setUpdate(null)} />}
 
-      <ChronosPortal task={task} onDismiss={() => setTask(null)} />
+      {!chronosDismissed && (
+        <ChronosPortal chat={chat} telemetry={telemetry} agentStatus={agentStatus} onDismiss={() => setChronosDismissed(true)} />
+      )}
     </div>
   );
 }

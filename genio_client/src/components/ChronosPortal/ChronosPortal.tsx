@@ -2,17 +2,23 @@ import { useState } from "react";
 import { useTaskProcessor } from "../../hooks/useTaskProcessor";
 import SystemMetrics from "./SystemMetrics";
 import styles from "./ChronosPortal.module.css";
+import type { AgentStatus, ChatEvent, TelemetrySnapshot } from "../../lib/types";
 
 interface ChronosPortalProps {
-  task: string | null;
+  chat: ChatEvent[];
+  telemetry: TelemetrySnapshot | null;
+  agentStatus: AgentStatus;
   onDismiss?: () => void;
 }
 
-export default function ChronosPortal({ task, onDismiss }: ChronosPortalProps) {
-  const { isMinimized, setIsMinimized, thinkingSteps, metrics, result, isProcessing } = useTaskProcessor(task);
+export default function ChronosPortal({ chat, telemetry, agentStatus, onDismiss }: ChronosPortalProps) {
+  const { isMinimized, setIsMinimized, thinkingSteps, toolActivity, metrics, result, error, isProcessing } =
+    useTaskProcessor({ chat, telemetry, agentStatus });
   const [isHovered, setIsHovered] = useState(false);
 
-  if (!task) return null;
+  // Visible when there is any real activity or result/error; hidden if completely idle with no history
+  const hasContent = thinkingSteps.length > 0 || toolActivity.length > 0 || !!result || !!error || isProcessing;
+  if (!hasContent) return null;
 
   // Minimized state: floating button in top-right
   if (isMinimized) {
@@ -31,8 +37,8 @@ export default function ChronosPortal({ task, onDismiss }: ChronosPortalProps) {
           </span>
           <span className={styles.minimizedText}>Chronos</span>
         </div>
-        {isHovered && result && (
-          <div className={styles.minimizedTooltip}>{result}</div>
+        {isHovered && (result || error) && (
+          <div className={styles.minimizedTooltip}>{error ?? result}</div>
         )}
       </div>
     );
@@ -88,24 +94,38 @@ export default function ChronosPortal({ task, onDismiss }: ChronosPortalProps) {
 
           <SystemMetrics metrics={metrics} />
 
-          {/* Thinking stream */}
+          {/* Thinking stream — real thought events */}
           <div className={styles.thinkingStream}>
             {thinkingSteps.map((step, i) => (
-              <div key={i} className={styles.thinkingStep}>
+              <div key={`th-${i}`} className={styles.thinkingStep}>
                 <span className={styles.stepDot} />
                 {step}
               </div>
             ))}
-            {isProcessing && thinkingSteps.length < 5 && (
+            {/* Tool activity — distinct lines, not mixed with thoughts */}
+            {toolActivity.map((act, i) => (
+              <div key={`tool-${i}`} className={styles.thinkingStep} style={{ opacity: 0.9 }}>
+                <span className={styles.stepDot} style={{ background: act.startsWith("✕") ? "#F44336" : act.startsWith("✓") ? "#4CAF50" : "#00E5FF" }} />
+                {act}
+              </div>
+            ))}
+            {isProcessing && thinkingSteps.length === 0 && toolActivity.length === 0 && (
               <div className={`${styles.thinkingStep} ${styles.pulse}`}>
                 <span className={`${styles.stepDot} ${styles.active}`} />
-                ...
+                waiting for agent…
               </div>
             )}
           </div>
 
-          {/* Result */}
-          {result && (
+          {/* Error — visible failure state (Phase B requirement) */}
+          {error && (
+            <div className={styles.resultBox} style={{ borderColor: "#F44336", background: "rgba(244,67,54,0.08)" }}>
+              <span style={{ color: "#F44336", fontWeight: 700 }}>✕ {error}</span>
+            </div>
+          )}
+
+          {/* Result — real answer, not random DONE_MESSAGES */}
+          {result && !error && (
             <div className={styles.resultBox}>
               {result}
             </div>
