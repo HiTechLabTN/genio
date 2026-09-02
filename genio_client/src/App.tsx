@@ -13,7 +13,7 @@ import { useDeviceProfile } from "./lib/deviceProfiler";
 import { decideEngine } from "./lib/adaptiveEngine";
 import { getGoogleToken, hasGoogleAuth } from "./lib/googleAuth";
 import type { Attachment, ServerNode } from "./lib/types";
-import { AndalusianBackground, MatrixTaskBoard, SystemMetricsLive, TaskMinimizer, ParticleBrain, AnimeMascot } from "./components/v3";
+import { AndalusianBackground, MatrixTaskBoard, SystemMetricsLive, TaskMinimizer, ParticleBrain, AnimeMascot, ErrorBoundary } from "./components/v3";
 import { useVoiceOutput } from "./components/v3/useVoiceOutput";
 
 export default function App() {
@@ -90,12 +90,22 @@ export default function App() {
       }
     : wsSendPrompt;
 
-  // v3 task processor integration
-  const taskProc = useTaskProcessor({ chat, telemetry, agentStatus });
-  const isThinking = taskProc.isProcessing;
+  // v3 task processor integration — defensive defaults to prevent undefined crash (black screen)
+  const taskProcRaw = useTaskProcessor({ chat: chat ?? [], telemetry: telemetry ?? null, agentStatus });
+  const taskProc = {
+    thinkingSteps: taskProcRaw?.thinkingSteps ?? [],
+    toolActivity: taskProcRaw?.toolActivity ?? [],
+    isProcessing: taskProcRaw?.isProcessing ?? false,
+    result: taskProcRaw?.result ?? "",
+    isMinimized: taskProcRaw?.isMinimized ?? false,
+    setIsMinimized: taskProcRaw?.setIsMinimized ?? (() => {}),
+    metrics: taskProcRaw?.metrics ?? { cpu: 0, gpu: 0, ram: { used: 0, total: 16 }, vram: { used: 0, total: 8 } },
+    error: taskProcRaw?.error ?? null,
+  } as ReturnType<typeof useTaskProcessor>;
+  const isThinking = taskProc.isProcessing ?? false;
   const isListening = agentStatus.kind === "thinking" || agentStatus.kind === "executing";
-  // tasks for matrix: combine thinkingSteps + toolActivity
-  const matrixTasks: string[] = [...taskProc.thinkingSteps, ...taskProc.toolActivity];
+  // tasks for matrix: combine thinkingSteps + toolActivity with safe spread
+  const matrixTasks: string[] = [...(taskProc.thinkingSteps ?? []), ...(taskProc.toolActivity ?? [])];
   const voice = useVoiceOutput();
   const prevResultRef = useRef<string>("");
 
@@ -169,42 +179,48 @@ export default function App() {
 
   if (showGoogleAuth) {
     return (
-      <GoogleAuthOnboarding
-        onAuthed={() => setShowGoogleAuth(false)}
-        onSkip={() => setShowGoogleAuth(false)}
-      />
+      <div style={{ width: "100vw", height: "100vh", position: "relative", overflow: "hidden" }} className="bg-[#020B1E]">
+        <ErrorBoundary name="AndalusianBackground"><AndalusianBackground /></ErrorBoundary>
+        <GoogleAuthOnboarding
+          onAuthed={() => setShowGoogleAuth(false)}
+          onSkip={() => setShowGoogleAuth(false)}
+        />
+      </div>
     );
   }
   if (showOnboarding) {
     return (
-      <PermissionOnboarding onComplete={() => setShowOnboarding(false)} onSkip={() => setShowOnboarding(false)} />
+      <div style={{ width: "100vw", height: "100vh", position: "relative", overflow: "hidden" }} className="bg-[#020B1E]">
+        <ErrorBoundary name="AndalusianBackground"><AndalusianBackground /></ErrorBoundary>
+        <PermissionOnboarding onComplete={() => setShowOnboarding(false)} onSkip={() => setShowOnboarding(false)} />
+      </div>
     );
   }
 
   const showV3Portal = connected && target || isGeminiCloud;
 
   return (
-    <div className="relative h-screen overflow-hidden bg-[#020B1E]">
-      {/* z-index 0: AndalusianBackground */}
-      <AndalusianBackground />
+    <div style={{ width: "100vw", height: "100vh", position: "relative", overflow: "hidden" }} className="bg-[#020B1E]">
+      {/* z-index 0: AndalusianBackground — wrapped in ErrorBoundary so a Canvas crash never blacks out UI */}
+      <ErrorBoundary name="AndalusianBackground"><AndalusianBackground /></ErrorBoundary>
 
       {/* z-index 1: MatrixTaskBoard — semi-transparent overlay behind content but above bg */}
       {showV3Portal && (
         <div className="pointer-events-none absolute inset-0" style={{ zIndex: 1 }}>
-          <MatrixTaskBoard tasks={matrixTasks} isThinking={isThinking} className="absolute inset-3" />
+          <ErrorBoundary name="MatrixTaskBoard"><MatrixTaskBoard tasks={matrixTasks} isThinking={isThinking} className="absolute inset-3" /></ErrorBoundary>
         </div>
       )}
 
       {/* z-index 3: SystemMetricsLive fixed top-right, always visible when connected */}
       {showV3Portal && (
         <div className="pointer-events-none absolute right-3 top-[58px] z-30 hidden md:block" style={{ zIndex: 3 }}>
-          <SystemMetricsLive className="pointer-events-auto w-[220px]" />
+          <ErrorBoundary name="SystemMetricsLive"><SystemMetricsLive className="pointer-events-auto w-[220px]" /></ErrorBoundary>
         </div>
       )}
       {/* mobile metrics bar */}
       {showV3Portal && (
         <div className="absolute left-3 right-3 top-[58px] z-30 md:hidden" style={{ zIndex: 3 }}>
-          <SystemMetricsLive className="w-full opacity-95" />
+          <ErrorBoundary name="SystemMetricsLive-mobile"><SystemMetricsLive className="w-full opacity-95" /></ErrorBoundary>
         </div>
       )}
 
@@ -218,7 +234,7 @@ export default function App() {
             <div key="v3-portal" className="flex h-screen w-full flex-col">
               {/* subtle v3 top bar with ParticleBrain + listening indicator */}
               <div className="flex items-center gap-3 px-4 pt-[68px] md:px-6">
-                <ParticleBrain isThinking={isThinking} size={56} className="shrink-0" />
+                <ErrorBoundary name="ParticleBrain"><ParticleBrain isThinking={isThinking} size={56} className="shrink-0" /></ErrorBoundary>
                 <div className="min-w-0 flex-1">
                   <div className="font-mono text-[11px] tracking-[0.16em] text-cyan-300">
                     {isThinking ? "CHRONOS · THINKING..." : taskProc.result ? "CHRONOS · READY" : "CHRONOS · IDLE"}
@@ -238,7 +254,7 @@ export default function App() {
                 {/* cyan portal rings behind mascot */}
                 <div className="pointer-events-none absolute left-1/2 top-1/2 h-[420px] w-[420px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-cyan-400/15 shadow-[0_0_60px_rgba(0,229,255,0.18)]" />
                 <div className="pointer-events-none absolute left-1/2 top-1/2 h-[560px] w-[560px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-cyan-400/10" />
-                <AnimeMascot listening={isListening} isThinking={isThinking} faceTrack={!taskProc.isMinimized} size={360} className="relative z-10" />
+                <ErrorBoundary name="AnimeMascot"><AnimeMascot listening={isListening} isThinking={isThinking} faceTrack={!taskProc.isMinimized} size={360} className="relative z-10" /></ErrorBoundary>
               </div>
 
               {/* Dashboard embedded — portal UI */}
