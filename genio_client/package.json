@@ -1,7 +1,7 @@
 {
   "name": "genio-client",
   "private": true,
-  "version": "2.3.3",
+  "version": "2.3.4",
   "description": "Genio — Assistant IA intelligent avec Chronos Portal, Avatar 3D et multilingue (Darija/FR/EN)",
   "author": "HiTechLabTN <contact@hitechlab.tn>",
   "homepage": "https://github.com/HiTechLabTN/genio",
@@ -13,8 +13,8 @@
     "preview": "vite preview",
     "tauri": "tauri",
     "electron:start": "electron .",
-    "electron:build:win": "electron-builder --win --x64",
-    "electron:build:linux": "electron-builder --linux --x64",
+    "electron:build:win": "electron-builder --win --x64 --publish never",
+    "electron:build:linux": "electron-builder --linux --x64 --publish never",
     "capacitor:sync": "npx cap sync",
     "capacitor:build:android": "npx cap open android",
     "assets:generate": "capacitor-assets generate"
@@ -62,12 +62,7 @@
     "directories": {
       "output": "release-builds"
     },
-    "publish": {
-      "provider": "github",
-      "owner": "HiTechLabTN",
-      "repo": "genio",
-      "private": false
-    },
+    "publish": null,
     "win": {
       "target": "nsis",
       "icon": "public/icon.ico"

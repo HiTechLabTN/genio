@@ -13,9 +13,9 @@
     "process:allow-restart",
     "shell:default",
     "shell:allow-open",
-    "path:default",
     "fs:default",
-    "fs:allow-writeFile",
+    "fs:allow-write",
+    "fs:allow-read",
     "fs:allow-exists"
   ]
 }

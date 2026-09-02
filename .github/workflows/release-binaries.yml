@@ -21,7 +21,7 @@ jobs:
       - name: Install & Build Web
         working-directory: genio_client
         run: |
-          npm ci || npm install
+          npm install
           npm run build
       - name: Upload Web Artifact
         uses: actions/upload-artifact@v4
@@ -44,7 +44,7 @@ jobs:
           node-version: lts/*
       - name: Install deps
         working-directory: genio_client
-        run: npm ci || npm install
+        run: npm install
       - name: Download Web dist
         uses: actions/download-artifact@v4
         with:
@@ -103,7 +103,7 @@ jobs:
           node-version: lts/*
       - name: Install deps
         working-directory: genio_client
-        run: npm ci || npm install
+        run: npm install
       - name: Download Web dist
         uses: actions/download-artifact@v4
         with:
