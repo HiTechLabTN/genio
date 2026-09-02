@@ -16,16 +16,74 @@ async function currentVersion(): Promise<string> {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Platform helpers - Tauri Android detection via os.platform()
+// ---------------------------------------------------------------------------
+
+async function isAndroidPlatform(): Promise<boolean> {
+  // Spec requires os.platform() === 'android' via @tauri-apps/plugin-os
+  try {
+    const { platform } = await import("@tauri-apps/plugin-os");
+    const p = await platform();
+    return p === "android";
+  } catch {
+    // Fallback to UA for web/dev preview
+    if (typeof navigator === "undefined") return false;
+    const ua = navigator.userAgent || "";
+    // @ts-ignore
+    const plat = (navigator as any).userAgentData?.platform || "";
+    return /android/i.test(ua) || /android/i.test(plat);
+  }
+}
+
+function isAndroidSync(): boolean {
+  if (typeof navigator === "undefined") return false;
+  const ua = navigator.userAgent || "";
+  // @ts-ignore
+  const plat = (navigator as any).userAgentData?.platform || "";
+  return /android/i.test(ua) || /android/i.test(plat);
+}
+
+function isElectron(): boolean {
+  return typeof window !== "undefined" && !!(window as unknown as { process?: { versions?: { electron?: string } } }).process?.versions?.electron;
+}
+
 /**
  * Check for a newer release. Prefers the Tauri v2 updater plugin (native,
  * signature-verified) when running inside the Tauri shell; otherwise falls
  * back to the public GitHub releases API.
+ *
+ * Android: bypass Tauri updater (no auto-update for APK via updater artifacts)
+ * and directly query GitHub for .apk asset; this ensures os.platform() === 'android'
+ * path is taken early and avoids false negatives in the update modal.
  */
 export async function checkForUpdates(): Promise<UpdateInfo | null> {
   try {
     const current = await currentVersion();
 
-    // 1) Native updater plugin path (works inside the packaged app)
+    // Android-specific: directly check GitHub for APK, bypass desktop updater
+    try {
+      const isAndroid = await isAndroidPlatform();
+      if (isAndroid) {
+        // Direct GitHub check for Android APK version without invoking desktop updater
+        const res = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/releases/latest`, {
+          headers: { Accept: "application/vnd.github+json" },
+        });
+        if (res.ok) {
+          const rel = (await res.json()) as { tag_name?: string; body?: string };
+          const tag = rel.tag_name ?? "";
+          const ver = tag.replace(/^v|^app-v/, "").replace(/^app-/, "");
+          if (ver && isNewer(ver, current)) {
+            return { version: ver, notes: rel.body };
+          }
+        }
+        // Fall through to desktop check if fetch failed
+      }
+    } catch {
+      // ignore android check errors, continue to desktop flow
+    }
+
+    // 1) Native updater plugin path (works inside the packaged desktop app)
     try {
       const { check } = await import("@tauri-apps/plugin-updater");
       const update = await check();
@@ -37,7 +95,7 @@ export async function checkForUpdates(): Promise<UpdateInfo | null> {
       /* plugin not available in dev/browser — fall through to GitHub API */
     }
 
-    // 2) GitHub releases fallback (web / dev preview)
+    // 2) GitHub releases fallback (web / dev preview / Android direct)
     try {
       const res = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/releases/latest`, {
         headers: { Accept: "application/vnd.github+json" },
@@ -72,19 +130,8 @@ export function isNewer(candidate: string, base: string): boolean {
 }
 
 // ---------------------------------------------------------------------------
-// Android & Desktop helpers
+// APK / Desktop URL resolvers
 // ---------------------------------------------------------------------------
-
-function isAndroid(): boolean {
-  if (typeof navigator === "undefined") return false;
-  const ua = navigator.userAgent || "";
-  const platform = (navigator as unknown as { userAgentData?: { platform: string } }).userAgentData?.platform || "";
-  return /android/i.test(ua) || /android/i.test(platform);
-}
-
-function isElectron(): boolean {
-  return typeof window !== "undefined" && !!(window as unknown as { process?: { versions?: { electron?: string } } }).process?.versions?.electron;
-}
 
 /**
  * Resolve the direct APK download URL from GitHub releases.
@@ -109,7 +156,9 @@ async function getApkDownloadUrl(version?: string): Promise<string | null> {
       // Prefer exact match Genio.apk, then any .apk
       const apk =
         assets.find((a) => a.name === "Genio.apk") ||
-        assets.find((a) => a.name.toLowerCase().endsWith(".apk"));
+        assets.find((a) => a.name.toLowerCase().endsWith(".apk")) ||
+        assets.find((a) => a.name === "app-debug.apk") ||
+        assets.find((a) => a.name === "app-release.apk");
       if (apk?.browser_download_url) return apk.browser_download_url;
     } catch {
       continue;
@@ -143,6 +192,127 @@ async function getDesktopDownloadUrl(version?: string): Promise<{ exe?: string; 
   }
   return null;
 }
+
+// ---------------------------------------------------------------------------
+// Android-specific: shell open + upload download
+// ---------------------------------------------------------------------------
+
+/**
+ * Android 8+ restriction: programmatic background installation is blocked.
+ * The system requires REQUEST_INSTALL_PACKAGES + user confirmation via
+ * PackageInstaller Intent (ACTION_VIEW, application/vnd.android.package-archive).
+ * This helper gracefully handles the restriction by never attempting silent
+ * install; instead it either:
+ *  (a) opens the APK URL in the default browser (user-initiated download), or
+ *  (b) downloads to cache via tauri-plugin-upload then triggers Intent.
+ * Both paths require user to tap "Install" in the system prompt.
+ */
+async function openApkInBrowserViaShell(apkUrl: string): Promise<boolean> {
+  // Spec #1: when os.platform() === 'android', use @tauri-apps/plugin-shell open()
+  try {
+    // Dynamic import to keep web bundle clean; shell plugin is configured in lib.rs + capabilities
+    const { open } = await import("@tauri-apps/plugin-shell");
+    // open() on Android delegates to Intent.ACTION_VIEW with the URL, launching default browser
+    await open(apkUrl);
+    console.log("[updater] Android: opened APK URL in default browser via shell open()", apkUrl);
+    return true;
+  } catch (e) {
+    console.warn("[updater] shell open() failed, fallback to window.open", e);
+    try {
+      window.open(apkUrl, "_blank");
+      return true;
+    } catch {
+      return false;
+    }
+  }
+}
+
+/**
+ * Android alternative: custom download via tauri-plugin-upload to local cache,
+ * then trigger Android Intent to prompt package installation.
+ *
+ * Uses:
+ *  - @tauri-apps/plugin-upload download(url, filePath, progressHandler)
+ *  - @tauri-apps/api/path cacheDir() + join() to resolve cache path
+ *  - @tauri-apps/plugin-shell open(filePath) to fire Intent
+ *
+ * Handles Android restriction gracefully: if download succeeds but Intent
+ * is blocked (e.g., REQUEST_INSTALL_PACKAGES not granted or background
+ * install restricted), it falls back to opening the URL in browser and
+ * surfaces a user-friendly message. The caller can then show a toast
+ * explaining that installation requires user confirmation.
+ */
+async function downloadApkViaUploadAndTriggerIntent(
+  apkUrl: string,
+  onProgress?: (downloaded: number, total: number) => void,
+): Promise<boolean> {
+  try {
+    // Resolve cache path: e.g., /data/data/<pkg>/cache/genio-update.apk
+    let apkPath: string;
+    try {
+      const { cacheDir, join } = await import("@tauri-apps/api/path");
+      const cache = await cacheDir();
+      apkPath = await join(cache, "genio-update.apk");
+    } catch {
+      // Fallback for web preview: use temp name
+      apkPath = "genio-update.apk";
+    }
+
+    // Use tauri-plugin-upload to fetch APK to local cache with progress
+    // download(url, filePath, progressHandler, headers)
+    const { download } = await import("@tauri-apps/plugin-upload");
+    console.log("[updater] Android: starting upload-plugin download", apkUrl, "->", apkPath);
+    await download(
+      apkUrl,
+      apkPath,
+      (progress) => {
+        // progress: { progress, progressTotal, total, transferSpeed }
+        const p = progress as unknown as { progress: number; progressTotal: number; total: number };
+        if (p.total > 0) onProgress?.(p.progress, p.total);
+        else if (p.progressTotal > 0) onProgress?.(p.progress, p.progressTotal);
+      },
+    );
+    console.log("[updater] Android: APK downloaded to cache", apkPath);
+
+    // Now trigger Android Intent to prompt installation.
+    // On Android, shell open() on a file:// path with .apk extension is
+    // translated to an Intent with mime application/vnd.android.package-archive
+    // via FileProvider (authorities="${applicationId}.fileprovider").
+    // Requires: REQUEST_INSTALL_PACKAGES, FileProvider in AndroidManifest.xml
+    try {
+      const { open } = await import("@tauri-apps/plugin-shell");
+      await open(apkPath);
+      console.log("[updater] Android: triggered Intent via shell open()", apkPath);
+      return true;
+    } catch (e) {
+      console.warn("[updater] shell open(file) failed, trying opener plugin", e);
+      // Fallback: try opener plugin which also handles FileProvider
+      try {
+        const { openPath, openUrl } = await import("@tauri-apps/plugin-opener");
+        // Try openPath first (file), then openUrl
+        try {
+          // @ts-ignore
+          await openPath(apkPath);
+          return true;
+        } catch {
+          await openUrl(`file://${apkPath}`);
+          return true;
+        }
+      } catch {
+        // Last resort: open the remote URL in browser (user will download manually)
+        console.warn("[updater] Intent blocked by Android restriction (REQUEST_INSTALL_PACKAGES / background install), falling back to browser");
+        return await openApkInBrowserViaShell(apkUrl);
+      }
+    }
+  } catch (e) {
+    console.warn("[updater] upload download failed", e);
+    return false;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Generic Android download via fetch + fs (existing, kept as fallback)
+// ---------------------------------------------------------------------------
 
 /**
  * Download an APK to local storage and trigger the native Android package
@@ -218,19 +388,9 @@ async function downloadAndInstallApk(
       } catch {
         // Fallback: use shell to fire intent explicitly
         try {
-          const { Command } = await import("@tauri-apps/plugin-shell");
+          const { open } = await import("@tauri-apps/plugin-shell");
           // Requires tauri-plugin-shell permission
-          await (Command as unknown as { create: (cmd: string, args: string[]) => { execute: () => Promise<unknown> } })
-            .create("am", [
-              "start",
-              "-a",
-              "android.intent.action.VIEW",
-              "-d",
-              "file:///storage/emulated/0/Download/genio-update.apk",
-              "-t",
-              "application/vnd.android.package-archive",
-            ])
-            .execute();
+          await open("genio-update.apk");
           return true;
         } catch {
           // continue to blob fallback
@@ -262,8 +422,8 @@ async function downloadAndInstallApk(
       });
       // Capacitor can open via AppLauncher or Browser; try opener
       try {
-        const { openPath } = await import("@tauri-apps/plugin-opener");
-        await (openPath as unknown as (p: string) => Promise<void>)(result.uri);
+        const { openUrl } = await import("@tauri-apps/plugin-opener");
+        await openUrl(result.uri);
       } catch {
         window.location.href = result.uri;
       }
@@ -392,14 +552,55 @@ async function downloadAndInstallDesktop(
 /**
  * Download and install the available update.
  * Strategy:
- * 1) Tauri v2 updater plugin (signature-verified, supports EXE/DEB) — handles downloadAndInstall + relaunch.
- * 2) Android: download APK to local storage (WRITE_EXTERNAL_STORAGE) and trigger native package installer
- *    via FileProvider + ACTION_VIEW intent (requires REQUEST_INSTALL_PACKAGES).
- * 3) Desktop Electron: delegate to electron-updater or direct download of EXE/DEB.
+ * 1) Android: when os.platform() === 'android', bypass Tauri updater UI and
+ *    (a) try tauri-plugin-upload download to cache + Intent, then
+ *    (b) fallback to @tauri-apps/plugin-shell open(apkUrl) in browser.
+ *    Handles Android background-install restriction gracefully (requires
+ *    REQUEST_INSTALL_PACKAGES + user tap on system installer).
+ * 2) Tauri v2 updater plugin (signature-verified, supports EXE/DEB) — handles downloadAndInstall + relaunch.
+ * 3) Generic Android fetch fallback (WRITE_EXTERNAL_STORAGE + FileProvider).
+ * 4) Desktop Electron: delegate to electron-updater or direct download of EXE/DEB.
  * Returns false only when no installer is available (web preview).
  */
 export async function installUpdate(onProgress?: (downloaded: number, total: number) => void): Promise<boolean> {
+  // 0) Android-specific branch: bypass default Tauri updater UI
+  // Spec: When os.platform() === 'android' and update detected, "Install & restart"
+  // should use @tauri-apps/plugin-shell open() to open direct .apk URL.
+  // Alternative: custom download via tauri-plugin-upload to cache + Intent.
+  try {
+    const isAndroid = await isAndroidPlatform();
+    if (isAndroid) {
+      const current = await currentVersion();
+      const apkUrl = (await getApkDownloadUrl(current)) || (await getApkDownloadUrl());
+      if (apkUrl) {
+        // Option 2 (alternative): custom download logic using tauri-plugin-upload
+        // Fetch APK to local cache, then trigger Android Intent.
+        // This is attempted first as it provides offline install + progress.
+        const uploadOk = await downloadApkViaUploadAndTriggerIntent(apkUrl, onProgress);
+        if (uploadOk) return true;
+
+        // Option 1 (spec): use shell open() to open direct .apk URL in default browser
+        // This gracefully handles Android's restriction on programmatic background installs:
+        // Instead of silent install (blocked), we delegate to the system's download
+        // manager / browser, which then shows the standard "Do you want to install
+        // this application? It does not require any special permissions." prompt
+        // requiring explicit user consent (REQUEST_INSTALL_PACKAGES).
+        const browserOk = await openApkInBrowserViaShell(apkUrl);
+        if (browserOk) return true;
+
+        // Fallback: generic fetch + FileProvider Intent (existing robust path)
+        const ok = await downloadAndInstallApk(apkUrl, onProgress);
+        if (ok) return true;
+      }
+      // If we reach here, Android but no APK URL found — fall through to desktop logic
+      // which will return false and caller can show browser fallback message.
+    }
+  } catch (e) {
+    console.warn("[updater] Android branch failed, falling through to desktop updater", e);
+  }
+
   // 1) Try Tauri updater plugin (native, works for Tauri Windows EXE + Linux DEB + updater artifacts)
+  // On Android this is skipped above; on desktop it handles downloadAndInstall + relaunch.
   try {
     const { check } = await import("@tauri-apps/plugin-updater");
     const { relaunch } = await import("@tauri-apps/plugin-process");
@@ -426,26 +627,19 @@ export async function installUpdate(onProgress?: (downloaded: number, total: num
     // plugin not available — fall through to platform-specific fallback
   }
 
-  // 2) Android in-app APK installer (works when Tauri plugin not available, e.g., Capacitor or older build)
-  if (isAndroid()) {
+  // 2) Generic Android fetch fallback (if OS check missed, e.g., webview without plugin-os)
+  if (isAndroidSync()) {
     const current = await currentVersion();
-    const apkUrl = await getApkDownloadUrl(current);
+    const apkUrl = (await getApkDownloadUrl(current)) || (await getApkDownloadUrl());
     if (apkUrl) {
       const ok = await downloadAndInstallApk(apkUrl, onProgress);
-      if (ok) return true;
-    }
-    // Try latest release without version filter as last resort
-    const latestApk = await getApkDownloadUrl();
-    if (latestApk) {
-      const ok = await downloadAndInstallApk(latestApk, onProgress);
       if (ok) return true;
     }
   }
 
   // 3) Desktop fallback (Electron EXE / DEB)
-  // Detect Electron or Tauri desktop via platform check
   try {
-    const isDesktop = !isAndroid();
+    const isDesktop = !isAndroidSync();
     if (isDesktop) {
       const ok = await downloadAndInstallDesktop(onProgress);
       if (ok) return true;
@@ -467,3 +661,6 @@ export async function installUpdate(onProgress?: (downloaded: number, total: num
 
   return false;
 }
+
+// Also export Android helpers for testing / direct use in UpdateModal
+export { isAndroidPlatform, openApkInBrowserViaShell, downloadApkViaUploadAndTriggerIntent, getApkDownloadUrl };
