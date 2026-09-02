@@ -33,6 +33,15 @@ reports/*.md
 frames/
 audio/
 
+# Brand assets are the exception to the blanket media rule above —
+# these are small, versioned UI/branding sources, not generated media output.
+!genio_client/public/**/*.png
+!genio_client/public/*.ico
+!genio_client/resources/**/*.png
+!genio_client/README-assets/**/*.png
+!.github/**/*.png
+!docs/**/*.png
+
 # IDE
 .vscode/
 .idea/
@@ -64,6 +73,11 @@ core/autonomous_runner.py
 core/evolution/
 core/skills/
 genio_client/src-tauri/gen/
+
+# Capacitor native projects are scaffolded fresh in CI (cap add android/ios)
+# from genio_client/resources/ — never committed, avoids stale generated code.
+genio_client/android/
+genio_client/ios/
 scripts/generate_post_audio.py
 scripts/render_real_terminal_short.py
 training/genio_brain_lora/

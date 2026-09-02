@@ -101,6 +101,7 @@ jobs:
         working-directory: genio_client
         run: |
           npx cap add android
+          npx capacitor-assets generate --android
           npx cap sync android
       - name: Build APK
         run: |

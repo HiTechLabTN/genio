@@ -16,7 +16,8 @@
     "electron:build:win": "electron-builder --win --x64",
     "electron:build:linux": "electron-builder --linux --x64",
     "capacitor:sync": "npx cap sync",
-    "capacitor:build:android": "npx cap open android"
+    "capacitor:build:android": "npx cap open android",
+    "assets:generate": "capacitor-assets generate"
   },
   "dependencies": {
     "@mediapipe/face_mesh": "^0.4.1633559619",
@@ -35,6 +36,7 @@
   },
   "devDependencies": {
     "@capacitor/android": "^5.0.0",
+    "@capacitor/assets": "^3.0.5",
     "@capacitor/cli": "^5.0.0",
     "@capacitor/ios": "^5.0.0",
     "@tauri-apps/cli": "^2",
@@ -53,8 +55,17 @@
   "build": {
     "appId": "com.hitechlab.genio",
     "productName": "Genio",
-    "directories": { "output": "release-builds" },
-    "win": { "target": "nsis", "icon": "public/icon.ico" },
-    "linux": { "target": "deb", "icon": "public/icon.png", "category": "Utility" }
+    "directories": {
+      "output": "release-builds"
+    },
+    "win": {
+      "target": "nsis",
+      "icon": "public/icon.ico"
+    },
+    "linux": {
+      "target": "deb",
+      "icon": "public/icon.png",
+      "category": "Utility"
+    }
   }
 }
