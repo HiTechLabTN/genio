@@ -69,6 +69,7 @@ jobs:
           ls -R dist 2>&1 | head -50 || ls -la dist 2>&1 | head -50
       - name: Derive version
         id: ver
+        shell: bash
         run: |
           VER=$(node -p "require('./genio_client/package.json').version")
           echo "APP_VERSION=${VER}" >> "$GITHUB_OUTPUT"
