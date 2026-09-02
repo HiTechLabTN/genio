@@ -7,11 +7,14 @@ import PermissionOnboarding, { shouldShowOnboarding } from "./components/Permiss
 import UpdateModal from "./components/UpdateModal";
 import ChronosPortal from "./components/ChronosPortal/ChronosPortal";
 import { useGenioSocket } from "./hooks/useGenioSocket";
+import { useTaskProcessor } from "./hooks/useTaskProcessor";
 import { checkForUpdates } from "./lib/updater";
 import { useDeviceProfile } from "./lib/deviceProfiler";
 import { decideEngine } from "./lib/adaptiveEngine";
 import { getGoogleToken, hasGoogleAuth } from "./lib/googleAuth";
 import type { Attachment, ServerNode } from "./lib/types";
+import { AndalusianBackground, MatrixTaskBoard, SystemMetricsLive, TaskMinimizer, ParticleBrain, AnimeMascot } from "./components/v3";
+import { useVoiceOutput } from "./components/v3/useVoiceOutput";
 
 export default function App() {
   const [showGoogleAuth, setShowGoogleAuth] = useState(() => shouldShowGoogleAuth());
@@ -38,12 +41,10 @@ export default function App() {
   } = useGenioSocket();
   const [geminiChat, setGeminiChat] = useState<typeof wsChat>([]);
   const [geminiStatus, setGeminiStatus] = useState<typeof wsAgentStatus>({ kind: "idle" });
-  // Merge: use Gemini chat when in cloud mode, otherwise WS chat
   const chat = isGeminiCloud ? geminiChat : wsChat;
   const agentStatus = isGeminiCloud ? geminiStatus : wsAgentStatus;
   const sendPrompt = isGeminiCloud
     ? (text: string, attachments?: Attachment[]) => {
-        // Gemini cloud path — stream via gemini_provider with Darija persona
         setGeminiChat((prev) => [...prev.slice(-299), { type: "user", text, timestamp: Date.now() } as const]);
         setGeminiStatus({ kind: "thinking" });
         void (async () => {
@@ -59,7 +60,6 @@ export default function App() {
                   if (last?.type === "thought" && (last as { text: string }).text === acc.slice(0, -chunk.text!.length)) {
                     return [...prev.slice(0, -1), { type: "thought", text: acc }];
                   }
-                  // Append incremental thought
                   return [...prev.slice(-299), { type: "thought", text: acc }];
                 });
               }
@@ -68,7 +68,6 @@ export default function App() {
               }
               if (chunk.done) {
                 setGeminiChat((prev) => {
-                  // Collapse last thought into answer
                   const last = prev[prev.length - 1];
                   if (last?.type === "thought") return [...prev.slice(0, -1), { type: "answer", text: acc.trim() }];
                   return [...prev.slice(-299), { type: "answer", text: acc.trim() || "Saha, ena Genio! Chnowa n3awnk?" }];
@@ -79,7 +78,6 @@ export default function App() {
             }
           } catch (e: unknown) {
             const msg = e instanceof Error ? e.message : String(e);
-            // Hotfix v2.2: loop/offline → Tunisian down message as answer, not leaked error
             if (msg.includes("السيرفر طايح")) {
               setGeminiChat((prev) => [...prev.slice(-299), { type: "answer", text: msg }]);
             } else {
@@ -91,6 +89,33 @@ export default function App() {
         return true;
       }
     : wsSendPrompt;
+
+  // v3 task processor integration
+  const taskProc = useTaskProcessor({ chat, telemetry, agentStatus });
+  const isThinking = taskProc.isProcessing;
+  const isListening = agentStatus.kind === "thinking" || agentStatus.kind === "executing";
+  // tasks for matrix: combine thinkingSteps + toolActivity
+  const matrixTasks: string[] = [...taskProc.thinkingSteps, ...taskProc.toolActivity];
+  const voice = useVoiceOutput();
+  const prevResultRef = useRef<string>("");
+
+  // VoiceOutput + TaskMinimizer trigger when result populates
+  useEffect(() => {
+    const r = taskProc.result;
+    if (r && r !== prevResultRef.current) {
+      prevResultRef.current = r;
+      voice.speak(r);
+      // auto-minimize after 700ms (let user read)
+      const t = window.setTimeout(() => taskProc.setIsMinimized(true), 700);
+      return () => clearTimeout(t);
+    }
+    if (!r) prevResultRef.current = "";
+  }, [taskProc.result, taskProc.setIsMinimized, voice]);
+
+  // stop speech when new task starts
+  useEffect(() => {
+    if (isThinking) voice.stop();
+  }, [isThinking, voice]);
 
   const [connected, setConnected] = useState(false);
   const [target, setTarget] = useState<ServerNode | null>(null);
@@ -116,14 +141,13 @@ export default function App() {
     }
     return ok;
   }
-
   function handleDisconnect() {
+    voice.stop();
     disconnect();
     setConnected(false);
     setTarget(null);
     setDrawerOpen(false);
   }
-
   async function handleSwitchNode(host: string, label: string) {
     if (!target) return false;
     const next: ServerNode = { ...target, host, label };
@@ -131,120 +155,140 @@ export default function App() {
     if (ok) setTarget(next);
     return ok;
   }
-
   function handleSendPrompt(text: string, attachments?: Attachment[]) {
     lastPromptRef.current = text;
     lastPromptFileRef.current = attachments;
     setChronosDismissed(false);
+    taskProc.setIsMinimized(false);
+    voice.stop();
     sendPrompt(text, attachments);
   }
-
   function handleContinue() {
-    if (lastPromptRef.current) {
-      sendPrompt(lastPromptRef.current, lastPromptFileRef.current);
-    }
+    if (lastPromptRef.current) sendPrompt(lastPromptRef.current, lastPromptFileRef.current);
   }
 
   if (showGoogleAuth) {
     return (
       <GoogleAuthOnboarding
-        onAuthed={() => {
-          setShowGoogleAuth(false);
-          // After Google auth, proceed to permissions onboarding if needed
-        }}
+        onAuthed={() => setShowGoogleAuth(false)}
         onSkip={() => setShowGoogleAuth(false)}
       />
     );
   }
-
   if (showOnboarding) {
     return (
-      <PermissionOnboarding
-        onComplete={() => setShowOnboarding(false)}
-        onSkip={() => setShowOnboarding(false)}
-      />
+      <PermissionOnboarding onComplete={() => setShowOnboarding(false)} onSkip={() => setShowOnboarding(false)} />
     );
   }
 
+  const showV3Portal = connected && target || isGeminiCloud;
+
   return (
-    <div className="relative h-screen overflow-hidden">
-      <div className="pointer-events-none absolute inset-0 -z-20 bg-grid-neon bg-grid [mask-image:radial-gradient(ellipse_70%_60%_at_50%_40%,black,transparent)]" />
-      {/* Adaptive engine tier badge — reactive to deviceProfiler */}
-      <div className="pointer-events-none absolute right-3 top-3 z-50 hidden select-none items-center gap-2 rounded-full border border-neon/15 bg-carbon/70 px-3 py-1 font-mono text-[10px] backdrop-blur md:flex">
-        <span className={`h-2 w-2 rounded-full ${engineDecision.mode === "local" ? "bg-ok shadow-[0_0_8px_rgba(52,211,153,0.8)]" : "bg-amber-400 shadow-[0_0_8px_rgba(251,146,60,0.8)]"}`} />
-        <span className="text-slate-300">Tier {deviceProfile.tier}</span>
-        <span className="text-slate-500">·</span>
-        <span className={engineDecision.mode === "local" ? "text-ok" : "text-amber-300"}>{engineDecision.mode === "local" ? "On-Device" : "Cloud"}</span>
-        <span className="text-slate-600">{deviceProfile.ramGB}GB · {deviceProfile.cores} cores</span>
+    <div className="relative h-screen overflow-hidden bg-[#020B1E]">
+      {/* z-index 0: AndalusianBackground */}
+      <AndalusianBackground />
+
+      {/* z-index 1: MatrixTaskBoard — semi-transparent overlay behind content but above bg */}
+      {showV3Portal && (
+        <div className="pointer-events-none absolute inset-0" style={{ zIndex: 1 }}>
+          <MatrixTaskBoard tasks={matrixTasks} isThinking={isThinking} className="absolute inset-3" />
+        </div>
+      )}
+
+      {/* z-index 3: SystemMetricsLive fixed top-right, always visible when connected */}
+      {showV3Portal && (
+        <div className="pointer-events-none absolute right-3 top-[58px] z-30 hidden md:block" style={{ zIndex: 3 }}>
+          <SystemMetricsLive className="pointer-events-auto w-[220px]" />
+        </div>
+      )}
+      {/* mobile metrics bar */}
+      {showV3Portal && (
+        <div className="absolute left-3 right-3 top-[58px] z-30 md:hidden" style={{ zIndex: 3 }}>
+          <SystemMetricsLive className="w-full opacity-95" />
+        </div>
+      )}
+
+      {/* z-index 2: main portal / mascot / brain */}
+      <div className="relative flex h-full w-full flex-col" style={{ zIndex: 2 }}>
+        {/* top header placeholder — Header is inside Dashboard, but we show SELFIE toggle here for v3 */}
+        {/* When connected, Dashboard already renders Header; we keep v3 mascot layer independently */}
+
+        <AnimatePresence mode="wait">
+          {showV3Portal ? (
+            <div key="v3-portal" className="flex h-screen w-full flex-col">
+              {/* subtle v3 top bar with ParticleBrain + listening indicator */}
+              <div className="flex items-center gap-3 px-4 pt-[68px] md:px-6">
+                <ParticleBrain isThinking={isThinking} size={56} className="shrink-0" />
+                <div className="min-w-0 flex-1">
+                  <div className="font-mono text-[11px] tracking-[0.16em] text-cyan-300">
+                    {isThinking ? "CHRONOS · THINKING..." : taskProc.result ? "CHRONOS · READY" : "CHRONOS · IDLE"}
+                  </div>
+                  <div className="truncate font-mono text-xs text-slate-400">
+                    {isThinking ? matrixTasks[matrixTasks.length - 1] || "synchronizing time & tasks..." : "ready when you are."}
+                  </div>
+                </div>
+                <div className={`hidden items-center gap-2 rounded-full border px-3 py-1.5 font-mono text-[10px] md:flex ${isListening ? "border-red-400/30 bg-red-500/10 text-red-300" : "border-cyan-400/20 bg-cyan-400/10 text-cyan-300"}`}>
+                  <span className={`h-2 w-2 rounded-full ${isListening ? "bg-red-500 animate-pulse" : "bg-cyan-400"}`} />
+                  {isListening ? "ÉCOUTE" : "PRÊT"}
+                </div>
+              </div>
+
+              {/* mascot row — centered holographic avatar */}
+              <div className={`relative flex shrink-0 items-center justify-center overflow-hidden transition-all duration-700 ${taskProc.isMinimized ? "h-0 opacity-0" : "h-[42vh] md:h-[44vh]"}`}>
+                {/* cyan portal rings behind mascot */}
+                <div className="pointer-events-none absolute left-1/2 top-1/2 h-[420px] w-[420px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-cyan-400/15 shadow-[0_0_60px_rgba(0,229,255,0.18)]" />
+                <div className="pointer-events-none absolute left-1/2 top-1/2 h-[560px] w-[560px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-cyan-400/10" />
+                <AnimeMascot listening={isListening} isThinking={isThinking} faceTrack={!taskProc.isMinimized} size={360} className="relative z-10" />
+              </div>
+
+              {/* Dashboard embedded — portal UI */}
+              <div className={`flex min-h-0 flex-1 flex-col transition-all duration-700 ${taskProc.isMinimized ? "pointer-events-none opacity-0 scale-[0.98]" : "opacity-100"}`}>
+                <Dashboard
+                  key={isGeminiCloud ? "dashboard-gemini" : "dashboard"}
+                  node={isGeminiCloud ? "Gemini Cloud" : target?.label || "Genio"}
+                  host={isGeminiCloud ? "genio-server" : target?.host || ""}
+                  apiKey={isGeminiCloud ? getGoogleToken() || undefined : target?.key}
+                  telemetry={telemetry}
+                  telemetryStale={telemetryStale}
+                  agentStatus={agentStatus}
+                  chat={chat}
+                  screen={screen}
+                  streaming={streaming}
+                  drawerOpen={drawerOpen}
+                  deviceProfile={deviceProfile}
+                  engineDecision={engineDecision}
+                  onToggleDrawer={() => setDrawerOpen((o) => !o)}
+                  onDisconnect={isGeminiCloud ? () => setShowGoogleAuth(true) : handleDisconnect}
+                  onKill={kill}
+                  onContinue={handleContinue}
+                  onSendPrompt={handleSendPrompt}
+                  onSendVoice={(dataB64, durationSec) => send({ action: "voice_wav", data_b64: dataB64, duration: durationSec, final: true })}
+                  onRequestScreenshot={requestScreenshot}
+                  onToggleScreenStream={toggleScreenStream}
+                  onSwitchNode={handleSwitchNode}
+                />
+              </div>
+            </div>
+          ) : (
+            <ConnectionHub key="hub" onConnect={handleConnect} />
+          )}
+        </AnimatePresence>
+
+        {update && <UpdateModal version={update.version} notes={update.notes} onClose={() => setUpdate(null)} />}
+
+        {!chronosDismissed && taskProc.thinkingSteps.length === 0 && taskProc.toolActivity.length === 0 ? (
+          <ChronosPortal chat={chat} telemetry={telemetry} agentStatus={agentStatus} onDismiss={() => setChronosDismissed(true)} />
+        ) : null}
       </div>
 
-      <AnimatePresence mode="wait">
-        {connected && target ? (
-          <Dashboard
-            key="dashboard"
-            node={target.label}
-            host={target.host}
-            apiKey={target.key}
-            telemetry={telemetry}
-            telemetryStale={telemetryStale}
-            agentStatus={agentStatus}
-            chat={chat}
-            screen={screen}
-            streaming={streaming}
-            drawerOpen={drawerOpen}
-            deviceProfile={deviceProfile}
-            engineDecision={engineDecision}
-            onToggleDrawer={() => setDrawerOpen((o) => !o)}
-            onDisconnect={handleDisconnect}
-            onKill={kill}
-            onContinue={handleContinue}
-            onSendPrompt={handleSendPrompt}
-            onSendVoice={(dataB64, durationSec) =>
-              send({ action: "voice_wav", data_b64: dataB64, duration: durationSec, final: true })
-            }
-            onRequestScreenshot={requestScreenshot}
-            onToggleScreenStream={toggleScreenStream}
-            onSwitchNode={handleSwitchNode}
-          />
-        ) : isGeminiCloud ? (
-          <Dashboard
-            key="dashboard-gemini"
-            node="Gemini Cloud"
-            host="genio-server"
-            apiKey={getGoogleToken() || undefined}
-            telemetry={telemetry}
-            telemetryStale={telemetryStale}
-            agentStatus={agentStatus}
-            chat={chat}
-            screen={screen}
-            streaming={streaming}
-            drawerOpen={drawerOpen}
-            deviceProfile={deviceProfile}
-            engineDecision={engineDecision}
-            onToggleDrawer={() => setDrawerOpen((o) => !o)}
-            onDisconnect={() => {
-              // Sign out resets to Google auth screen
-              setShowGoogleAuth(true);
-            }}
-            onKill={kill}
-            onContinue={handleContinue}
-            onSendPrompt={handleSendPrompt}
-            onSendVoice={(dataB64, durationSec) =>
-              send({ action: "voice_wav", data_b64: dataB64, duration: durationSec, final: true })
-            }
-            onRequestScreenshot={requestScreenshot}
-            onToggleScreenStream={toggleScreenStream}
-            onSwitchNode={handleSwitchNode}
-          />
-        ) : (
-          <ConnectionHub key="hub" onConnect={handleConnect} />
-        )}
-      </AnimatePresence>
-
-      {update && <UpdateModal version={update.version} notes={update.notes} onClose={() => setUpdate(null)} />}
-
-      {!chronosDismissed && (
-        <ChronosPortal chat={chat} telemetry={telemetry} agentStatus={agentStatus} onDismiss={() => setChronosDismissed(true)} />
+      {/* TaskMinimizer fixed top-right — z-index 3 */}
+      {showV3Portal && (
+        <TaskMinimizer
+          result={taskProc.result}
+          isMinimized={taskProc.isMinimized}
+          onToggle={() => taskProc.setIsMinimized(!taskProc.isMinimized)}
+          onExpand={() => taskProc.setIsMinimized(false)}
+        />
       )}
     </div>
   );
