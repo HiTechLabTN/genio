@@ -2,7 +2,7 @@
 
 # 🇹🇳 Genio — Autonomous Multimodal AI Systems Engineer
 
-<img src="genio-logo.svg" width="180" alt="Genio 3D Mascot"/>
+<img src="docs/hero-banner.png" width="420" alt="Genio — mascotte 3D avec Chronos Portal"/>
 
 ### أول مهندس ذكاء اصطناعي مستقل في تونس والعالم العربي (v4.0)
 **منظومة أوتونوموس كاملة • تخدم وحدها، تصلّح كودها وحدها، وتتكلم بالدارجة التونسية والعربية البيضاء**
@@ -12,6 +12,16 @@
 ---
 
 </div>
+
+<!--
+  Branding : les icônes (Android/iOS/Electron/Web) et cette bannière sont
+  générées depuis les mêmes sources dans docs/ et genio_client/resources/ —
+  voir docs/BRANDING.md. Le "social preview" GitHub (aperçu de lien, visible
+  hors du repo) doit être mis à jour manuellement une seule fois via
+  Settings → General → Social preview, avec docs/github-social-preview.png :
+  https://github.com/HiTechLabTN/genio/settings
+-->
+
 
 <div dir="rtl" align="right">
 
