@@ -1,0 +1,14 @@
+{
+  "name": "Genio",
+  "short_name": "Genio",
+  "description": "Genio — Assistant IA intelligent avec Chronos Portal, Avatar 3D et multilingue (Darija/FR/EN)",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#050914",
+  "theme_color": "#050914",
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
