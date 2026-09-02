@@ -60,7 +60,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ github.event.release.upload_url }}
-          asset_path: ./genio_client/release-builds/Genio Setup 2.3.1.exe
+          asset_path: ./genio_client/release-builds/Genio Setup 2.3.2.exe
           asset_name: Genio-Setup.exe
           asset_content_type: application/octet-stream
       - name: Upload DEB
@@ -70,7 +70,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ github.event.release.upload_url }}
-          asset_path: ./genio_client/release-builds/genio-client_2.3.1_amd64.deb
+          asset_path: ./genio_client/release-builds/genio-client_2.3.2_amd64.deb
           asset_name: genio_amd64.deb
           asset_content_type: application/octet-stream
 
