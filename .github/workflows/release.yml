@@ -31,8 +31,8 @@ jobs:
       - name: install Linux dependencies
         if: matrix.platform == 'ubuntu-22.04'
         run: |
-          sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev patchelf
+          sudo apt-get update || echo "apt update failed, continuing"
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev patchelf || sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev patchelf --fix-missing
       - name: install frontend dependencies
         working-directory: ./genio_client
         run: npm install
@@ -68,8 +68,8 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
       - name: install Linux dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev patchelf
+          sudo apt-get update || echo "apt update failed, continuing"
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev patchelf || sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev patchelf --fix-missing
       - name: install frontend dependencies
         working-directory: ./genio_client
         run: npm install

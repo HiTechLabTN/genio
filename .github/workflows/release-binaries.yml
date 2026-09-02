@@ -124,8 +124,8 @@ jobs:
           targets: aarch64-linux-android,armv7-linux-androideabi,i686-linux-android,x86_64-linux-android
       - name: Install Linux dependencies (Tauri)
         run: |
-          sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev patchelf
+          sudo apt-get update || echo "apt update failed (microsoft repo 403), continuing"
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev patchelf || sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev patchelf --fix-missing
       - name: Install Android NDK
         run: |
           sdkmanager --install "ndk;27.0.12077973" "platforms;android-34" "build-tools;34.0.0" || true
