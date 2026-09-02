@@ -505,11 +505,29 @@ class AgentLoop:
 
         # Phase 2 v2.1: System 1 Reflex fast-path — resolve deterministic
         # high-frequency intents without any Ollama tokens.
+        # Phase A fix: verify kill-switch BEFORE any reflex match so a halted
+        # session cannot still trigger host execution; route via invoke with
+        # session_id so is_dangerous + sandbox always apply.
+        if self.cancelled():
+            yield {
+                "type": "error",
+                "message": "HALTED — kill switch engaged. Re-arm the system "
+                           "before running another autonomous task.",
+            }
+            return
         if os.getenv("GENIO_REFLEX_FASTPATH", "1").strip().lower() not in ("0", "false", "no"):
             try:
                 from genio_server.core.reflex_engine import get_reflex_engine
-                fast = get_reflex_engine().match(user_input)
+                fast = get_reflex_engine().match(user_input, session_id=self.session_id)
                 if fast is not None:
+                    # Re-check cancelled after match computation in case kill fired concurrently
+                    if self.cancelled():
+                        yield {
+                            "type": "error",
+                            "message": "HALTED — kill switch engaged. Re-arm the system "
+                                       "before running another autonomous task.",
+                        }
+                        return
                     res = fast.get("result") or fast
                     yield {"type": "tool_call", "command": res.get("command", "")}
                     yield {"type": "tool_result", "result": res}
@@ -577,7 +595,8 @@ class AgentLoop:
                     try:
                         from genio_server.core.reflex_engine import get_reflex_engine
                         fix_cmd = get_reflex_engine().auto_fix(
-                            str(result.get("stderr") or result.get("stdout") or "")
+                            str(result.get("stderr") or result.get("stdout") or ""),
+                            session_id=self.session_id,
                         )
                         if fix_cmd:
                             yield {"type": "thought",

@@ -45,29 +45,18 @@ def _truncate(s: str) -> str:
     return s[:MAX_OUTPUT] + TRUNCATE_MARKER
 
 
-def _run_bash(command: str, timeout: int = 15) -> Dict[str, object]:
-    """Synchronous best-effort bash execution for reflex handlers focused on
-    short, safe diagnostics (read-only). Never runs destructive commands."""
-    import subprocess
-    started = time.monotonic()
-    try:
-        proc = subprocess.run(
-            ["/bin/bash", "-lc", command],
-            capture_output=True, text=True, timeout=timeout,
-        )
-        return {
-            "command": command,
-            "stdout": _truncate(proc.stdout),
-            "stderr": _truncate(proc.stderr),
-            "returncode": proc.returncode,
-            "duration": round(time.monotonic() - started, 3),
-            "timed_out": False,
-            "reflex": True,
-        }
-    except subprocess.TimeoutExpired:
-        return {"command": command, "stdout": "", "stderr": f"timed out after {timeout}s",
-                "returncode": -9, "duration": round(time.monotonic() - started, 3),
-                "timed_out": True, "reflex": True}
+def _invoke_bash(command: str, session_id: Optional[str] = None) -> Dict[str, object]:
+    """Route bash through the canonical tool entrypoint so is_dangerous()
+    and GENIO_SANDBOX_MODE are always enforced (Phase A fix)."""
+    # Local import to avoid circular import at module load time.
+    from genio_server.tools import invoke as _invoke
+    res = _invoke("bash", command, session_id=session_id)
+    # Tag as reflex for downstream accounting; preserve original returncode
+    # so the caller sees refuse (126) vs success (0) etc.
+    if isinstance(res, dict):
+        res = dict(res)  # shallow copy
+        res["reflex"] = True
+    return res
 
 
 # --------------------------------------------------------------------------- #
@@ -190,13 +179,14 @@ class ReflexEngine:
     # ------------------------------------------------------------------ #
     # Fast-path matching
     # ------------------------------------------------------------------ #
-    def match(self, prompt: str) -> Optional[Dict[str, object]]:
+    def match(self, prompt: str, session_id: Optional[str] = None) -> Optional[Dict[str, object]]:
         """Return a fast-path handler dict if ``prompt`` matches a known
-        high-frequency intent, else None.
+        high-frequency intent, else None.  All execution is routed via
+        ``invoke("bash", ...)`` so ``is_dangerous()`` + sandbox always apply
+        (Phase A — Q1: even read-only patterns are gated).
 
-        Skills (compiled trajectories) are checked first so learned recipes
-        take precedence over built-ins. Returns a dict with ``result``
-        already populated so the loop can emit ``tool_result`` directly.
+        ``session_id`` is forwarded to ``invoke`` so per-session container
+        isolation (``GENIO_SANDBOX_MODE=container``) is honoured.
         """
         if not _fastpath_enabled() or not prompt or not prompt.strip():
             return None
@@ -205,15 +195,15 @@ class ReflexEngine:
         for skill in self._skills:
             pr = skill.get("prompt_re")
             if pr and re.search(pr, prompt, re.I):
-                return self._exec_skill(skill, prompt, started)
+                return self._exec_skill(skill, prompt, started, session_id=session_id)
         # 2) built-in high-frequency intents
         for pattern in _REFLEX_PATTERNS:
             if (pattern["prompt_re"]).search(prompt):
-                return self._exec_pattern(pattern, prompt, started)
+                return self._exec_pattern(pattern, prompt, started, session_id=session_id)
         return None
 
     def _exec_pattern(self, pattern: Dict[str, object], prompt: str,
-                      started: float) -> Dict[str, object]:
+                      started: float, session_id: Optional[str] = None) -> Dict[str, object]:
         command = str(pattern.get("command") or "")
         placeholders = {}
         if "read_file" in str(pattern.get("name")):
@@ -225,19 +215,47 @@ class ReflexEngine:
             if m:
                 placeholders["pid"] = m.group(1)
         command = _substitute(command, placeholders)
-        return self._finalize(pattern, command, started)
+        return self._finalize(pattern, command, started, session_id=session_id)
 
     def _exec_skill(self, skill: Dict[str, object], prompt: str,
-                    started: float) -> Dict[str, object]:
-        """Executes a compiled skill's parameterized command sequence."""
+                    started: float, session_id: Optional[str] = None) -> Dict[str, object]:
+        """Executes a compiled skill's parameterized command sequence via
+        the canonical bash tool so every step is gated by ``is_dangerous``
+        and the configured sandbox."""
         steps = skill.get("steps") or []
         outputs: List[str] = []
+        # Track if any step was refused/blocked — propagate worst returncode.
+        worst_rc = 0
+        worst_err = ""
         for step in steps:
             cmd = str(step.get("command") or "")
             cmd = self._substitute_prompt_params(cmd, prompt, skill)
-            res = _run_bash(cmd)
-            outputs.append(f"$ {cmd}\n{res.get('stdout', '').rstrip()}")
+            res = _invoke_bash(cmd, session_id=session_id)
+            rc = int(res.get("returncode", -1)) if isinstance(res.get("returncode"), int) or str(res.get("returncode")).lstrip("-").isdigit() else -1
+            # is_dangerous refusal (126) or explicit error must surface
+            if rc != 0:
+                if worst_rc == 0:
+                    worst_rc = rc
+                    worst_err = str(res.get("stderr") or res.get("error") or "")
+                outputs.append(f"$ {cmd}\n[REFUSED] {worst_err or res.get('stdout','')}")
+                # Do NOT continue executing remaining steps after a refusal — fail-safe.
+                break
+            outputs.append(f"$ {cmd}\n{str(res.get('stdout', '')).rstrip()}")
         body = "\n".join(outputs)
+        # If any step was refused, surface that refusal instead of fake success.
+        if worst_rc != 0:
+            return {
+                "type": "tool_result",
+                "result": {
+                    "command": skill.get("name", "skill"),
+                    "stdout": _truncate(body),
+                    "stderr": worst_err,
+                    "returncode": worst_rc,
+                    "duration": round(time.monotonic() - started, 3),
+                    "reflex": True,
+                    "skill": skill.get("name"),
+                },
+            }
         return {
             "type": "tool_result",
             "result": {
@@ -263,15 +281,15 @@ class ReflexEngine:
 
     @staticmethod
     def _finalize(pattern: Dict[str, object], command: str,
-                  started: float) -> Dict[str, object]:
-        res = _run_bash(command)
+                  started: float, session_id: Optional[str] = None) -> Dict[str, object]:
+        res = _invoke_bash(command, session_id=session_id)
         return {
             "type": "tool_result",
             "result": {
                 "command": command,
-                "stdout": res["stdout"],
-                "stderr": res["stderr"],
-                "returncode": res["returncode"],
+                "stdout": res.get("stdout", ""),
+                "stderr": res.get("stderr", ""),
+                "returncode": res.get("returncode", -1),
                 "duration": round(time.monotonic() - started, 3),
                 "reflex": True,
                 "handler": pattern.get("name"),
@@ -281,7 +299,7 @@ class ReflexEngine:
     # ------------------------------------------------------------------ #
     # Deterministic auto-fixes (stderr -> command before LLM reflection)
     # ------------------------------------------------------------------ #
-    def auto_fix(self, stderr: str) -> Optional[str]:
+    def auto_fix(self, stderr: str, session_id: Optional[str] = None) -> Optional[str]:
         """Map a known fatal stderr pattern to a deterministic command."""
         if not stderr or not _fastpath_enabled():
             return None
@@ -316,11 +334,35 @@ class ReflexEngine:
         if not steps:
             return False
         key_tokens = re.findall(r"[\w]{3,}", prompt.lower())
-        keyword = " ".join(dict.fromkeys(key_tokens))[:80] if key_tokens else name
+        # Q2 strict: pick 3 most discriminative tokens (longest) and require ALL.
+        # Mitigates single-word false positives like "please" triggering any skill.
+        # Désactivable via GENIO_REFLEX_STRICT_MATCH=0 (Phase A routing stays fail-safe).
+        strict = os.getenv("GENIO_REFLEX_STRICT_MATCH", "1").strip().lower() not in ("0", "false", "no")
+        if strict and key_tokens:
+            unique = list(dict.fromkeys(key_tokens))
+            # Sort by length desc, then alphabetically for determinism
+            unique_sorted = sorted(unique, key=lambda w: (-len(w), w))
+            # Filter very common stopwords when we have enough candidates
+            _stop = {"the","and","for","are","you","please","stp","bonjour","hello","with","this","that","have","from"}
+            # Keep stopwords only if they are among the longest? Prefer non-stop.
+            candidates = [w for w in unique_sorted if w not in _stop]
+            if len(candidates) < 3:
+                # fallback: include stopwords if not enough discriminative tokens
+                candidates = unique_sorted
+            top = candidates[:3] if len(candidates) >= 3 else candidates[:2] if len(candidates) >= 2 else candidates[:1]
+            if len(top) >= 2:
+                # Build lookahead regex requiring all top keywords in any order
+                parts = "".join(rf"(?=.*\b{re.escape(w)}\b)" for w in top)
+                prompt_re = parts + r".*"
+            else:
+                prompt_re = rf"\b{re.escape(top[0])}\b" if top else None
+        else:
+            keyword = " ".join(dict.fromkeys(key_tokens))[:80] if key_tokens else name
+            prompt_re = rf"\b{re.escape(keyword.split()[0])}\b" if keyword else None
         skill = {
             "name": name,
             "description": f"compiled from prompt: {prompt[:100]}",
-            "prompt_re": rf"\b{re.escape(keyword.split()[0])}\b" if keyword else None,
+            "prompt_re": prompt_re,
             "params": params or [],
             "steps": steps,
             "compiled_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
