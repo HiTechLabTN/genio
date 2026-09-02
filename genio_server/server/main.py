@@ -31,9 +31,9 @@ import uuid
 from typing import Any, Dict, List, Optional
 
 import psutil
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Depends, Header, HTTPException, Query, File, UploadFile
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Depends, Header, HTTPException, Query, File, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 
 from genio_server.core.agent_loop import AgentLoop, OllamaConnectionError
 from genio_server.core.session_store import get_session_store
@@ -329,6 +329,89 @@ else:
     async def voice_transcribe(_: None = Depends(require_key)) -> Dict[str, Any]:  # type: ignore[no-redef]
         raise HTTPException(status_code=500,
                             detail='Form data requires "python-multipart" to be installed. pip install python-multipart')
+
+
+# --------------------------------------------------------------------------- #
+# Gemini proxy — Phase C (server-side key, never client bundle)
+# All Gemini traffic from the client is routed through this proxy.
+# The key lives only in the server env (GENIO_GEMINI_API_KEY via config.gemini).
+# --------------------------------------------------------------------------- #
+import httpx as _httpx  # local alias to avoid shadowing
+
+@app.api_route("/api/v1/gemini/{full_path:path}", methods=["GET", "POST", "PUT", "DELETE"])
+async def gemini_proxy(full_path: str, request: Request, _: None = Depends(require_key)):
+    """Proxy Gemini calls through the server so the API key never leaves the server.
+    Supports both :generateContent and :streamGenerateContent. The client calls
+    /api/v1/gemini/models/{model}:generateContent which is forwarded to
+    https://generativelanguage.googleapis.com/v1beta/{full_path} with the server key.
+    """
+    # Resolve server-side Gemini key (env only)
+    try:
+        from config import get_config
+        gem_key = get_config().gemini.api_key
+    except Exception:
+        gem_key = os.getenv("GENIO_GEMINI_API_KEY", "")
+    if not gem_key:
+        # Allow OAuth Bearer passthrough (Google token from getGoogleToken) — if the
+        # client supplied Authorization, we forward it without needing the API key.
+        auth_header = request.headers.get("authorization") or request.headers.get("Authorization")
+        if not auth_header or not auth_header.lower().startswith("bearer "):
+            raise HTTPException(status_code=500, detail="GENIO_GEMINI_API_KEY not configured on server")
+
+    # Build target URL
+    target = f"https://generativelanguage.googleapis.com/v1beta/{full_path}"
+    # Forward query params except we inject the API key if no Bearer token
+    auth_header = request.headers.get("authorization") or request.headers.get("Authorization")
+    has_bearer = bool(auth_header and auth_header.lower().startswith("bearer "))
+    if not has_bearer and gem_key:
+        sep = "&" if "?" in target else "?"
+        target = f"{target}{sep}key={gem_key}"
+
+    # Read body
+    try:
+        body = await request.body()
+        json_body = None
+        if body:
+            try:
+                json_body = json.loads(body)
+            except Exception:
+                json_body = None
+    except Exception:
+        body = b""
+        json_body = None
+
+    headers: Dict[str, str] = {"Content-Type": "application/json"}
+    if has_bearer:
+        headers["Authorization"] = auth_header  # type: ignore
+
+    # Determine if this is a streaming request
+    is_stream = "streamGenerateContent" in full_path or request.query_params.get("alt") == "sse"
+
+    try:
+        async with _httpx.AsyncClient(timeout=60.0) as client:
+            if is_stream:
+                # Stream the Google response back to the client as-is
+                req = client.build_request("POST", target, json=json_body, headers=headers)
+                resp = await client.send(req, stream=True)
+                if resp.status_code >= 400:
+                    err_text = await resp.aread()
+                    return JSONResponse(status_code=resp.status_code, content={"error": err_text.decode(errors="replace")[:2000]})
+                async def gen():
+                    async for chunk in resp.aiter_bytes():
+                        yield chunk
+                return StreamingResponse(gen(), media_type="text/event-stream", status_code=resp.status_code)
+            else:
+                resp = await client.post(target, json=json_body, headers=headers)
+                # Forward status and body
+                try:
+                    data = resp.json()
+                    return JSONResponse(status_code=resp.status_code, content=data)
+                except Exception:
+                    return StreamingResponse(iter([resp.content]), media_type=resp.headers.get("content-type", "application/json"), status_code=resp.status_code)
+    except _httpx.ConnectError as exc:
+        raise HTTPException(status_code=502, detail=f"gemini upstream connect failed: {exc}")
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"gemini proxy failed: {exc}")
 
 
 # --------------------------------------------------------------------------- #

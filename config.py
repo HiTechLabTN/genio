@@ -33,6 +33,13 @@ class OpenRouterConfig:
 
 
 @dataclass(frozen=True)
+class GeminiConfig:
+    api_key: str = field(default_factory=lambda: _env("GENIO_GEMINI_API_KEY", ""))
+    base_url: str = "https://generativelanguage.googleapis.com/v1beta"
+    model: str = field(default_factory=lambda: _env("GENIO_GEMINI_MODEL", "gemini-2.0-flash"))
+
+
+@dataclass(frozen=True)
 class GhostConfig:
     url: str = field(default_factory=lambda: _env("GHOST_URL", "https://lab.hitech.tn"))
     admin_key: str = field(default_factory=lambda: _env("GHOST_ADMIN_KEY"))
@@ -83,6 +90,7 @@ class SandboxConfig:
 class GenioConfig:
     ollama: OllamaConfig = field(default_factory=OllamaConfig)
     openrouter: OpenRouterConfig = field(default_factory=OpenRouterConfig)
+    gemini: GeminiConfig = field(default_factory=GeminiConfig)
     ghost: GhostConfig = field(default_factory=GhostConfig)
     cinema: CinemaConfig = field(default_factory=CinemaConfig)
     voice: VoiceConfig = field(default_factory=VoiceConfig)

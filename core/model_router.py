@@ -63,6 +63,18 @@ class ModelRouter:
                 timeout=60.0,
                 priority=100,
             ))
+        # Phase C: Gemini as additional provider endpoint, failover via ModelRouter.
+        # Key is read server-side only via GENIO_GEMINI_API_KEY; never exposed to client.
+        # Désactivable explicitement via GENIO_GEMINI_API_KEY="" (défaut vide).
+        if cfg.gemini.api_key:
+            self.endpoints.append(ModelEndpoint(
+                name="gemini",
+                base_url=cfg.gemini.base_url,
+                model=cfg.gemini.model,
+                api_key=cfg.gemini.api_key,
+                timeout=60.0,
+                priority=90,
+            ))
         self.state = RouterState()
         self.endpoints.sort(key=lambda e: e.priority)
 
@@ -181,6 +193,9 @@ class ModelRouter:
         raise RuntimeError(f"All chat endpoints failed: {errors}")
 
     async def _call_chat_endpoint(self, ep: ModelEndpoint, messages: list, cancel_event=None) -> tuple[str, int, float]:
+        # Phase C: Gemini endpoint — server-side key via GENIO_GEMINI_API_KEY, never client.
+        if "generativelanguage" in ep.base_url:
+            return await self._call_gemini_chat(ep, messages)
         headers = {}
         if ep.api_key:
             headers["Authorization"] = f"Bearer {ep.api_key}"
@@ -215,10 +230,69 @@ class ModelRouter:
             tok_per_s = (eval_count / (eval_ns / 1e9)) if eval_ns > 0 else 0.0
             return content, eval_count, round(tok_per_s, 1)
 
+    async def _call_gemini_chat(self, ep: ModelEndpoint, messages: list) -> tuple[str, int, float]:
+        """Server-side Gemini chat via ModelRouter (Phase C). Key stays in env."""
+        import json as _json
+        # Extract system instruction if first message is system
+        system_text = ""
+        contents: list = []
+        for m in messages:
+            role = m.get("role", "user")
+            content = str(m.get("content", ""))
+            if role == "system" and not system_text:
+                system_text = content
+                continue
+            # Map assistant -> model, user -> user
+            g_role = "model" if role == "assistant" else "user"
+            contents.append({"role": g_role, "parts": [{"text": content}]})
+        payload: dict = {
+            "contents": contents,
+            "generationConfig": {"temperature": 0.3, "maxOutputTokens": 2048},
+        }
+        if system_text:
+            payload["systemInstruction"] = {"parts": [{"text": system_text}]}
+        # Map to Gemini functionDeclarations matching gemini_provider's tool set
+        payload["tools"] = [{"functionDeclarations": [
+            {"name": "bash", "description": "Execute a shell command", "parameters": {"type": "OBJECT", "properties": {"command": {"type": "STRING"}}, "required": ["command"]}},
+            {"name": "browser", "description": "Headless browsing", "parameters": {"type": "OBJECT", "properties": {"action": {"type": "STRING"}}, "required": ["action"]}},
+            {"name": "computer", "description": "GUI control", "parameters": {"type": "OBJECT", "properties": {"action": {"type": "STRING"}}, "required": ["action"]}},
+        ]}]
+        url = f"{ep.base_url}/models/{ep.model}:generateContent?key={ep.api_key}"
+        headers = {"Content-Type": "application/json"}
+        async with httpx.AsyncClient(timeout=ep.timeout) as client:
+            resp = await client.post(url, json=payload, headers=headers)
+            resp.raise_for_status()
+            data = resp.json()
+            if not isinstance(data, dict):
+                return "", 0, 0.0
+            cands = data.get("candidates") or []
+            text_parts: list[str] = []
+            for c in cands:
+                parts = (c.get("content") or {}).get("parts") or []
+                for p in parts:
+                    if p.get("text"):
+                        text_parts.append(str(p["text"]))
+                    # Tool calls in Gemini are functionCall parts — serialize as JSON tool call for AgentLoop
+                    if p.get("functionCall"):
+                        fc = p["functionCall"]
+                        name = fc.get("name", "bash")
+                        args = fc.get("args") or {}
+                        # AgentLoop expects {"tool": "...", "command": "..."} JSON
+                        cmd = args.get("command") or _json.dumps(args)
+                        text_parts.append(_json.dumps({"tool": name, "command": cmd}))
+            content = "".join(text_parts)
+            # Gemini does not return eval_count; estimate tokens as ~ len/4
+            eval_count = max(1, len(content) // 4) if content else 0
+            return content, eval_count, 0.0
+
     async def _call_endpoint(self, ep: ModelEndpoint, prompt: str,
                              temperature: float, max_tokens: int,
                              images: Optional[list] = None,
                              cancel_event=None) -> str:
+        # Phase C: Gemini single-prompt via same server-side path
+        if "generativelanguage" in ep.base_url:
+            content, _, _ = await self._call_gemini_chat(ep, [{"role": "user", "content": prompt}])
+            return content
         headers = {}
         if ep.api_key:
             headers["Authorization"] = f"Bearer {ep.api_key}"

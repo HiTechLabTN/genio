@@ -210,7 +210,7 @@ export default function App() {
           <Dashboard
             key="dashboard-gemini"
             node="Gemini Cloud"
-            host="generativelanguage.googleapis.com"
+            host="genio-server"
             apiKey={getGoogleToken() || undefined}
             telemetry={telemetry}
             telemetryStale={telemetryStale}

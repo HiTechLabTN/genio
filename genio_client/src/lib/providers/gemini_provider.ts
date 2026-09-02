@@ -1,7 +1,10 @@
 /**
- * Gemini Engine Provider — Phase 1.
- * Maps Genio internal execution schema (streaming, tool calls) to Gemini API natively.
- * User never sees Gemini interface — Genio UI is sole interface.
+ * Gemini Engine Provider — Phase C (server-proxied).
+ * Client never holds the Gemini API key and never calls
+ * generativelanguage.googleapis.com directly. All Gemini traffic
+ * is routed through the Genio server via ModelRouter (GENIO_GEMINI_API_KEY
+ * lives only in the server env). This file is the client-side
+ * adapter that calls the server proxy.
  */
 
 import type { Attachment, ChatEvent } from "../types";
@@ -9,12 +12,15 @@ import { GENIO_PERSONA_PROMPT } from "../persona";
 import { getGoogleToken } from "../googleAuth";
 
 export const GEMINI_MODEL = "gemini-2.0-flash";
-export const GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta";
+// Server proxy base — never the Google endpoint directly
+export const GEMINI_API_BASE = "/api/v1/gemini";
 
 export interface GeminiConfig {
   apiKey?: string;
   oauthToken?: string;
   model?: string;
+  /** Optional server base to proxy through (e.g. http://TN_VPS:8000) */
+  serverBase?: string;
 }
 
 function resolveAuth(config?: GeminiConfig): string | null {
@@ -22,18 +28,13 @@ function resolveAuth(config?: GeminiConfig): string | null {
   if (config?.oauthToken) return config.oauthToken;
   const token = getGoogleToken();
   if (token) return token;
-  return (import.meta.env.VITE_GEMINI_API_KEY as string) || null;
+  return null;
 }
 
-function buildUrl(model: string, auth: string | null, stream: boolean): string {
-  const m = model || GEMINI_MODEL;
-  const base = `${GEMINI_API_BASE}/models/${m}:${stream ? "streamGenerateContent" : "generateContent"}`;
-  if (!auth) return base;
-  // OAuth token uses Authorization header, API key uses ?key=
-  if (auth.startsWith("mock-") || auth.startsWith("ya29.") || auth.includes(".")) {
-    return base;
-  }
-  return `${base}?key=${encodeURIComponent(auth)}`;
+function buildUrl(config?: GeminiConfig, stream: boolean = true): string {
+  const base = (config?.serverBase?.replace(/\/$/, "") ?? "") + GEMINI_API_BASE;
+  const m = config?.model || GEMINI_MODEL;
+  return `${base}/models/${m}:${stream ? "streamGenerateContent" : "generateContent"}`;
 }
 
 function toGeminiParts(prompt: string, attachments?: Attachment[]): Array<Record<string, unknown>> {
@@ -77,14 +78,17 @@ export interface GeminiStreamChunk {
 }
 
 /**
- * Stream Gemini with persona injection. Yields text chunks mapped to Genio ChatEvent types.
+ * Stream Gemini via the Genio server proxy (never direct to Google).
+ * The server reads GENIO_GEMINI_API_KEY from its env and forwards
+ * to generativelanguage.googleapis.com using ModelRouter.
  */
 export async function* streamGemini(
   prompt: string,
   opts?: { config?: GeminiConfig; attachments?: Attachment[]; signal?: AbortSignal }
 ): AsyncGenerator<GeminiStreamChunk> {
   const auth = resolveAuth(opts?.config);
-  const url = buildUrl(opts?.config?.model || GEMINI_MODEL, auth, true);
+  // Server proxy URL — no key in query, auth via header forwarded to server
+  const url = buildUrl(opts?.config, true);
 
   const body = {
     contents: [{ role: "user", parts: toGeminiParts(prompt, opts?.attachments) }],
@@ -93,13 +97,10 @@ export async function* streamGemini(
     tools: [{ functionDeclarations: mapToolCallsToDeclarations() }],
   };
 
-  // Hotfix v2.2: NO MOCK — use real Gemini API exclusively. Prompt leakage via mock is removed.
-  // systemInstruction is the ONLY place for Darija persona; never appended to contents.
   if (!auth) {
     throw new Error("السيرفر طايح توا، ما نجمش نكوّنكتي.");
   }
   if (auth.startsWith("mock-")) {
-    // Mock tokens (CI/dev bypass) must not leak system instructions — fail fast with Tunisian down message
     throw new Error("السيرفر طايح توا، ما نجمش نكوّنكتي.");
   }
 
@@ -153,7 +154,6 @@ export async function* streamGemini(
           const cands = (json.candidates || []) as Array<{ content?: { parts?: Array<{ text?: string; functionCall?: { name: string; args: Record<string, unknown> } }> } }>;
           for (const c of cands) {
             for (const p of c.content?.parts ?? []) {
-              // Loop breaker: detect /* thinking */ without valid tool/answer
               if (p.text) {
                 const trimmed = p.text.trim();
                 const isThinking = trimmed === "/* thinking */" || trimmed.includes("/* thinking */");
@@ -164,7 +164,7 @@ export async function* streamGemini(
                     try { await reader.cancel(); } catch {}
                     return;
                   }
-                  continue; // suppress thinking marker, do not yield
+                  continue;
                 }
                 thinkingStreak = 0;
                 yield { text: p.text, raw: json };
@@ -188,7 +188,7 @@ export async function* streamGemini(
 }
 
 /**
- * Non-streaming helper — returns full text.
+ * Non-streaming helper — returns full text via server proxy.
  */
 export async function generateGemini(prompt: string, opts?: { config?: GeminiConfig; attachments?: Attachment[] }): Promise<string> {
   let out = "";
