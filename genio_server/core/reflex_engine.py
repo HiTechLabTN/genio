@@ -347,15 +347,12 @@ class ReflexEngine:
             # Keep stopwords only if they are among the longest? Prefer non-stop.
             candidates = [w for w in unique_sorted if w not in _stop]
             if len(candidates) < 3:
-                # fallback: include stopwords if not enough discriminative tokens
-                candidates = unique_sorted
-            top = candidates[:3] if len(candidates) >= 3 else candidates[:2] if len(candidates) >= 2 else candidates[:1]
+                return False
+            top = candidates[:3]
             if len(top) >= 2:
                 # Build lookahead regex requiring all top keywords in any order
                 parts = "".join(rf"(?=.*\b{re.escape(w)}\b)" for w in top)
                 prompt_re = parts + r".*"
-            else:
-                prompt_re = rf"\b{re.escape(top[0])}\b" if top else None
         else:
             keyword = " ".join(dict.fromkeys(key_tokens))[:80] if key_tokens else name
             prompt_re = rf"\b{re.escape(keyword.split()[0])}\b" if keyword else None
