@@ -61,11 +61,12 @@ jobs:
       - name: List build outputs
         if: always()
         working-directory: genio_client
+        shell: bash
         run: |
           echo "=== release-builds ==="
           ls -R release-builds 2>&1 || echo "no release-builds"
           echo "=== dist ==="
-          ls -la dist 2>&1 | head -30
+          ls -R dist 2>&1 | head -50 || ls -la dist 2>&1 | head -50
       - name: Derive version
         id: ver
         run: |
