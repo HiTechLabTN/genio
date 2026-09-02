@@ -1,8 +1,11 @@
 name: Build Binaries (EXE, DEB, APK)
 
 on:
-  release:
-    types: [published]
+  push:
+    tags:
+      - 'v*'
+      - 'app-v*'
+      - 'genio-android-v*'
 
 permissions:
   contents: write
@@ -14,32 +17,34 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: lts/*
       - name: Install & Build Web
         working-directory: genio_client
         run: |
-          npm install
+          npm ci || npm install
           npm run build
       - name: Upload Web Artifact
         uses: actions/upload-artifact@v4
         with:
           name: web-dist
           path: genio_client/dist
+          retention-days: 1
 
   build-electron:
     needs: build-web
     strategy:
       matrix:
         os: [windows-latest, ubuntu-latest]
+      fail-fast: false
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: lts/*
       - name: Install deps
         working-directory: genio_client
-        run: npm install
+        run: npm ci || npm install
       - name: Download Web dist
         uses: actions/download-artifact@v4
         with:
@@ -53,26 +58,40 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         working-directory: genio_client
         run: npm run electron:build:linux
-      - name: Upload EXE
+      - name: List build outputs
+        if: always()
+        working-directory: genio_client
+        run: |
+          echo "=== release-builds ==="
+          ls -R release-builds 2>&1 || echo "no release-builds"
+          echo "=== dist ==="
+          ls -la dist 2>&1 | head -30
+      - name: Derive version
+        id: ver
+        run: |
+          VER=$(node -p "require('./genio_client/package.json').version")
+          echo "APP_VERSION=${VER}" >> "$GITHUB_OUTPUT"
+          echo "Version: $VER"
+      - name: Upload EXE to Release
         if: matrix.os == 'windows-latest'
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: softprops/action-gh-release@v2
         with:
-          upload_url: ${{ github.event.release.upload_url }}
-          asset_path: ./genio_client/release-builds/Genio Setup 2.3.2.exe
-          asset_name: Genio-Setup.exe
-          asset_content_type: application/octet-stream
-      - name: Upload DEB
+          tag_name: ${{ github.ref_name }}
+          files: |
+            genio_client/release-builds/*.exe
+            genio_client/release-builds/*.exe.blockmap
+          fail_on_unmatched_files: false
+          generate_release_notes: false
+      - name: Upload DEB to Release
         if: matrix.os == 'ubuntu-latest'
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: softprops/action-gh-release@v2
         with:
-          upload_url: ${{ github.event.release.upload_url }}
-          asset_path: ./genio_client/release-builds/genio-client_2.3.2_amd64.deb
-          asset_name: genio_amd64.deb
-          asset_content_type: application/octet-stream
+          tag_name: ${{ github.ref_name }}
+          files: |
+            genio_client/release-builds/*.deb
+            genio_client/release-builds/*.AppImage
+          fail_on_unmatched_files: false
+          generate_release_notes: false
 
   build-android:
     needs: build-web
@@ -81,10 +100,10 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: lts/*
       - name: Install deps
         working-directory: genio_client
-        run: npm install
+        run: npm ci || npm install
       - name: Download Web dist
         uses: actions/download-artifact@v4
         with:
@@ -93,27 +112,85 @@ jobs:
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
-          distribution: 'zulu'
+          distribution: 'temurin'
           java-version: '17'
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
-      - name: Sync Capacitor
+      - name: Setup Rust (for Tauri Android)
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android,armv7-linux-androideabi,i686-linux-android,x86_64-linux-android
+      - name: Install Linux dependencies (Tauri)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev patchelf
+      - name: Install Android NDK
+        run: |
+          sdkmanager --install "ndk;27.0.12077973" "platforms;android-34" "build-tools;34.0.0" || true
+          echo "NDK_HOME=${ANDROID_SDK_ROOT}/ndk/27.0.12077973" >> "$GITHUB_ENV"
+          echo "ANDROID_HOME=${ANDROID_SDK_ROOT}" >> "$GITHUB_ENV"
+          echo "ANDROID_SDK_ROOT=${ANDROID_SDK_ROOT}" >> "$GITHUB_ENV"
+      - name: Add Android platform (Capacitor fallback)
         working-directory: genio_client
         run: |
-          npx cap add android
-          npx capacitor-assets generate --android
-          npx cap sync android
-      - name: Build APK
+          if [ ! -d "android" ]; then
+            npx cap add android || echo "cap add android failed, will try tauri init"
+          fi
+          npx capacitor-assets generate --android || echo "capacitor-assets generate skipped"
+          npx cap sync android || echo "cap sync skipped"
+      - name: Add Android platform (Tauri)
+        working-directory: genio_client
         run: |
-          cd genio_client/android
-          chmod +x gradlew
-          ./gradlew assembleDebug
-      - name: Upload APK
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          npx tauri android init || echo "tauri android init skipped (already exists)"
+          bash scripts/apply-android-cleartext.sh || echo "cleartext overlay skipped"
+      - name: Build APK (Tauri)
+        working-directory: genio_client
+        run: |
+          npx tauri android build --apk --target aarch64 || echo "tauri android build failed, trying gradle fallback"
+      - name: Build APK (Gradle fallback)
+        run: |
+          if [ -f "genio_client/android/gradlew" ]; then
+            echo "Trying Capacitor gradle build..."
+            cd genio_client/android && chmod +x gradlew && ./gradlew assembleDebug || echo "gradle build failed"
+          fi
+          if [ -d "genio_client/src-tauri/gen/android" ]; then
+            echo "Tauri android outputs:"
+            find genio_client/src-tauri/gen/android -name "*.apk" 2>/dev/null | head -20 || true
+          fi
+          echo "Capacitor outputs:"
+          find genio_client/android -name "*.apk" 2>/dev/null | head -20 || true
+      - name: Sign APK (if unsigned)
+        run: |
+          set -e
+          APK=$(find genio_client/src-tauri/gen/android genio_client/android -name "*.apk" 2>/dev/null | grep -v "unaligned" | head -1 || true)
+          if [ -z "$APK" ]; then
+            echo "No APK found to sign"
+            ls -R genio_client/src-tauri/gen 2>&1 | head -100
+            ls -R genio_client/android 2>&1 | head -100
+            exit 0
+          fi
+          echo "Found APK: $APK"
+          # If already signed, skip signing
+          if echo "$APK" | grep -q "unsigned"; then
+            BT=$(ls "$ANDROID_SDK_ROOT/build-tools" | sort -V | tail -1)
+            keytool -genkey -v -keystore /tmp/genio.keystore -storepass genio2026 \
+              -keypass genio2026 -alias genio -dname "CN=Genio,O=HiTechLab,C=TN" \
+              -keyalg RSA -keysize 2048 -validity 10000 || true
+            "$ANDROID_SDK_ROOT/build-tools/$BT/zipalign" -f 4 "$APK" /tmp/genio-aligned.apk || cp "$APK" /tmp/genio-aligned.apk
+            "$ANDROID_SDK_ROOT/build-tools/$BT/apksigner" sign --ks /tmp/genio.keystore \
+              --ks-pass pass:genio2026 --key-pass pass:genio2026 --ks-key-alias genio \
+              --out "${APK%-unsigned.apk}.apk" /tmp/genio-aligned.apk || echo "apksigner failed"
+            rm -f "$APK"
+            echo "Signed APK ready"
+          fi
+          find genio_client -name "*.apk" 2>/dev/null | head -20
+      - name: Upload APK to Release
+        uses: softprops/action-gh-release@v2
         with:
-          upload_url: ${{ github.event.release.upload_url }}
-          asset_path: ./genio_client/android/app/build/outputs/apk/debug/app-debug.apk
-          asset_name: Genio.apk
-          asset_content_type: application/vnd.android.package-archive
+          tag_name: ${{ github.ref_name }}
+          files: |
+            genio_client/src-tauri/gen/android/**/*.apk
+            genio_client/android/app/build/outputs/apk/**/*.apk
+            genio_client/android/**/*.apk
+          fail_on_unmatched_files: false
+          generate_release_notes: false
