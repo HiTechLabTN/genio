@@ -21,6 +21,8 @@ import SystemMetrics from "./components/hud/SystemMetrics";
 import BrainActivity from "./components/hud/BrainActivity";
 import MatrixTaskScreen from "./components/hud/MatrixTaskScreen";
 import SplashScreen from "./components/layout/SplashScreen";
+import { lazy, Suspense } from "react";
+const LivingMascot3D = lazy(() => import("./components/mascot/LivingMascot3D"));
 
 export default function App() {
   const [showSplash, setShowSplash] = useState(true);
@@ -307,11 +309,19 @@ export default function App() {
         </div>
       )}
 
-      {/* z-10 HologramMascot — F2: h-[35vh] avatar zone visible immediately at idle, no empty area */}
+      {/* Living 3D Mascot — Canvas absolute inset-0 z-1, centred upper third (~70vh portrait), fallback to HologramMascot */}
       {showV3Portal && (
-        <div className={`absolute z-10 flex h-[35vh] w-full items-center justify-center ${mascotStatus === "answering" ? "right-6 top-20 md:right-10 md:top-24 left-auto translate-x-0 w-auto" : "left-1/2 top-[72px] -translate-x-1/2 md:top-[80px]"}`} style={{ pointerEvents: mascotStatus === "answering" ? "auto" : "auto" }}>
-          <ErrorBoundary name="HologramMascot">
-            <HologramMascot status={mascotStatus} audioLevel={audioLevel} isMinimized={mascotStatus === "answering" || expanded} />
+        <div className="absolute inset-0 z-[1]">
+          <ErrorBoundary name="LivingMascot3D">
+            <Suspense
+              fallback={
+                <div className="absolute z-10 flex h-[35vh] w-full items-center justify-center left-1/2 top-[72px] -translate-x-1/2 md:top-[80px]">
+                  <HologramMascot status={mascotStatus} audioLevel={audioLevel} isMinimized={mascotStatus === "answering" || expanded} />
+                </div>
+              }
+            >
+              <LivingMascot3D status={mascotStatus} audioLevel={audioLevel} />
+            </Suspense>
           </ErrorBoundary>
         </div>
       )}

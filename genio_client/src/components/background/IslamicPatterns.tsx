@@ -39,13 +39,13 @@ const IslamicPatterns = memo(function IslamicPatterns() {
       >
         <defs>
           <pattern id="andalusian-stars" width="120" height="120" patternUnits="userSpaceOnUse">
-            {/* 8-point star — cyan .12 */}
-            <g stroke="#22d3ee" strokeWidth="1.2" fill="none" opacity={0.12}>
+            {/* 8-point star — cyan .07 (light) + additive glow */}
+            <g stroke="#22d3ee" strokeWidth="1.2" fill="none" opacity={0.07}>
               <path d="M60 12 L66 28 L82 28 L70 38 L74 54 L60 44 L46 54 L50 38 L38 28 L54 28 Z" />
               <path d="M60 12 L60 54 M38 28 L82 28 M46 18 L74 42 M74 18 L46 42" opacity={0.5} />
             </g>
-            {/* inner 8-point — gold .08 */}
-            <g stroke="#FFD700" strokeWidth="0.9" fill="none" opacity={0.08}>
+            {/* inner 8-point — gold .07 light */}
+            <g stroke="#FFD700" strokeWidth="0.9" fill="none" opacity={0.07}>
               <path d="M60 35 L63 41 L69 41 L64 45 L66 51 L60 47 L54 51 L56 45 L51 41 L57 41 Z" />
             </g>
           </pattern>
