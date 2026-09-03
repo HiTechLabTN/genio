@@ -149,6 +149,14 @@ jobs:
         working-directory: genio_client
         run: |
           npx tauri android build --apk --target aarch64 || echo "tauri android build failed, trying gradle fallback"
+      - name: Build AAB (Tauri)
+        working-directory: genio_client
+        run: |
+          npx tauri android build --aab --target aarch64 || echo "tauri android AAB build failed, trying gradle bundle"
+          if [ -f "genio_client/android/gradlew" ]; then
+            echo "Trying Capacitor bundleRelease..."
+            cd genio_client/android && chmod +x gradlew && ./gradlew bundleRelease || echo "gradle bundleRelease failed"
+          fi
       - name: Build APK (Gradle fallback)
         run: |
           if [ -f "genio_client/android/gradlew" ]; then
@@ -157,10 +165,10 @@ jobs:
           fi
           if [ -d "genio_client/src-tauri/gen/android" ]; then
             echo "Tauri android outputs:"
-            find genio_client/src-tauri/gen/android -name "*.apk" 2>/dev/null | head -20 || true
+            find genio_client/src-tauri/gen/android -name "*.apk" -o -name "*.aab" 2>/dev/null | head -20 || true
           fi
           echo "Capacitor outputs:"
-          find genio_client/android -name "*.apk" 2>/dev/null | head -20 || true
+          find genio_client/android -name "*.apk" -o -name "*.aab" 2>/dev/null | head -20 || true
       - name: Sign APK (if unsigned)
         run: |
           set -e
@@ -185,7 +193,7 @@ jobs:
             rm -f "$APK"
             echo "Signed APK ready"
           fi
-          find genio_client -name "*.apk" 2>/dev/null | head -20
+          find genio_client -name "*.apk" -o -name "*.aab" 2>/dev/null | head -20
       - name: Upload APK to Release
         uses: softprops/action-gh-release@v2
         with:
@@ -194,5 +202,22 @@ jobs:
             genio_client/src-tauri/gen/android/**/*.apk
             genio_client/android/app/build/outputs/apk/**/*.apk
             genio_client/android/**/*.apk
+            genio_client/src-tauri/gen/android/**/*.aab
+            genio_client/android/app/build/outputs/bundle/**/*.aab
+            genio_client/android/**/*.aab
+          fail_on_unmatched_files: false
+          generate_release_notes: false
+      - name: Upload Web Bundle to Release
+        run: |
+          cd genio_client
+          zip -r ../Genio-Web-${{ github.ref_name }}.zip dist 2>&1 | tail -5
+          ls -lh ../Genio-Web-*.zip 2>&1 | head -5
+        # upload web bundle via same release
+      - name: Upload Web Bundle Artifact to Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          files: |
+            Genio-Web-*.zip
           fail_on_unmatched_files: false
           generate_release_notes: false
