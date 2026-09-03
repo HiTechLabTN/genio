@@ -1,3 +1,4 @@
+import splashAnime from "../../assets/splash/splash-anime.png";
 import { useEffect, useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -109,7 +110,7 @@ export default function SplashScreen({ onReady }: Props) {
             {/* splash image #10 */}
             <div className="relative">
               <img
-                src="/src/assets/splash/splash-anime.png"
+                src={splashAnime}
                 alt="Genio splash"
                 className="h-[42vh] w-auto object-contain drop-shadow-[0_0_40px_rgba(34,211,238,0.35)] md:h-[48vh]"
                 onError={(e) => {
