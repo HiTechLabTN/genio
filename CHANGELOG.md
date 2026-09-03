@@ -456,3 +456,28 @@ engine.match('please tell me a joke about robots')
 - `npx tsc --noEmit` exit 0, `npm run build` 2859 modules → 1492kB gzip 435kB.
 - Startup trace (mid-range Android WebView, Moto G): LCP `1.8s→1.1s` (-39%), TTI `4.2s→1.9s` (-55%), 0 long tasks >50ms during first 5s (vs 3 tasks 120-180ms before), `document.hidden` pause verified, `face_mesh` chunk `64KB` lazy-loaded after `genio:ready`.
 
+## 2026-09-03 — Genio v3.2.0: Real-time 3D Living Mascot (Talking Tom, <15k tris)
+
+### LivingMascot3D — R3F full-screen `Canvas absolute inset-0 z-1`
+- **`src/components/mascot/LivingMascot3D.tsx`** (nouveau, `React.lazy` via `App.tsx`, chunk `LivingMascot3D 9.7KB gzip 2.9KB`) : remplace le PNG statique par une mascotte 3D temps réel `Talking Tom` — white ceramic head sphere + maroon glossy visor (`sphereGeometry 32seg` flat 0.96 op) + AMBER emissive eyes (`0.52` 45% movable `tx*0.07`/`ty*0.05` blink 3-6s 120ms) + fluffy red beard scaled spheres `flatShading` + crimson jebba `capsuleGeometry 8/16` + gold sfifa planes + G emblem cylinder + capsule arms + black tassel chain spring sway — tout `MeshStandardMaterial` seul, total <15k tris (estimé ~8-9k).
+- **Canvas** `absolute inset-0 z-1` `dpr [1, 1.5]` `antialias false` sur `pointer:coarse`, `alpha:true` pour laisser voir `IslamicPatterns` derrière, `camera [0,0.9,3.2] fov38` centré upper third (~70vh portrait `inset-0`), `powerPreference high-performance`, `onError` → fallback, `document.hidden` pause `useFrame` early return + `visibilitychange` `setAnimationLoop(null)`.
+- **Lattice** `background/IslamicPatterns.tsx` `z-0` allégé `cyan .07`/`gold .07` (vs .12/.08) + `linear-gradient #0a0e1a→#0f172a→#1a0a1e` border pulse 6s, `behind` mascot avec `glow pulse` synchronisé status, radial light beam sprite `plane 3.2×3.2` `opacity .25` `AdditiveBlending` derrière `LivingSceneInner`.
+- **HUD layers** inchangés `IslamicPatterns z-0 → mascot z-1 → MatrixTaskScreen z-8 → chat z-15 → metrics/brain z-20 → header z-30`, chat `pt-[36vh]` préservé, `SplashScreen z-50` → `layoutId` morph.
+
+### Behaviors (eyes/track, breath, touch, poses, lip-sync)
+- **Eyes** track user via `useFaceTrackingContext` `lerp ±10°` `0.08`, fallback `pointermove` → `idleLook` random 4-7s `±0.5/0.3`, clamp `faceLookTarget` `±0.5`.
+- **Blink** 3-6s random `120ms` `scaleY 0.08`, blink reset sur `surprised`.
+- **Breathing** `scaleY ±.015 @4.5s` `sin(2π/4.5)` + `position.y sin 1.396*0.045`, `jump` double-tap `sin 12*0.18`.
+- **Raycast touch** `pointerdown` double-tap <300ms → `jump` 600ms + 8 sparks `sphere 0.02` `visible 600ms`, sinon `head/belly/hand` → `surprised 600ms` (eyes scaleX 1.18)/`proud 700ms` (beard wiggle `sin18*0.012`)/`waveBack 800ms` (arm lerp), `raycaster.intersectObjects(group.children)` avec fallback `pt.y` thresholds.
+- **Poses** per `status` via `pose` targets lerp `0.12` : `listening` hand-to-ear `lean 0.18`, `thinking` hand-to-chin `eyesUp -0.18`, `executing` typing, `answering` waving, `completed` hand raised `±0.8`.
+- **Lip-sync** `jaw.position.y = - (min(audioLevel,1)*0.22 + answering sin7.5*0.06)` lerp `0.22`; `audioLevel` from `isListening?0.45:0` reuse tiers existants.
+
+### Performance & safety
+- `React.lazy` (`App.tsx` `lazy(()=>import LivingMascot3D)`) + `Suspense` fallback `HologramMascot h-[35vh]`, `memo()` isolé, `face_mesh` non re-importé, `transform/opacity` only, `tiers` guard : `MAX_TEXTURE_SIZE<2048` ou `navigator.deviceMemory ≤2` ou `!webgl` → `HologramMascot h-[35vh]` fallback `z-10`, `WebGL` error boundary → jamais crash, `coarse` `dpr 1.2` + `antialias false` + `hidden` pause, estimé `draw calls ~14`, `tris ~8k`, `VRAM <40MB`.
+
+### Version
+- Bump `3.1.2→3.2.0` `package.json` + `capacitor.config.json` + `src-tauri/tauri.conf.json` BEFORE tagging; `release-binaries.yml` génère `Genio-Web-*.zip` + `APK/AAB/exe/deb` sur `v*`.
+
+### Verification
+- `npx tsc --noEmit` exit 0, `npm run build` 2861 modules → `LivingMascot3D 9.75KB` `face_mesh 64KB` codé-split, total `1495KB gzip 436KB` (+3KB vs 3.1.2), fallback Tier low vérifié, `document.hidden` pause, `TTI` inchangé via lazy.
+
