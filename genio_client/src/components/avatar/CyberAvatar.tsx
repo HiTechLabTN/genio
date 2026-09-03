@@ -162,7 +162,7 @@ function CyborgHead({ target, mode, audioLevel, isGreeting }: HeadProps) {
       </mesh>
       {/* Golden G on chest — self-hosted font for offline support (was fonts.gstatic.com) */}
       <mesh position={[0, -0.55, 0.15]}>
-        <Text fontSize={0.14} color="#FFD700" anchorX="center" anchorY="middle" outlineWidth={0.008} outlineColor="#7A5A00" font="/fonts/orbitron.ttf">
+        <Text fontSize={0.14} color="#FFD700" anchorX="center" anchorY="middle" outlineWidth={0.008} outlineColor="#7A5A00" font="/fonts/orbitron-900.woff2">
           G
         </Text>
       </mesh>

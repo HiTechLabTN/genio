@@ -2,12 +2,25 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Self-hosted Orbitron for offline support (was fonts.gstatic.com) */
+/* Self-hosted Orbitron — real font (OFL-1.1, via @fontsource/orbitron), not a
+   DejaVuSans substitute — for offline support (was fonts.gstatic.com) */
 @font-face {
   font-family: "Orbitron";
-  src: url("/fonts/orbitron.ttf") format("truetype");
+  src: url("/fonts/orbitron-400.woff2") format("woff2");
   font-display: swap;
-  font-weight: 400 900;
+  font-weight: 400;
+}
+@font-face {
+  font-family: "Orbitron";
+  src: url("/fonts/orbitron-700.woff2") format("woff2");
+  font-display: swap;
+  font-weight: 700;
+}
+@font-face {
+  font-family: "Orbitron";
+  src: url("/fonts/orbitron-900.woff2") format("woff2");
+  font-display: swap;
+  font-weight: 900;
 }
 
 :root {
