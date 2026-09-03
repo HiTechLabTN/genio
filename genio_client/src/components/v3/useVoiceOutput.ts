@@ -5,13 +5,14 @@ export function useVoiceOutput() {
 
   const stop = useCallback(() => {
     try {
-      window.speechSynthesis.cancel();
+      window.speechSynthesis?.cancel();
       utterRef.current = null;
     } catch { /* ignore */ }
   }, []);
 
   const speak = useCallback((text: string, lang = "en-US") => {
     if (!text?.trim()) return;
+    if (typeof window === "undefined" || !window.speechSynthesis) return;
     // stop previous
     try { window.speechSynthesis.cancel(); } catch { /* ignore */ }
     // pick voice
@@ -29,14 +30,15 @@ export function useVoiceOutput() {
     try { window.speechSynthesis.speak(utter); } catch { /* ignore */ }
   }, []);
 
-  // prime voices (Chrome lazy-loads)
+  // prime voices (Chrome lazy-loads) — guard for Android WebView where speechSynthesis may be undefined
   useEffect(() => {
+    if (typeof window === "undefined" || !window.speechSynthesis) return;
     try { window.speechSynthesis.getVoices(); } catch { /* ignore */ }
-    const onVoices = () => { try { window.speechSynthesis.getVoices(); } catch { /* ignore */ } };
-    window.speechSynthesis.addEventListener?.("voiceschanged", onVoices as EventListener);
+    const onVoices = () => { try { window.speechSynthesis?.getVoices(); } catch { /* ignore */ } };
+    window.speechSynthesis?.addEventListener?.("voiceschanged", onVoices as EventListener);
     return () => {
-      window.speechSynthesis.removeEventListener?.("voiceschanged", onVoices as EventListener);
-      try { window.speechSynthesis.cancel(); } catch { /* ignore */ }
+      window.speechSynthesis?.removeEventListener?.("voiceschanged", onVoices as EventListener);
+      try { window.speechSynthesis?.cancel(); } catch { /* ignore */ }
     };
   }, []);
 
