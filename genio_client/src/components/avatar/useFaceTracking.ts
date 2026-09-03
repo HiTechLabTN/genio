@@ -51,7 +51,6 @@ export function useFaceTracking(enabled: boolean): {
     let stream: MediaStream | null = null;
     let faceMesh: { send: (opts: { image: HTMLVideoElement }) => Promise<unknown>; close: () => void } | null = null;
     let animId = 0;
-    let ready = false;
 
     // F3: gate face_mesh import until genio:ready + idle + camera permission granted
     function waitForReady(): Promise<void> {

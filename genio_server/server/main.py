@@ -734,3 +734,7 @@ def root() -> Dict[str, Any]:
         "auth_required": bool(API_KEY),
         "model": AgentLoop().model,
     }
+@app.get("/health")
+async def health_check():
+    return {"status": "ok", "service": "genio-core", "version": "3.1.2"}
+

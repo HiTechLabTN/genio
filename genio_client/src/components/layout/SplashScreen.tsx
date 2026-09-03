@@ -69,7 +69,7 @@ export default function SplashScreen({ onReady }: Props) {
     timers.push(d as unknown as number);
 
     const onReadyEvent = () => hide();
-    window.addEventListener("genio:ready" as unknown as string, onReadyEvent);
+    window.addEventListener("genio:ready" as any, onReadyEvent);
 
     const fallback = window.setTimeout(() => hide(), 5000);
     timers.push(fallback as unknown as number);
@@ -87,7 +87,7 @@ export default function SplashScreen({ onReady }: Props) {
     return () => {
       timers.forEach((id) => clearTimeout(id));
       clearInterval(d);
-      window.removeEventListener("genio:ready" as unknown as string, onReadyEvent);
+      window.removeEventListener("genio:ready" as any, onReadyEvent);
     };
   }, [onReady]);
 
@@ -105,7 +105,7 @@ export default function SplashScreen({ onReady }: Props) {
             animate={{ transform: "perspective(900px) rotateX(0deg) scale(1)", opacity: 1 }}
             transition={{ type: "spring", damping: 18, stiffness: 140, duration: 0.9 }}
             className="relative flex flex-col items-center"
-            style={{ transformStyle: "preserve-3d" as unknown as string }}
+            style={{ transformStyle: "preserve-3d" as any }}
           >
             <motion.div
               animate={{ y: [0, -10, 0] }}
@@ -150,14 +150,14 @@ export default function SplashScreen({ onReady }: Props) {
                         alt=""
                         aria-hidden
                         className="pointer-events-none absolute inset-0 h-[42vh] w-auto object-contain md:h-[48vh]"
-                        style={{ mixBlendMode: "screen" as unknown as string, transform: "translateX(-2px)", filter: "hue-rotate(160deg) saturate(1.4)", opacity: 0.5 }}
+                        style={{ mixBlendMode: "screen" as any, transform: "translateX(-2px)", filter: "hue-rotate(160deg) saturate(1.4)", opacity: 0.5 }}
                       />
                       <img
                         src={splashAnime}
                         alt=""
                         aria-hidden
                         className="pointer-events-none absolute inset-0 h-[42vh] w-auto object-contain md:h-[48vh]"
-                        style={{ mixBlendMode: "screen" as unknown as string, transform: "translateX(2px)", filter: "hue-rotate(340deg) saturate(1.4)", opacity: 0.5 }}
+                        style={{ mixBlendMode: "screen" as any, transform: "translateX(2px)", filter: "hue-rotate(340deg) saturate(1.4)", opacity: 0.5 }}
                       />
                     </>
                   )}
@@ -166,7 +166,7 @@ export default function SplashScreen({ onReady }: Props) {
                     className="pointer-events-none absolute inset-0"
                     style={{
                       background: "repeating-linear-gradient(0deg, transparent 0 2px, rgba(34,211,238,0.07) 2px 3px)",
-                      mixBlendMode: "screen" as unknown as string,
+                      mixBlendMode: "screen" as any,
                     }}
                   />
                 </div>

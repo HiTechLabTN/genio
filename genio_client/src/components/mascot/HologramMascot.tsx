@@ -82,7 +82,6 @@ const HologramMascot = memo(function HologramMascot({ status, audioLevel = 0, is
       const rest = all.filter((s) => s !== src);
       for (const u of rest) {
         const img = new Image();
-        // @ts-expect-error fetchPriority is Chrome-only
         img.fetchPriority = "low";
         img.decoding = "async";
         img.src = u;
