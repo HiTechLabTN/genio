@@ -52,8 +52,67 @@ export function useFaceTracking(enabled: boolean): {
     let faceMesh: { send: (opts: { image: HTMLVideoElement }) => Promise<unknown>; close: () => void } | null = null;
     let animId = 0;
 
+    // F3: gate face_mesh import until genio:ready + idle + camera permission granted
+    function waitForReady(): Promise<void> {
+      return new Promise((resolve) => {
+        let done = false;
+        const finish = () => { if (!done) { done = true; resolve(); } };
+        // if already ready (SplashScreen hidden), check flag on window
+        if ((window as unknown as { __GENIO_READY__?: boolean }).__GENIO_READY__) return finish();
+        const onReady = () => { window.removeEventListener("genio:ready" as unknown as string, onReady); finish(); };
+        window.addEventListener("genio:ready" as unknown as string, onReady);
+        // idle + visible check
+        const checkIdle = () => {
+          if (document.visibilityState === "visible" && !document.hidden) return true;
+          return false;
+        };
+        // if not visible, wait for visible
+        if (!checkIdle()) {
+          const onVis = () => { if (checkIdle()) { document.removeEventListener("visibilitychange", onVis); finish(); } };
+          document.addEventListener("visibilitychange", onVis);
+          // timeout fallback 2s
+          window.setTimeout(finish, 2000);
+        } else {
+          // also wait a tiny idle via requestIdleCallback
+          const ric = (window as unknown as { requestIdleCallback?: (cb: () => void) => number }).requestIdleCallback;
+          if (ric) ric(() => finish());
+          else window.setTimeout(finish, 600);
+        }
+        // hard timeout 3s
+        window.setTimeout(finish, 3000);
+      });
+    }
+
+    async function hasCameraPermission(): Promise<boolean> {
+      try {
+        // @ts-ignore
+        const perm = await navigator.permissions?.query?.({ name: "camera" as PermissionName });
+        if (perm && perm.state === "granted") return true;
+        if (perm && perm.state === "denied") return false;
+      } catch { /* ignore */ }
+      // fallback: try to query via getUserMedia with ideal, but don't actually open yet
+      return true; // assume granted, getUserMedia will handle denial gracefully
+    }
+
     async function setup() {
       try {
+        await waitForReady();
+        if (cancelled) return;
+        if (document.hidden) {
+          // wait for visible
+          await new Promise<void>((res) => {
+            const onVis = () => { if (!document.hidden) { document.removeEventListener("visibilitychange", onVis); res(); } };
+            document.addEventListener("visibilitychange", onVis);
+            window.setTimeout(() => { document.removeEventListener("visibilitychange", onVis); res(); }, 2000);
+          });
+        }
+        if (cancelled) return;
+        const hasPerm = await hasCameraPermission();
+        if (!hasPerm) {
+          // F4: graceful degradation, mascot centered (no face tracking)
+          setActive(false);
+          return;
+        }
         const { FaceMesh } = await import("@mediapipe/face_mesh");
         const onResults = (results: { multiFaceLandmarks?: Array<Array<{ x: number; y: number }>> }) => {
           if (cancelled || !results?.multiFaceLandmarks?.length) return;

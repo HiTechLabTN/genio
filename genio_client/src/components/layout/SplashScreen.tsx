@@ -1,4 +1,4 @@
-import splashAnime from "../../assets/splash/splash-anime.png";
+import splashAnime from "../../assets/splash/splash-anime.webp";
 import { useEffect, useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -9,18 +9,18 @@ interface Props {
 }
 
 /**
- * SplashScreen — #10 anime hologram + GENIO wordmark
- * - Native layer: Capacitor native splash + Electron BrowserWindow backgroundColor #0a0e1a (handled natively)
- * - Web layer: overlay z-50, #10 centered, holographic materialize-in (clip-path bottom→top 1.2s + scanlines + cyan particles; transform/opacity only)
- * - Real boot progress (webview ready, providers init, daemon /health) → thin cyan progress ring under GENIO wordmark
- * - Darija status cycling
- * - Hide on 'genio:ready' spring fade+scale-out; hard 5s timeout fallback
- * - Mascot layoutId="genio-avatar" → morphs into HUD mascot
+ * SplashScreen — F1 holographic materialization
+ * - wrapper clip-path inset(100% 0 0 0)→inset(0% 0 0 0) 1.2s ease-out + 2px cyan scanline bar moving with reveal edge
+ * - 3D perspective(900px) rotateX(12deg) scale(1.08)→rotateX(0) scale(1) 0.9s spring; then idle float y[0,-10,0] 4s loop
+ * - chromatic flicker: 2 copies mix-blend screen translateX ±2px tint cyan/red opacity [0,.5,0] first 350ms only
+ * - base ring pulse + rising particles synced to reveal
+ * - ALL transform/opacity/clip-path; no filters. 5s hard timeout
  */
 export default function SplashScreen({ onReady }: Props) {
   const [visible, setVisible] = useState(true);
   const [progress, setProgress] = useState(0);
   const [darija, setDarija] = useState(0);
+  const [flicker, setFlicker] = useState(true);
 
   const realProgress = useMemo(() => progress, [progress]);
 
@@ -28,7 +28,6 @@ export default function SplashScreen({ onReady }: Props) {
     let p = 0;
     const timers: number[] = [];
 
-    // Stage 1: webview ready (0→30)
     const t1 = window.setTimeout(() => {
       const id = window.setInterval(() => {
         p = Math.min(30, p + 4 + Math.random() * 4);
@@ -38,7 +37,6 @@ export default function SplashScreen({ onReady }: Props) {
     }, 120);
     timers.push(t1 as unknown as number);
 
-    // Stage 2: providers init (30→68)
     const t2 = window.setTimeout(() => {
       const id = window.setInterval(() => {
         p = Math.min(68, p + 3 + Math.random() * 3);
@@ -48,7 +46,6 @@ export default function SplashScreen({ onReady }: Props) {
     }, 800);
     timers.push(t2 as unknown as number);
 
-    // Stage 3: daemon /health pre-check 3s (68→100) — never crash, fallback Tier A
     const t3 = window.setTimeout(async () => {
       try {
         const c = new AbortController();
@@ -56,7 +53,7 @@ export default function SplashScreen({ onReady }: Props) {
         const r = await fetch("/health", { signal: c.signal }).catch(() => fetch("http://localhost:8000/api/v1/status", { signal: c.signal }).catch(() => null));
         clearTimeout(to);
         void r;
-      } catch { /* F1: fail → Tier A, keep progress */ }
+      } catch { /* fail → Tier A */ }
       const id = window.setInterval(() => {
         p = Math.min(100, p + 6 + Math.random() * 4);
         setProgress(p);
@@ -68,19 +65,21 @@ export default function SplashScreen({ onReady }: Props) {
     }, 1500);
     timers.push(t3 as unknown as number);
 
-    // Darija cycling every 900ms
     const d = window.setInterval(() => setDarija((v) => (v + 1) % DARIJA.length), 900);
     timers.push(d as unknown as number);
 
-    // genio:ready listener
     const onReadyEvent = () => hide();
-    window.addEventListener("genio:ready" as unknown as string, onReadyEvent);
+    window.addEventListener("genio:ready" as any, onReadyEvent);
 
-    // hard 5s fallback
     const fallback = window.setTimeout(() => hide(), 5000);
     timers.push(fallback as unknown as number);
 
+    // chromatic flicker only first 350ms
+    const flickerOff = window.setTimeout(() => setFlicker(false), 350);
+    timers.push(flickerOff as unknown as number);
+
     function hide() {
+      (window as unknown as { __GENIO_READY__?: boolean }).__GENIO_READY__ = true;
       setVisible(false);
       window.setTimeout(() => onReady?.(), 520);
     }
@@ -88,7 +87,7 @@ export default function SplashScreen({ onReady }: Props) {
     return () => {
       timers.forEach((id) => clearTimeout(id));
       clearInterval(d);
-      window.removeEventListener("genio:ready" as unknown as string, onReadyEvent);
+      window.removeEventListener("genio:ready" as any, onReadyEvent);
     };
   }, [onReady]);
 
@@ -100,51 +99,107 @@ export default function SplashScreen({ onReady }: Props) {
           exit={{ opacity: 0, scale: 0.98, transition: { duration: 0.5, ease: "easeInOut" } }}
           className="fixed inset-0 z-50 flex flex-col items-center justify-center overflow-hidden bg-[#0a0e1a]"
         >
-          {/* holographic materialize container */}
+          {/* 3D perspective wrapper */}
           <motion.div
-            initial={{ clipPath: "inset(100% 0 0 0)", opacity: 0 }}
-            animate={{ clipPath: "inset(0 0 0 0)", opacity: 1 }}
-            transition={{ duration: 1.2, ease: "easeOut" }}
+            initial={{ transform: "perspective(900px) rotateX(12deg) scale(1.08)", opacity: 0 }}
+            animate={{ transform: "perspective(900px) rotateX(0deg) scale(1)", opacity: 1 }}
+            transition={{ type: "spring", damping: 18, stiffness: 140, duration: 0.9 }}
             className="relative flex flex-col items-center"
+            style={{ transformStyle: "preserve-3d" as any }}
           >
-            {/* splash image #10 */}
-            <div className="relative">
-              <img
-                src={splashAnime}
-                alt="Genio splash"
-                className="h-[42vh] w-auto object-contain drop-shadow-[0_0_40px_rgba(34,211,238,0.35)] md:h-[48vh]"
-                onError={(e) => {
-                  const t = e.currentTarget as HTMLImageElement;
-                  if (t.src.endsWith(".png")) t.src = t.src.replace(".png", ".svg");
-                }}
+            <motion.div
+              animate={{ y: [0, -10, 0] }}
+              transition={{ duration: 4, repeat: Infinity, ease: "easeInOut", delay: 0.9 }}
+              className="relative flex flex-col items-center"
+            >
+              {/* clip-path materialize */}
+              <motion.div
+                initial={{ clipPath: "inset(100% 0 0 0)" }}
+                animate={{ clipPath: "inset(0% 0 0 0)" }}
+                transition={{ duration: 1.2, ease: "easeOut" }}
+                className="relative"
+              >
+                {/* scanline bar moving with reveal edge */}
+                <motion.div
+                  className="pointer-events-none absolute inset-x-0 h-[2px] bg-cyan-300 shadow-[0_0_12px_rgba(34,211,238,0.9)]"
+                  initial={{ top: "100%" }}
+                  animate={{ top: "0%" }}
+                  transition={{ duration: 1.2, ease: "easeOut" }}
+                  style={{ zIndex: 2 }}
+                />
+
+                {/* splash image with chromatic flicker copies */}
+                <div className="relative">
+                  <img
+                    src={splashAnime}
+                    alt="Genio splash"
+                    className="h-[42vh] w-auto object-contain drop-shadow-[0_0_40px_rgba(34,211,238,0.35)] md:h-[48vh]"
+                    fetchPriority="high"
+                    decoding="async"
+                    onError={(e) => {
+                      const t = e.currentTarget as HTMLImageElement;
+                      if (t.src.endsWith(".webp")) t.src = t.src.replace(".webp", ".svg");
+                      else if (t.src.endsWith(".png")) t.src = t.src.replace(".png", ".svg");
+                    }}
+                  />
+                  {/* chromatic flicker — first 350ms only */}
+                  {flicker && (
+                    <>
+                      <img
+                        src={splashAnime}
+                        alt=""
+                        aria-hidden
+                        className="pointer-events-none absolute inset-0 h-[42vh] w-auto object-contain md:h-[48vh]"
+                        style={{ mixBlendMode: "screen" as any, transform: "translateX(-2px)", filter: "hue-rotate(160deg) saturate(1.4)", opacity: 0.5 }}
+                      />
+                      <img
+                        src={splashAnime}
+                        alt=""
+                        aria-hidden
+                        className="pointer-events-none absolute inset-0 h-[42vh] w-auto object-contain md:h-[48vh]"
+                        style={{ mixBlendMode: "screen" as any, transform: "translateX(2px)", filter: "hue-rotate(340deg) saturate(1.4)", opacity: 0.5 }}
+                      />
+                    </>
+                  )}
+                  {/* scanlines static */}
+                  <div
+                    className="pointer-events-none absolute inset-0"
+                    style={{
+                      background: "repeating-linear-gradient(0deg, transparent 0 2px, rgba(34,211,238,0.07) 2px 3px)",
+                      mixBlendMode: "screen" as any,
+                    }}
+                  />
+                </div>
+              </motion.div>
+
+              {/* base ring pulse */}
+              <motion.div
+                className="absolute -bottom-6 left-1/2 h-20 w-[70%] -translate-x-1/2 rounded-full border border-cyan-400/20"
+                animate={{ scale: [0.92, 1.06, 0.92], opacity: [0.2, 0.45, 0.2] }}
+                transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
+                style={{ boxShadow: "0 0 24px rgba(34,211,238,0.18)" }}
               />
-              {/* scanlines — transform only */}
-              <div
-                className="pointer-events-none absolute inset-0"
-                style={{
-                  background: "repeating-linear-gradient(0deg, transparent 0 2px, rgba(34,211,238,0.07) 2px 3px)",
-                  mixBlendMode: "screen",
-                }}
-              />
-              {/* cyan particles */}
+
+              {/* rising particles synced to reveal */}
               {Array.from({ length: 12 }, (_, i) => (
                 <motion.div
                   key={i}
                   className="absolute h-1 w-1 rounded-full bg-cyan-300"
-                  style={{ left: `${12 + i * 7}%`, top: `${18 + (i % 4) * 14}%` }}
-                  animate={{ y: [0, -12, 0], opacity: [0.4, 1, 0.4] }}
-                  transition={{ duration: 2 + (i % 3), delay: i * 0.12, repeat: Infinity, ease: "easeInOut" }}
+                  style={{ left: `${12 + i * 7}%`, top: `${22 + (i % 4) * 13}%` }}
+                  initial={{ y: 10, opacity: 0 }}
+                  animate={{ y: [-6, -18, -6], opacity: [0.3, 1, 0.3] }}
+                  transition={{ duration: 2 + (i % 3), delay: 0.3 + i * 0.07, repeat: Infinity, ease: "easeInOut" }}
                 />
               ))}
-            </div>
+            </motion.div>
 
-            {/* GENIO wordmark with mascot layoutId morph target */}
-            <motion.div layoutId="genio-avatar" className="mt-4 flex flex-col items-center">
+            {/* GENIO wordmark morph target */}
+            <motion.div layoutId="genio-avatar" className="mt-5 flex flex-col items-center">
               <div className="font-mono text-2xl font-bold tracking-[0.3em] text-white">GENIO</div>
               <div className="font-mono text-[10px] tracking-[0.2em] text-cyan-300/70">ISLAMIC CYBERPUNK</div>
             </motion.div>
 
-            {/* thin cyan progress ring */}
+            {/* progress ring */}
             <div className="relative mt-6 h-14 w-14">
               <svg width={56} height={56} className="-rotate-90">
                 <circle cx={28} cy={28} r={24} stroke="rgba(255,255,255,0.08)" strokeWidth={3} fill="none" />
@@ -165,7 +220,6 @@ export default function SplashScreen({ onReady }: Props) {
               </div>
             </div>
 
-            {/* Darija cycling */}
             <motion.div
               key={darija}
               initial={{ opacity: 0, y: 6 }}
