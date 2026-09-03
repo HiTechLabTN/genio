@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { Environment, OrbitControls, Text } from "@react-three/drei";
+import { OrbitControls, Text } from "@react-three/drei";
 import * as THREE from "three";
 import React, { useEffect, useRef, useState, Suspense } from "react";
 import { useFaceTracking, useFaceTrackingContext } from "./useFaceTracking";
@@ -329,7 +329,15 @@ function AvatarScene({ mode, audioLevel, interactive }: { mode: AvatarMode; audi
 
   return (
     <>
-      <Environment preset="city" background={false} />
+      {/* v3.0.1 hotfix removed drei's <Environment preset="city" /> — it fetched an
+          HDRI file from an external CDN (raw.githack.com) at runtime. When that
+          fetch fails (offline first boot, restrictive network, CORS depending on
+          the app's origin scheme, CDN downtime), the rejection is thrown outside
+          Suspense's reach — only an ErrorBoundary catches a *rejected* loader, and
+          none wrapped this Canvas, so the failure took down the entire React root
+          (empirically reproduced: black screen, #root left completely empty).
+          The existing manual lights below already give the cyberpunk look without
+          any network dependency. */}
       <ambientLight intensity={0.7} />
       <directionalLight position={[3, 5, 4]} intensity={1.2} />
       <pointLight position={[-2.2, 1.2, 3]} intensity={1.8} color="#00E5FF" />

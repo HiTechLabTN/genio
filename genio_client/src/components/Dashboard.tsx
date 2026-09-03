@@ -6,6 +6,7 @@ import BottomInputBar from "./BottomInputBar";
 import Header from "./Header";
 import RightDrawer from "./RightDrawer";
 import CyberAvatar from "./avatar/CyberAvatar";
+import ErrorBoundary from "./v3/ErrorBoundary";
 import { HolographicHud } from "./avatar/HolographicHud";
 import type { AgentStatus, Attachment, ChatEvent, TelemetrySnapshot, ToolResultMap } from "../lib/types";
 import type { DeviceProfile } from "../lib/deviceProfiler";
@@ -108,7 +109,7 @@ export default function Dashboard({
                 className="pointer-events-none absolute right-3 top-3 z-20 flex h-28 w-28 items-center justify-center rounded-2xl border border-neon/20 bg-carbon/60 backdrop-blur md:right-4 md:top-4 md:h-32 md:w-32"
               >
                 <div className="pointer-events-auto">
-                  <CyberAvatar mode={avatarMode} size={112} faceTrack={false} audioLevel={0.45} />
+                  <ErrorBoundary name="CyberAvatar-mini"><CyberAvatar mode={avatarMode} size={112} faceTrack={false} audioLevel={0.45} /></ErrorBoundary>
                 </div>
               </motion.div>
             ) : (
@@ -129,7 +130,7 @@ export default function Dashboard({
                   <div className="absolute left-1/2 top-1/2 h-[360px] w-[360px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/5" />
                 </div>
                 <div className="pointer-events-auto relative z-10">
-                  <CyberAvatar mode={avatarMode} size={340} faceTrack={selfieActive} audioLevel={0} />
+                  <ErrorBoundary name="CyberAvatar-full"><CyberAvatar mode={avatarMode} size={340} faceTrack={selfieActive} audioLevel={0} /></ErrorBoundary>
                 </div>
                 <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-[#020B1E] to-transparent" />
               </motion.div>
