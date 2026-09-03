@@ -141,10 +141,24 @@ export default function App() {
 
   useEffect(() => {
     let alive = true;
-    checkForUpdates().then((u) => {
-      if (alive && u) setUpdate(u);
-    });
-    return () => { alive = false; };
+    // F3: delay update check 3s + idle callback, never at boot (avoid freeze on mid-range Android)
+    const ric = (window as unknown as { requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number }).requestIdleCallback;
+    const schedule = (cb: () => void) => {
+      if (ric) ric(cb, { timeout: 4000 });
+      else window.setTimeout(cb, 3000);
+    };
+    const tid = window.setTimeout(() => {
+      schedule(() => {
+        if (!alive) return;
+        checkForUpdates().then((u) => {
+          if (alive && u) setUpdate(u);
+        });
+      });
+    }, 3000);
+    return () => {
+      alive = false;
+      clearTimeout(tid);
+    };
   }, []);
 
   // F1: /health pre-check 3s; fail -> On-Device Tier A + status chip + retry; never crash
@@ -293,9 +307,9 @@ export default function App() {
         </div>
       )}
 
-      {/* z-10 HologramMascot */}
+      {/* z-10 HologramMascot — F2: h-[35vh] avatar zone visible immediately at idle, no empty area */}
       {showV3Portal && (
-        <div className={`absolute z-10 flex ${mascotStatus === "answering" ? "right-6 top-20 md:right-10 md:top-24" : "left-1/2 top-[38%] -translate-x-1/2 md:top-[42%]"}`} style={{ pointerEvents: mascotStatus === "answering" ? "auto" : "none" }}>
+        <div className={`absolute z-10 flex h-[35vh] w-full items-center justify-center ${mascotStatus === "answering" ? "right-6 top-20 md:right-10 md:top-24 left-auto translate-x-0 w-auto" : "left-1/2 top-[72px] -translate-x-1/2 md:top-[80px]"}`} style={{ pointerEvents: mascotStatus === "answering" ? "auto" : "auto" }}>
           <ErrorBoundary name="HologramMascot">
             <HologramMascot status={mascotStatus} audioLevel={audioLevel} isMinimized={mascotStatus === "answering" || expanded} />
           </ErrorBoundary>

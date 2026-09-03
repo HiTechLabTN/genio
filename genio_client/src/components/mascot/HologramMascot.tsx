@@ -1,13 +1,13 @@
 import { memo, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
-// Assets — order per spec (if PNG missing, SVG fallback exists)
-import jebbaWave from "../../assets/mascot/genio-jebba-wave.png";
-import burnousPresent from "../../assets/mascot/genio-burnous-present.png";
-import listen from "../../assets/mascot/genio-listen.png";
-import execImg from "../../assets/mascot/genio-exec.png";
-import think from "../../assets/mascot/genio-think.png";
-import wave from "../../assets/mascot/genio-wave.png";
+// Assets — WebP q80 (≤400KB each), PNGs deleted per F3
+import jebbaWave from "../../assets/mascot/genio-jebba-wave.webp";
+import burnousPresent from "../../assets/mascot/genio-burnous-present.webp";
+import listen from "../../assets/mascot/genio-listen.webp";
+import execImg from "../../assets/mascot/genio-exec.webp";
+import think from "../../assets/mascot/genio-think.webp";
+import wave from "../../assets/mascot/genio-wave.webp";
 
 type Status = "idle" | "listening" | "thinking" | "executing" | "answering" | "completed" | string;
 
@@ -74,6 +74,29 @@ const HologramMascot = memo(function HologramMascot({ status, audioLevel = 0, is
     };
   }, [isMinimized]);
 
+  // F3: preload other states in idle with low priority (render ONLY current-state image above)
+  useEffect(() => {
+    const idle = (window as unknown as { requestIdleCallback?: (cb: () => void) => number }).requestIdleCallback;
+    const preload = () => {
+      const all = [jebbaWave, burnousPresent, listen, execImg, think, wave] as string[];
+      const rest = all.filter((s) => s !== src);
+      for (const u of rest) {
+        const img = new Image();
+        // @ts-expect-error fetchPriority is Chrome-only
+        img.fetchPriority = "low";
+        img.decoding = "async";
+        img.src = u;
+      }
+    };
+    if (idle) {
+      const id = idle(preload);
+      return () => (window as unknown as { cancelIdleCallback?: (id: number) => void }).cancelIdleCallback?.(id);
+    } else {
+      const id = window.setTimeout(preload, 1200);
+      return () => clearTimeout(id);
+    }
+  }, [src]);
+
   const size = isMinimized ? 72 : 320;
 
   return (
@@ -128,9 +151,9 @@ const HologramMascot = memo(function HologramMascot({ status, audioLevel = 0, is
           transition={{ type: "spring", damping: 18, stiffness: 220, opacity: { duration: 0.25 } }}
           style={{ transformOrigin: "50% 62%" }}
           onError={(e) => {
-            // fallback to SVG if PNG failed (placeholder case)
             const t = e.currentTarget as HTMLImageElement;
-            if (t.src.endsWith(".png")) t.src = t.src.replace(".png", ".svg");
+            if (t.src.endsWith(".webp")) t.src = t.src.replace(".webp", ".svg");
+            else if (t.src.endsWith(".png")) t.src = t.src.replace(".png", ".svg");
           }}
         />
       </AnimatePresence>

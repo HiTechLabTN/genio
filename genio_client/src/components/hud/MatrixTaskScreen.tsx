@@ -75,7 +75,7 @@ const MatrixTaskScreen = memo(function MatrixTaskScreen({ tasks, expanded = fals
     <motion.div
       layout
       onClick={onToggle}
-      className="relative cursor-pointer overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-[8px] shadow-[0_8px_32px_rgba(0,0,0,0.45)]"
+      className="relative cursor-pointer overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-[8px] shadow-[0_8px_32px_rgba(0,0,0,0.45)] [@media(pointer:coarse)]:backdrop-blur-none [@media(pointer:coarse)]:bg-gradient-to-br [@media(pointer:coarse)]:from-[#0f172a]/90 [@media(pointer:coarse)]:to-[#1a0a1e]/85 [@media(pointer:coarse)]:border-white/5"
       animate={{ height: expanded ? "75vh" : "28vh" }}
       transition={{ type: "spring", damping: 22, stiffness: 180 }}
       style={{ willChange: "height" }}

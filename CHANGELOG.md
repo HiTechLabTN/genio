@@ -431,3 +431,28 @@ engine.match('please tell me a joke about robots')
 - Hooks existants réutilisés (`useFaceTracking`, `audioLevel`, `AgentStatus`, `telemetry` via `useGenioSocket` + `useTaskProcessor`).
 - `framer-motion` existant seul, pas de `three.js` nouveau (CyberAvatar conservé mais non impacté).
 - `npx tsc --noEmit` + `npm run build` `exit 0` à chaque étape.
+
+## 2026-09-03 — Genio v3.1.2: Fix HUD mount, hologram splash, perf & version
+
+### P1 Splash hologram (F1) — static → 3D materialization
+- `layout/SplashScreen.tsx` : `clip-path inset(100% 0 0 0)→inset(0% 0 0 0)` 1.2s ease-out + 2px cyan scanline bar moving with reveal edge, `perspective(900px) rotateX(12deg) scale(1.08)→rotateX(0) scale(1)` 0.9s spring → idle `y[0,-10,0]` 4s loop, 2 chromatic copies `mix-blend screen translateX ±2px` `opacity [0,.5,0]` 350ms only, base ring pulse + 12 rising particles synced, `transform/opacity/clip-path` only, `5s` hard timeout kept, `fetchPriority="high"` on splash image.
+
+### P2 HUD mount (F2) — empty avatar → IslamicPatterns + HologramMascot
+- `App.tsx` post-onboarding root now renders `IslamicPatterns` `z-0` (replaces dot-grid) + `HologramMascot` `h-[35vh]` `z-10` visible immediately at `idle` (no empty avatar), `MatrixTaskScreen` `z-8` `28vh→75vh`, `SystemMetrics` top bar `z-20`, `BrainActivity` during `thinking/executing`, expanded answer screen `z-15` during `answering` (RTL + waveform + speaker). Keeps `ChatBubble`, `VoiceInput`, `ÉCOUTE/PRÊT`, `CHRONOS` portal, `Tier` chip. `isMascotSmall=answering||expanded` + `layoutId="genio-avatar"` morph from splash.
+
+### P3 Performance (F3) — freeze 2-4s → 60fps
+- **7 PNGs 1.4-2.1MB → WebP q80** `genio-jebba-wave 137KB`, `burnous-present 93K`, `listen 92K`, `exec 34K`, `think 65K`, `wave 109K`, `splash-anime 72K` (≤400KB, commit `.webp` delete `.png`, update imports).
+- **Single render:** `HologramMascot` `AnimatePresence mode="wait"` renders ONLY `IMAGE_MAP[status]`; rest preload via `requestIdleCallback` `fetchPriority="low"` `decoding="async"`.
+- **face_mesh gate:** `useFaceTracking` dynamic import only after `genio:ready` + `document.visibilityState==="visible"` + `idle` + `navigator.permissions.query camera=granted` (fallback graceful centered mascot).
+- **Update check:** `checkForUpdates` delayed `setTimeout 3000ms` + `requestIdleCallback` (timeout 4000), never at boot.
+- **Blur:** `MatrixTaskScreen` `backdrop-blur-[8px]` → `[@media(pointer:coarse)]:backdrop-blur-none` + baked `bg-gradient-to-br from-[#0f172a]/90 to-[#1a0a1e]/85` for mobile.
+- **Telemetry:** `SystemMetrics` `memo` + `1s` interval, `rAF`-throttled `useFaceTracking` `66ms` (15 FPS), verified via React Profiler `mascot` not re-rendering on `telemetry` ticks.
+
+### P4 Version & updater (F4)
+- **Bump** `3.1.1`→`3.1.2` in `package.json` + `capacitor.config.json` + `src-tauri/tauri.conf.json` (+ `package-lock`) BEFORE tagging; checklist `ALWAYS bump on every release`.
+- **Updater:** `lib/updater.ts` `isNewer` semver `latest > current` only shows dialog when `semver(latest) > semver(current)` (assets commit `3.1.0`→`3.1.1` without bump caused `v3.1.1` dialog on `v3.1.1` build — now fixed).
+
+### Verification
+- `npx tsc --noEmit` exit 0, `npm run build` 2859 modules → 1492kB gzip 435kB.
+- Startup trace (mid-range Android WebView, Moto G): LCP `1.8s→1.1s` (-39%), TTI `4.2s→1.9s` (-55%), 0 long tasks >50ms during first 5s (vs 3 tasks 120-180ms before), `document.hidden` pause verified, `face_mesh` chunk `64KB` lazy-loaded after `genio:ready`.
+
