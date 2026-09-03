@@ -15,13 +15,20 @@ function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
+    backgroundColor: '#0a0e1a',
+    show: false,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
+      backgroundThrottling: false,
     },
     icon: path.join(__dirname, '../public/icon.png'),
     autoHideMenuBar: true,
+  });
+  mainWindow.once('ready-to-show', () => {
+    mainWindow.show();
+    mainWindow.focus();
   });
   mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
   mainWindow.removeMenu();
