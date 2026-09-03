@@ -2,6 +2,14 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Self-hosted Orbitron for offline support (was fonts.gstatic.com) */
+@font-face {
+  font-family: "Orbitron";
+  src: url("/fonts/orbitron.ttf") format("truetype");
+  font-display: swap;
+  font-weight: 400 900;
+}
+
 :root {
   color-scheme: dark;
 }
