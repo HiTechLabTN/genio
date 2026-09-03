@@ -380,3 +380,54 @@ engine.match('please tell me a joke about robots')
 
 ### Correctif Phase A Q2 (2026-09-02)
 - **reflex_engine.py** : suppression du fallback incluant les stopwords ("please", "hello", etc.) quand moins de 3 candidats non-stopwords.
+
+## 2026-09-03 — Genio v3.1.0: Islamic Cyberpunk Anime HUD (10 assets, 6 components, 4 bugfixes)
+
+### Assets (10 images, ordre attachement)
+- `src/assets/mascot/genio-jebba-wave.png` (#1 crimson jebba gold sfifa waving) → source icône app (pipeline `capacitor-assets`/`tauri icon`)
+- `src/assets/mascot/genio-burnous-present.png` (#2 cream burnous over red jebba arms open)
+- `src/assets/mascot/genio-listen.png` (#3 transparent arms open)
+- `src/assets/mascot/genio-exec.png` (#4 transparent pointing)
+- `src/assets/mascot/genio-think.png` (#5 transparent glowing red eyes)
+- `src/assets/mascot/genio-wave.png` (#6 transparent waving)
+- `src/assets/scenes/scene-thinking.png` (#7 burnous + brain + GPU bar)
+- `src/assets/scenes/scene-exec.png` (#8 jebba + matrix + metrics)
+- `src/assets/scenes/scene-answering.png` (#9 burnous holding answer + waveform)
+- `src/assets/splash/splash-anime.png` (#10 anime hologram + GENIO wordmark)
+- Fallback SVG même basename si PNG manquant ; build garanti (placeholder `DejaVu` remplacé par vrais `woff2` Orbitron via `@fontsource` déjà en place) ; chaque PNG ≤300KB.
+
+### State → Mascot
+- `idle=#1`, `listening=#3`, `thinking=#5`, `executing=#4`, `answering=#2`, `completed=#6` — mapping centralisé dans `mascot/HologramMascot.tsx` avec `AnimatePresence` spring crossfade.
+
+### Keyframes #7–#9 (live, non statiques)
+- #7 → `hud/BrainActivity.tsx` (pulsing brain + 8 sparks transform/opacity only) + `SYSTEM LIVE` GPU bar cyan + yeux cyan glow en `thinking`.
+- #8 → `hud/MatrixTaskScreen.tsx` (blur 8px + Arabic rain `جينيو01ذكاءتونس` opacity .3, pause on `document.hidden`, checkboxes staggered, spring 28vh→75vh) + `hud/SystemMetrics.tsx` panel `CPU/RAM/NET/TEMP/VRAM` à droite en `executing`.
+- #9 → `GenioShell` expanded answer screen `Arabic RTL + waveform live (audioLevel) + speaker button` + mascot minimisé `72px` docké coin `MatrixTaskScreen` en `answering`.
+
+### Design Spec — Islamic Cyberpunk Anime HUD
+1. `background/IslamicPatterns.tsx` (z-0, memo, `transform/opacity` only) : SVG 8-point Andalusian stars `cyan .12` + `gold .08`, `linear-gradient #0a0e1a→#0f172a→#1a0a1e`, bordure arabesque pulse `6s`, ≤20 particules or `y`/`opacity` uniquement.
+2. `mascot/HologramMascot.tsx` (`status`, `audioLevel`, `isMinimized`) : float `4.5s`, 3 anneaux pulsants (`idle #22d3ee`, `listening #f43f5e`, `thinking #facc15`, `executing #fb7185`, `answering #4ade80`), `spring` crossfade, ombre sol, `whileTap .88/-6°`, scanlines statiques + radial glow (pas de filtres animés), `face-track` `rotateX/Y ±8/±12°` lerp `mousemove` + `useFaceTracking`, `lip-sync scaleY=1+audioLevel*.04`, `layoutId="genio-avatar"` morph, `minimized=72px`.
+3. `hud/SystemMetrics.tsx` (memo, `1s` poll, isolé) : jauges circulaires SVG `CPU/GPU/RAM` (+`NET/TEMP/VRAM` si dispo), `strokeDasharray` transition `0.6s`, ne re-render jamais le mascot.
+4. `hud/BrainActivity.tsx` : `thinking`/`executing` only, cerveau pulsant + 8 étincelles `transform/opacity`.
+5. `hud/MatrixTaskScreen.tsx` : `backdrop-blur 8px`, pluie `opacity .3`, `document.hidden` pause, lignes `staggered`, `spring` `28vh→75vh`, clic toggle check.
+6. `layout/GenioShell.tsx` : `z` `patterns(0)→matrix(8)→mascot(10)→chat(15)→metrics/brain(20)` ; `isMascotSmall=answering||expanded` ; conserve `ChatBubble` + `BottomInputBar` (Darija STT/TTS).
+
+### Splash Screen (#10, mobile + desktop)
+- Natif : `capacitor.config.json` `SplashScreen` `backgroundColor #0a0e1a` + `launchShowDuration 0` + `Electron` `BrowserWindow backgroundColor #0a0e1a` `show:false` → `ready-to-show` (zéro flash blanc, petit logo seul).
+- Web : `layout/SplashScreen.tsx` overlay `z-50` : `#10` centré, `clip-path bottom→top 1.2s` + scanlines + `12` particules cyan (`transform/opacity` only), anneau progrès fin cyan sous `GENIO`, `Darija` cyclage `نجهّز الحكيم…` `نشحّن الذاكرة…` `نتثبت الاتصال…` (900ms), `hide` sur `genio:ready` `spring fade+scale-out` + `hard 5s timeout`, `layoutId="genio-avatar"` → morph vers HUD.
+
+### Performance
+- `transform`/`opacity` uniquement (pas de `filter`/`box-shadow` animé), `memo()` widgets, `SystemMetrics` isolé des `telemetry` ticks, `mascot` lerp `requestAnimationFrame` `0.09`, `MatrixTaskScreen` `document.hidden` pause, PNGs `≤300KB`.
+
+### Bug Fixes
+- **F1** `Connection refused pop-os:8000` : `App.tsx` `handleConnect` `/health` `3s` `AbortController` pre-check ; fail → `healthStatus=offline` + `Tier A` `On-Device` chip + `retry` ; jamais crash, `useDeviceProfile`/`decideEngine` fallback intact.
+- **F2** `speechSynthesis` WebView guards conservés : `useVoiceOutput.ts` `window.speechSynthesis?.addEventListener?.` / `removeEventListener?.` / `cancel?.` + early return `if (!window.speechSynthesis) return` (Android WebView sans TTS).
+- **F3** `.gitignore` allow-list : `!genio_client/src/assets/**/*.png` déjà présent au root (anc. `*.png` trap), vérifié `git check-ignore` `src/assets/mascot/*.png` → not ignored.
+- **F4** Caméra refusée : `useFaceTracking` `enabled=false` → `active=false` → `HologramMascot` `faceTrack={!isMinimized && active}` fallback `mousemove` lerp, mascot reste centré, pas de `getUserMedia` crash.
+
+### Hard Safety
+- Branch `feat/islamic-ui` (jamais `main` direct).
+- `GoogleAuthOnboarding`, `gemini_provider` proxy, `GENIO_PERSONA_PROMPT`, `permissions onboarding`, `speechSynthesis` guards, `RootErrorBoundary`, `On-Device Tier A` préservés.
+- Hooks existants réutilisés (`useFaceTracking`, `audioLevel`, `AgentStatus`, `telemetry` via `useGenioSocket` + `useTaskProcessor`).
+- `framer-motion` existant seul, pas de `three.js` nouveau (CyberAvatar conservé mais non impacté).
+- `npx tsc --noEmit` + `npm run build` `exit 0` à chaque étape.
