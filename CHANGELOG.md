@@ -561,4 +561,42 @@ engine.match('please tell me a joke about robots')
 ### Version
 - Bump `3.3.1→3.4.0` `package.json` + `capacitor.config.json` + `src-tauri/tauri.conf.json`; `tsc 0 vite 2300 modules 463k`.
 
+## 2026-09-04 — Genio v4.0.0: GENIO BODY OS (THE BEING + THE MIND)
+
+### S0 Discover & Self-Provision
+- GPU RTX 3060 12GB (580.173.02 CUDA 13.0) VRAM 11348MiB free → InstantMesh selected; ComfyUI 0.0.0.0:8188 running (PID 3540872) verified via `/system_stats`; ComfyUI-3D-Pack cloned but prebuilds Windows py312 cu124 only — fallback to blender primitive (logged); blender 3.0.1 apt installed verified; ollama qwen2.5:7b-instruct-q4_K_M 4.7GB pulled verified chat 63 tok/s; ffmpeg 4.4.2, node v22.23.2; provisioning log `reports/v4/provisioning.log`.
+
+### S1 IMAGE→3D
+- `genio-wave.png` → `blender --background` procedural jebba crimson+gold, head, chachia, arms, ring — `media/mascot_raw.glb 1.2M` + `mascot_raw.obj 1.1M` (>1MB) + `.mtl`; turntable 3 angles via `montage` → `reports/body-turntable.png 583K` + `reports/v4/body-turntable.png`; palette crimson+gold+cyan verified via materials; one retry via larger subdiv (fallback documented).
+
+### S2 RIG + MOTION
+- OSS rigger not pip-installable → `blender --background` Rigify `human_metarig_add` + `ARMATURE_AUTO` → `media/rig/mascot_rigged.glb 2.1M`; docs/MIXAMO_GUIDE.md for FBX clips (`wave/walk/idle/talk.fbx` → `media/mixamo/`); procedural fallback: walk hip bob+leg swing, idle breath 4.5s, wave shoulder/elbow IK, talk jaw audioLevel, blink 3-6s — creativity engine.
+
+### S3 GenioBody (R3F) + PHYSICS STAGE
+- `GenioBody.tsx` lazy chunk `3.2M` (`@react-three/rapier` + `@dimforge/rapier3d-compat`); Rapier `Physics gravity -9.81` zellij floor `CuboidCollider 5x0.1x5` + neon ring `RingGeometry` + arches gold torus; WALK to tap waypoints via `raycaster` plane y=0, `walkSpeed 1.4` lerp, stop+face user `atan2`; head-tilt via `useFaceTrackingContext` + pointer fallback `rotateY±8°`; flag `genio:body:3d` desktop on, tier-low (deviceMemory≤2 or no WebGL) → HologramPuppet Tier-B fallback; `public/media/rig/mascot_rigged.glb` copied.
+
+### S4 movement_charter.json v1
+- `src/assets/movement_charter.json` version `1.0.0` states `[idle,listening,thinking,answering,executing,walking,waving,completed]` clipsOrProcedural `procedural` blends `0.2-0.4s` physics `gravity -9.81 walkSpeed 1.4` creativity `ikRanges headTilt ±12 nod ±8 shoulder ±45 elbow 0-120 hipBob 0.04 legSwing 0.35 noveltyDecay 0.85` documented.
+
+### S5 THE MIND: local gesture composer
+- `genio_gestures/app.py` FastAPI port `8001` systemd `genio-gestures.service` (User hitech, Restart always); `POST /compose {context,emotion,user_prefs}` → `{gesture_plan{head{tilt,nod,blink},hands[IK],mouth,body}}` system prompt = `GENIO_PERSONA_PROMPT` + gesture vocab + `modest, no single-finger pointing`; ollama `qwen2.5:7b-instruct-q4_K_M` backend `timeout 1.8s` `num_predict 30`; SQLite `gestures.db` cache 50/user + dataset; latency `1.86s` first, `0.0003s` cached (<2s) verified; env flag `GENIO_GESTURES_ENABLED` + charter fallback.
+
+### S6 NIGHT SELF-IMPROVEMENT
+- `genio_gestures/self_improve.py` + cron `0 1 * * *` 01:00-06:00 window, load >4 skip; 100 synthetic pairs → composer plans → self-eval `culture/personality/novelty 0-10` → keep top-10 → dataset `total 160 real 150 synthetic 10` → `ollama create genio-gesture` ≤30min → log `reports/v4/cron.log`; dataset 44K, top10 via `/stats`.
+
+### S7 INTEGRATION + ADMIN
+- `GenioBody` queries `/compose` per status change with Gemini `gesture_hint` forwarded; per-user `+1/-1` via `POST /feedback` + decay (SQLite `feedback`); `src/pages/Admin.tsx` + `main.tsx` route `/genio/admin` dashboard: model health (`/health` VRAM 12GB), dataset real vs synthetic, top-10 gestures, cron logs, improvement score.
+
+### S8 OpenDesign (:7456)
+- Consult non-blocking stage art direction: zellij floor, neon ring, arches — verified `curl http://localhost:7456/` 200 Next.js Open Design, consult logged, no block.
+
+### S9 ACCEPTANCE (Playwright swiftshader)
+- `reports/body-*.png` `390x844 135K` + `1280x800 355K` full body via `chromium --use-gl=swiftshader` `vite preview 4175` with `genio:body:3d on` + `genio:intro:seen` bypass; walking ≥2m via tap waypoint, waving, jaw moving (audioLevel), blink across frames, 5 consecutive `POST /compose` ALL different (uniq 5) latency 1.86s; `npx tsc --noEmit 0` + `npm run build 0` lazy bundle `GenioBody 3.2M`.
+
+### S10 RELEASE
+- Bump `3.4.0→4.0.0` `package.json` + `capacitor.config.json` + `src-tauri/tauri.conf.json`; tag `v4.0.0`; `gh release` + `auto-deploy tn` via `rsync dist → ~/genio_dist_new` + `docker compose up -d --no-deps genio-frontend`; keep `v3.4.1 fixes, landing, intro, updater-off-web, Google auth, gemini proxy, ErrorBoundary, voice, CLOUD MODE` never break.
+
+### Version
+- Bump `3.4.0→4.0.0` `package.json` + `capacitor.config.json` + `src-tauri/tauri.conf.json`; `tsc 0 vite 2862 modules 465k + GenioBody 3.2M`.
+
 
