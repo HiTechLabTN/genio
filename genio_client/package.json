@@ -1,7 +1,7 @@
 {
   "name": "genio-client",
   "private": true,
-  "version": "3.3.0",
+  "version": "3.3.1",
   "description": "Genio \u2014 Assistant IA intelligent avec Chronos Portal, Avatar 3D et multilingue (Darija/FR/EN)",
   "author": "HiTechLabTN <contact@hitechlab.tn>",
   "homepage": "https://github.com/HiTechLabTN/genio",

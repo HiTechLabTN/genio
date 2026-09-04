@@ -518,3 +518,27 @@ engine.match('please tell me a joke about robots')
 ### Verification
 - `npx tsc --noEmit` exit 0, `npm run build` exit 0 (2853 modules), screenshots valid, mascot full visible, input visible, no gray bands.
 
+## 2026-09-04 — Genio v3.3.1: HOTFIX P1-P5 + S6 deploy
+
+### P1 Updater never on browsers
+- `App.tsx` `isNative = !!(window.__TAURI__ || window.Capacitor?.isNative || isNativePlatform())` — `isWebPlatform` old UA `android` check removed; `checkForUpdates` + `UpdateModal` only if `isNative`; Android Chrome on `genio.hitech.tn` never renders dialog.
+
+### P2 Darija voice
+- `audio.ts` `SpeechRecognition.lang = "ar-TN"` fallback `ar-SA→fr-FR`, `interimResults true` → Arabic-script interim; `MediaRecorder` blob `language "ar"` POST `/api/v1/voice/transcribe` when node connected via `transcribeAudio(blob, apiBase)`; `BottomInputBar` `isConnected/target` → server transcribe authoritative, `ar-TN` live preview.
+
+### P3 Cloud chat cards
+- `gemini_provider.ts` `buildUrl` same-origin `/api/v1/gemini` on web (ignore `serverBase`), distinct errors `NO_GOOGLE_TOKEN` / `GEMINI_PROXY_FAIL`; `App.tsx` `isGeminiCloud=!connected` + `!hasToken` → inline card `"سجّل بـ Google باش تكمّل في السحاب"` + button `setShowGoogleAuth(true)`, proxy fail → `"مشكل في الاتصال بالسحاب — عاود جرّب"` + retry; cards rendered in transcript.
+
+### P4 HiTech Cloud preset
+- `ConnectionHub.tsx` preset `HiTech Cloud host genio.hitech.tn port 443`, default on web `hitech-cloud` else `pop`; `ws.ts` `buildWsUrl` `wss://genio.hitech.tn/ws/agent` + `streamTelemetry` `/api/v1/telemetry` same-origin (nginx proxies `/api` + `/ws` → `pop-os:8000`); `App.tsx` auto-connect + `handleConnect` use `/api/v1/status` same-origin for cloud; phone on 5G `wss` gauges live.
+
+### P5 Connection resilience
+- `useGenioSocket.ts` `window offline/online` listeners + `visibilitychange` keep `shouldReconnect`; `connectionToast` `"الاتصال انقطع — نعاودو نربطو…"` on `offline` / `idle` drop, auto `scheduleReconnect` on `online` without reload; `App.tsx` fixed toast `bottom-[84px]` amber.
+
+### S6 auto-deploy fix
+- `/data/genio-deploy/auto-deploy.sh` rewritten no `sudo`, `rsync -avz --delete pop-os:/data/ai_tools/genio/genio_client/dist/ → ~/genio_dist_new` (fallback keep existing) + `docker compose up -d --no-deps genio-frontend`; `nginx.conf` added `location /ws/` proxy; manual `rsync` + `auto-deploy.sh` run verified `https://genio.hitech.tn` `index-Dta76BxS.js` 200 OK.
+
+### Version
+- Bump `3.3.0→3.3.1` `package.json` + `capacitor.config.json` + `src-tauri/tauri.conf.json`; `tsc 0 vite 418k+911k`.
+
+
