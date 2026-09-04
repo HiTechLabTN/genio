@@ -116,4 +116,5 @@ export interface UseGenioSocket {
   requestScreenshot: () => boolean;
   toggleScreenStream: (active: boolean) => boolean;
   error?: string;
+  connectionToast?: string | null;
 }

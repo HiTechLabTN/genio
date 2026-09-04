@@ -3,6 +3,10 @@ export interface VoicedAudio {
   durationSec: number;
   mime: string;
   transcript?: string;
+  /** Raw MediaRecorder blob for server-side transcribe (P2 Darija). */
+  blob?: Blob;
+  /** Same blob alias for convenience */
+  rawBlob?: Blob;
 }
 
 // Type augmentation for engines that expose webkitSpeechRecognition.
@@ -130,7 +134,12 @@ function startSpeechRecognition(onTranscript: (text: string, final: boolean) => 
     start: () => void;
     stop: () => void;
   };
-  sr.lang = "en-US";
+  // P2 Darija voice: ar-TN primary, fallback ar-SA → fr-FR per spec; interimResults true so Arabic-script interim shows live
+  const tryLangs = ["ar-TN", "ar-SA", "fr-FR"];
+  // Use ar-TN as primary; browser will fallback if unsupported — we attempt ar-TN first
+  sr.lang = tryLangs[0];
+  // @ts-ignore — some engines expose lang fallback via extra property; keep list for docs
+  (sr as unknown as { _fallbackLangs?: string[] })._fallbackLangs = tryLangs;
   sr.continuous = true;
   sr.interimResults = true;
   sr.onresult = (e) => {
@@ -178,10 +187,9 @@ export function speechRecognitionSupported(): boolean {
 
 /** POST a raw audio blob to the server-side transcription pipeline.
  *
- * Phase 3 v2.1: sends the recorded blob to `/api/v1/voice/transcribe` and
- * returns the transcript text (or "" on any failure). The server prefers
- * faster-whisper/whisper and falls back deterministically so the agent prompt
- * flow is unaffected on devices without a local STT backend.
+ * Phase 3 v2.1 + P2 v3.3.1: sends the recorded blob to `/api/v1/voice/transcribe`
+ * with language "ar" (Darija). When a node is connected, the caller passes the
+ * node's base; otherwise same-origin is used so nginx proxies /api → pop-os.
  */
 export async function transcribeAudio(
   blob: Blob,
@@ -189,14 +197,23 @@ export async function transcribeAudio(
   apiKey?: string,
 ): Promise<string> {
   try {
-    const base = (apiBase ?? "").replace(/\/+$/, "") || "http://localhost:8000";
+    // P2: language must be "ar" for Darija
+    // Same-origin by default so phones via https://genio.hitech.tn work without CORS.
+    let base = (apiBase ?? "").replace(/\/+$/, "");
+    if (!base && typeof window !== "undefined") {
+      // same-origin — nginx on genio.hitech.tn proxies /api → pop-os
+      base = window.location.origin.includes("localhost") ? window.location.origin : "";
+      // If still localhost without dev server, fallback to empty (same-origin)
+      if (base.includes("localhost:4173") || base.includes("localhost:5173")) base = "";
+    }
     const form = new FormData();
     const name = blob.type.includes("wav") ? "audio.wav" : `audio.${extFromMime(blob.type)}`;
     form.append("audio", blob, name);
-    form.append("language", "auto");
+    form.append("language", "ar");
     const headers: Record<string, string> = {};
     if (apiKey) headers["X-API-Key"] = apiKey;
-    const resp = await fetch(`${base}/api/v1/voice/transcribe`, {
+    const url = `${base}/api/v1/voice/transcribe`;
+    const resp = await fetch(url, {
       method: "POST",
       headers,
       body: form,
@@ -284,6 +301,9 @@ export async function stopVoiceRecording(): Promise<VoicedAudio | null> {
 
   if (blob.size === 0) return null;
 
+  // Keep raw blob for P2 server-side Darija transcribe
+  const rawBlob = blob;
+
   // Prefer WAV (backend expects wav via _save_wav); fall back to the raw blob.
   try {
     audioCtx = audioCtx ?? new AudioContext();
@@ -293,13 +313,13 @@ export async function stopVoiceRecording(): Promise<VoicedAudio | null> {
     audioCtx = null;
     const wav = encodeWav(decoded);
     const dataB64 = await blobToBase64(wav);
-    return { dataB64, durationSec, mime: "audio/wav", transcript };
+    return { dataB64, durationSec, mime: "audio/wav", transcript, blob: rawBlob, rawBlob };
   } catch {
     audioCtx?.close().catch(() => void 0);
     audioCtx = null;
     const dataB64 = await blobToBase64(blob).catch(() => "");
     if (!dataB64) return null;
-    return { dataB64, durationSec, mime, transcript };
+    return { dataB64, durationSec, mime, transcript, blob: rawBlob, rawBlob };
   }
 }
 

@@ -37,7 +37,11 @@ export default function App() {
   }, [showGoogleAuth]);
   const deviceProfile = useDeviceProfile();
   const engineDecision = decideEngine();
-  const isGeminiCloud = hasGoogleAuth();
+  const [connected, setConnected] = useState(false);
+  const [target, setTarget] = useState<ServerNode | null>(null);
+  // P3: cloud mode is when NO node connected (phones via HiTech Cloud) — even without token we show card (a)
+  const hasToken = hasGoogleAuth();
+  const isGeminiCloud = !connected;
 
   const {
     agentStatus: wsAgentStatus,
@@ -53,6 +57,7 @@ export default function App() {
     kill,
     requestScreenshot: _requestScreenshot,
     toggleScreenStream: _toggleScreenStream,
+    connectionToast,
   } = useGenioSocket();
   const [geminiChat, setGeminiChat] = useState<typeof wsChat>([]);
   const [geminiStatus, setGeminiStatus] = useState<typeof wsAgentStatus>({ kind: "idle" });
@@ -61,6 +66,16 @@ export default function App() {
   const sendPrompt = isGeminiCloud
     ? (text: string, attachments?: Attachment[]) => {
         setGeminiChat((prev) => [...prev.slice(-299), { type: "user", text, timestamp: Date.now() } as const]);
+        // P3 (a): cloud mode + !token => inline card, don't call proxy
+        if (!hasToken) {
+          setGeminiChat((prev) => [
+            ...prev.slice(-299),
+            { type: "answer", text: "سجّل بـ Google باش تكمّل في السحاب" } as const,
+            { type: "error", message: "NEED_GOOGLE_AUTH" } as const,
+          ]);
+          setGeminiStatus({ kind: "idle" });
+          return true;
+        }
         setGeminiStatus({ kind: "thinking" });
         void (async () => {
           try {
@@ -91,7 +106,12 @@ export default function App() {
             }
           } catch (e: unknown) {
             const msg = e instanceof Error ? e.message : String(e);
-            if (msg.includes("السيرفر طايح")) setGeminiChat((prev) => [...prev.slice(-299), { type: "answer", text: msg }]);
+            // P3 (b): token present + proxy fail => specific message
+            if (msg === "NO_GOOGLE_TOKEN" || msg.includes("NO_GOOGLE_TOKEN")) {
+              setGeminiChat((prev) => [...prev.slice(-299), { type: "answer", text: "سجّل بـ Google باش تكمّل في السحاب" } as const, { type: "error", message: "NEED_GOOGLE_AUTH" } as const]);
+            } else if (msg === "GEMINI_PROXY_FAIL" || msg.includes("GEMINI_PROXY_FAIL") || msg.includes("السيرفر طايح")) {
+              setGeminiChat((prev) => [...prev.slice(-299), { type: "answer", text: "مشكل في الاتصال بالسحاب — عاود جرّب" } as const]);
+            } else if (msg.includes("السيرفر طايح")) setGeminiChat((prev) => [...prev.slice(-299), { type: "answer", text: msg }]);
             else setGeminiChat((prev) => [...prev.slice(-299), { type: "error", message: msg }]);
             setGeminiStatus({ kind: "idle" });
           }
@@ -128,8 +148,6 @@ export default function App() {
   }, [taskProc.result, taskProc.setIsMinimized, voice]);
   useEffect(() => { if (isThinking) voice.stop(); }, [isThinking, voice]);
 
-  const [connected, setConnected] = useState(false);
-  const [target, setTarget] = useState<ServerNode | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [update, setUpdate] = useState<{ version: string; notes?: string } | null>(null);
   const lastPromptRef = useRef("");
@@ -138,25 +156,29 @@ export default function App() {
   const [expanded, setExpanded] = useState(false);
   const [healthStatus, setHealthStatus] = useState<"checking" | "ok" | "offline">("checking");
 
-  // S3: Updater OFF on web — never check/render on browser/web (keep for Android APK / desktop only)
-  const isWebPlatform = (() => {
-    if (typeof window === "undefined" || typeof navigator === "undefined") return false;
-    const ua = navigator.userAgent || "";
-    const isAndroid = /android/i.test(ua);
-    const isElectron = !!(window as unknown as { process?: { versions?: { electron?: string } } }).process?.versions?.electron;
-    const isTauri = !!(window as unknown as { __TAURI__?: unknown }).__TAURI__ || !!(window as unknown as { __TAURI_IPC__?: unknown }).__TAURI_IPC__;
-    const isCapacitorNative = !!(window as unknown as { Capacitor?: { isNativePlatform?: () => boolean } }).Capacitor?.isNativePlatform?.();
-    // web = not Android, not Electron, not Tauri, not Capacitor native, and not file:// tauri dev
-    return !isAndroid && !isElectron && !isTauri && !isCapacitorNative;
+  // P1 FIX v3.3.1: native ONLY via real bridges — NEVER show updater on browsers.
+  // Old isWebPlatform mis-detected mobile Chrome as native (UA contains "Android").
+  // Correct: isNative = !!(window.__TAURI__ || window.Capacitor?.isNative)
+  const isNative = (() => {
+    if (typeof window === "undefined") return false;
+    const w = window as unknown as Record<string, unknown>;
+    // Tauri bridge present only in Tauri WebView
+    const hasTauri = !!(w.__TAURI__ || w.__TAURI_IPC__ || w.__TAURI_INTERNALS__);
+    // Capacitor: isNative boolean OR isNativePlatform() fn
+    const cap = w.Capacitor as { isNative?: boolean; isNativePlatform?: () => boolean } | undefined;
+    const capNative = !!(cap?.isNative || cap?.isNativePlatform?.());
+    // Electron
+    const isElectron = !!(w.process as { versions?: { electron?: string } } | undefined)?.versions?.electron;
+    return hasTauri || capNative || isElectron;
   })();
   useEffect(() => {
-    if (isWebPlatform) return; // S3: never check updates on web
+    if (!isNative) return; // P1: never check updates on web/browsers
     let alive = true;
     const ric = (window as unknown as { requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number }).requestIdleCallback;
     const schedule = (cb: () => void) => { if (ric) ric(cb, { timeout: 4000 }); else window.setTimeout(cb, 3000); };
     const tid = window.setTimeout(() => { schedule(() => { if (!alive) return; checkForUpdates().then((u) => { if (alive && u) setUpdate(u); }); }); }, 3000);
     return () => { alive = false; clearTimeout(tid); };
-  }, [isWebPlatform]);
+  }, [isNative]);
   useEffect(() => {
     if (!splashReady) return;
     let alive = true;
@@ -178,27 +200,32 @@ export default function App() {
     if (!splashReady) return;
     if (connected) return;
     let alive = true;
-    const tnNode: ServerNode = { id: "tn", label: "TN Server", host: "tn", port: 8000 };
+    // P4: default on web = HiTech Cloud (same-origin wss://genio.hitech.tn) so phones on 5G work
+    const defaultNode: ServerNode = !isNative
+      ? { id: "hitech-cloud", label: "HiTech Cloud", host: "genio.hitech.tn", port: 443 }
+      : { id: "tn", label: "TN Server", host: "tn", port: 8000 };
+    const statusUrl = !isNative ? "/api/v1/status" : `http://${defaultNode.host}:${defaultNode.port}/api/v1/status`;
     const ctrl = new AbortController();
-    const to = window.setTimeout(() => ctrl.abort(), 2000);
-    fetch(`http://${tnNode.host}:${tnNode.port}/api/v1/status`, { signal: ctrl.signal })
+    const to = window.setTimeout(() => ctrl.abort(), 2500);
+    fetch(statusUrl, { signal: ctrl.signal })
       .then(async (r) => {
         clearTimeout(to);
         if (!alive) return;
         if (r.ok) {
-          try { const ok = await connect(tnNode); if (!alive) return; if (ok) { setTarget(tnNode); setConnected(true); setHealthStatus("ok"); return; } } catch { /* fallback */ }
+          try { const ok = await connect(defaultNode); if (!alive) return; if (ok) { setTarget(defaultNode); setConnected(true); setHealthStatus("ok"); return; } } catch { /* fallback */ }
           setHealthStatus("offline");
         } else setHealthStatus("offline");
       })
       .catch(() => { clearTimeout(to); if (alive) setHealthStatus("offline"); });
     return () => { alive = false; clearTimeout(to); ctrl.abort(); };
-  }, [splashReady, connected, connect]);
+  }, [splashReady, connected, connect, isNative]);
   useEffect(() => { if (!splashReady) return; window.dispatchEvent(new CustomEvent("genio:ready")); }, [splashReady]);
 
   async function handleConnect(node: ServerNode) {
     try {
       const c = new AbortController(); const to = window.setTimeout(() => c.abort(), 3000);
-      const res = await fetch(`http://${node.host}:${node.port}/api/v1/status`, { signal: c.signal }).catch(() => null);
+      const statusUrl = node.host === "genio.hitech.tn" || node.id === "hitech-cloud" ? "/api/v1/status" : `http://${node.host}:${node.port}/api/v1/status`;
+      const res = await fetch(statusUrl, { signal: c.signal }).catch(() => null);
       clearTimeout(to); if (!res || !(res as Response).ok) setHealthStatus("offline"); else setHealthStatus("ok");
     } catch { setHealthStatus("offline"); }
     const ok = await connect(node); if (ok) { setTarget(node); setConnected(true); setDrawerOpen(false); } return ok;
@@ -346,20 +373,49 @@ export default function App() {
               <p className="text-center font-mono text-[11px] text-white/30">Genio ready — tape un message ↓</p>
             ) : (
               <div className="space-y-1">
-                {chat.slice(-12).map((c, i) => (
-                  <div key={i} className={`font-mono text-[11px] ${c.type === "user" ? "text-cyan-200" : c.type === "error" ? "text-rose-300" : "text-white/80"}`}>
-                    <span className="text-white/20">{c.type}:</span> {(c as unknown as { text?: string }).text ?? (c as unknown as { message?: string }).message ?? JSON.stringify(c).slice(0, 90)}
-                  </div>
-                ))}
+                {chat.slice(-12).map((c, i) => {
+                  const text = (c as unknown as { text?: string }).text;
+                  const msg = (c as unknown as { message?: string }).message;
+                  // P3 (a) inline card for missing Google token
+                  if (text === "سجّل بـ Google باش تكمّل في السحاب") {
+                    return (
+                      <div key={i} className="rounded-xl border border-cyan-500/30 bg-cyan-500/10 p-3">
+                        <p className="font-mono text-[12px] font-bold text-cyan-200">{text}</p>
+                        <button onClick={() => setShowGoogleAuth(true)} className="mt-2 rounded-full bg-white px-4 py-1.5 font-mono text-[11px] font-bold text-slate-900 hover:bg-slate-100">سجّل بـ Google</button>
+                      </div>
+                    );
+                  }
+                  if (msg === "NEED_GOOGLE_AUTH") return null; // already rendered via answer card
+                  // P3 (b) proxy fail
+                  if (text === "مشكل في الاتصال بالسحاب — عاود جرّب") {
+                    return (
+                      <div key={i} className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-2">
+                        <p className="font-mono text-[11px] text-amber-200">{text}</p>
+                        <button onClick={() => lastPromptRef.current && handleSendPrompt(lastPromptRef.current)} className="mt-1 rounded-full border border-amber-400/30 px-3 py-1 font-mono text-[10px] text-amber-200">عاود جرّب</button>
+                      </div>
+                    );
+                  }
+                  return (
+                    <div key={i} className={`font-mono text-[11px] ${c.type === "user" ? "text-cyan-200" : c.type === "error" ? "text-rose-300" : "text-white/80"}`}>
+                      <span className="text-white/20">{c.type}:</span> {text ?? msg ?? JSON.stringify(c).slice(0, 90)}
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
 
-          <BottomInputBar onSendPrompt={handleSendPrompt} onSendVoice={(dataB64, durationSec) => send({ action: "voice_wav", data_b64: dataB64, duration: durationSec, final: true })} />
+          <BottomInputBar onSendPrompt={handleSendPrompt} onSendVoice={(dataB64, durationSec) => send({ action: "voice_wav", data_b64: dataB64, duration: durationSec, final: true })} isConnected={!!(connected && target)} target={target} />
         </div>
       )}
 
-      {update && !isWebPlatform && <UpdateModal version={update.version} notes={update.notes} onClose={() => setUpdate(null)} />}
+      {update && isNative && <UpdateModal version={update.version} notes={update.notes} onClose={() => setUpdate(null)} />}
+      {/* P5: connection resilience toast */}
+      {connectionToast && (
+        <div className="fixed bottom-[84px] left-1/2 z-50 -translate-x-1/2 rounded-full border border-amber-400/30 bg-amber-500/15 px-4 py-2 font-mono text-[11px] text-amber-200 backdrop-blur-md shadow-lg">
+          {connectionToast}
+        </div>
+      )}
     </div>
   );
 }

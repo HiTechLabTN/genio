@@ -32,7 +32,12 @@ function resolveAuth(config?: GeminiConfig): string | null {
 }
 
 function buildUrl(config?: GeminiConfig, stream: boolean = true): string {
-  const base = (config?.serverBase?.replace(/\/$/, "") ?? "") + GEMINI_API_BASE;
+  // P3 (c): on web, MUST use same-origin /api/v1/gemini (nginx proxies to pop-os)
+  // Native (Tauri/Capacitor/Electron) may use serverBase if provided; web ignores it.
+  const isWeb = typeof window !== "undefined" && !(window as unknown as Record<string, unknown>).__TAURI__ && !(window as unknown as { Capacitor?: { isNative?: boolean } }).Capacitor?.isNative && !(window as unknown as { Capacitor?: { isNativePlatform?: () => boolean } }).Capacitor?.isNativePlatform?.();
+  let base: string;
+  if (!isWeb && config?.serverBase) base = config.serverBase.replace(/\/$/, "") + GEMINI_API_BASE;
+  else base = GEMINI_API_BASE; // same-origin
   const m = config?.model || GEMINI_MODEL;
   return `${base}/models/${m}:${stream ? "streamGenerateContent" : "generateContent"}`;
 }
@@ -97,11 +102,12 @@ export async function* streamGemini(
     tools: [{ functionDeclarations: mapToolCallsToDeclarations() }],
   };
 
+  // P3: distinct errors for (a) no token vs (b) proxy fail
   if (!auth) {
-    throw new Error("السيرفر طايح توا، ما نجمش نكوّنكتي.");
+    throw new Error("NO_GOOGLE_TOKEN");
   }
   if (auth.startsWith("mock-")) {
-    throw new Error("السيرفر طايح توا، ما نجمش نكوّنكتي.");
+    throw new Error("NO_GOOGLE_TOKEN");
   }
 
   const headers: Record<string, string> = { "Content-Type": "application/json" };
@@ -116,13 +122,15 @@ export async function* streamGemini(
       signal: opts?.signal,
     });
   } catch {
-    throw new Error("السيرفر طايح توا، ما نجمش نكوّنكتي.");
+    throw new Error("GEMINI_PROXY_FAIL");
   }
 
   if (!resp.ok) {
     if (resp.status >= 500 || resp.status === 0) {
-      throw new Error("السيرفر طايح توا، ما نجمش نكوّنكتي.");
+      throw new Error("GEMINI_PROXY_FAIL");
     }
+    // also treat proxy/network issues as PROXY_FAIL so UI shows "مشكل في الاتصال بالسحاب — عاود جرّب"
+    if (resp.status === 502 || resp.status === 503 || resp.status === 504) throw new Error("GEMINI_PROXY_FAIL");
     const err = await resp.text().catch(() => resp.statusText);
     throw new Error(`Gemini ${resp.status}: ${err.slice(0, 400)}`);
   }
