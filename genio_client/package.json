@@ -47,6 +47,8 @@
     "@capacitor/assets": "^3.0.5",
     "@capacitor/cli": "^5.0.0",
     "@capacitor/ios": "^5.0.0",
+    "@playwright/test": "^1.62.1",
+    "playwright": "^1.62.1",
     "@tauri-apps/cli": "^2",
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
