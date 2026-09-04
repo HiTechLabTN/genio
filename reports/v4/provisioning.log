@@ -1,0 +1,556 @@
+=== S0 DISCOVER & SELF-PROVISION ===
+=== GPU ===
+name, memory.total [MiB], memory.free [MiB]
+NVIDIA GeForce RTX 3060, 12288 MiB, 11348 MiB
+VRAM 12288MiB >=10GB => InstantMesh selected
+
+COMFY_STATUS:0
+ComfyUI-AnimateDiff-Evolved
+ComfyUI-Frame-Interpolation
+ComfyUI-Manager
+ComfyUI-VideoHelperSuite
+example_node.py.example
+__pycache__
+websocket_image_save.py
+NAME                      ID              SIZE      MODIFIED     
+gemma4:12b                4eb23ef187e2    7.6 GB    5 days ago      
+genio-vl:latest           52c3f1205904    6.0 GB    6 days ago      
+qwen2.5vl:7b              5ced39dfa4ba    6.0 GB    6 days ago      
+genio-brain:latest        f65e69c0bce6    4.7 GB    6 days ago      
+genio-fast14b:latest      2c9c8a6d4970    9.0 GB    7 days ago      
+qwen2.5-coder:7b          dae161e27b0e    4.7 GB    7 days ago      
+gemma2:9b                 ff02c3702f32    5.4 GB    2 weeks ago     
+qwen2.5-coder:14b         9ec8897f747e    9.0 GB    2 weeks ago     
+qwen2.5:7b                845dbda0ea48    4.7 GB    6 weeks ago     
+qwen2.5:latest            845dbda0ea48    4.7 GB    6 weeks ago     
+gemma4:latest             c6eb396dbd59    9.6 GB    2 months ago    
+gemma4:31b-cloud          c382fbfbc73b    -         4 months ago    
+minimax-m2.7:cloud        06daa293c105    -         4 months ago    
+glm-5.1:cloud             59472abf9d0a    -         4 months ago    
+qwen3-coder-next:cloud    aa626c11ae8d    -         4 months ago    
+nemotron-3-super:cloud    be3943c5a818    -         4 months ago    
+ffmpeg version 4.4.2-0ubuntu0.22.04.1 Copyright (c) 2000-2021 the FFmpeg developers
+v22.23.2
+
+WARNING: apt does not have a stable CLI interface. Use with caution in scripts.
+
+Atteint :1 http://apt.pop-os.org/proprietary jammy InRelease
+Atteint :2 https://packages.microsoft.com/repos/code stable InRelease
+Réception de :3 https://pkgs.tailscale.com/stable/ubuntu jammy InRelease
+Atteint :4 https://deb.nodesource.com/node_22.x nodistro InRelease
+Atteint :5 https://ppa.launchpadcontent.net/deadsnakes/ppa/ubuntu jammy InRelease
+Atteint :6 http://apt.pop-os.org/release jammy InRelease
+Atteint :7 https://pkg.cloudflareclient.com jammy InRelease
+Atteint :8 http://apt.pop-os.org/ubuntu jammy InRelease
+Atteint :9 http://apt.pop-os.org/ubuntu jammy-security InRelease
+Atteint :10 http://apt.pop-os.org/ubuntu jammy-updates InRelease
+Atteint :11 http://apt.pop-os.org/ubuntu jammy-backports InRelease
+6,649 o réceptionnés en 1s (4,471 o/s)
+Lecture des listes de paquets…
+Construction de l'arbre des dépendances…
+Lecture des informations d'état…
+Tous les paquets sont à jour.
+W: https://ppa.launchpadcontent.net/deadsnakes/ppa/ubuntu/dists/jammy/InRelease: La clé est stockée dans l'ancien trousseau de clés trust.gpg (/etc/apt/trusted.gpg), voir la section DÉPRÉCATION dans apt-key(8) pour plus de détails.
+Préparation du dépaquetage de .../09-libopencv-videoio4.5d_4.5.4+dfsg-9ubuntu4_amd64.deb ...
+Dépaquetage de libopencv-videoio4.5d:amd64 (4.5.4+dfsg-9ubuntu4) ...
+Sélection du paquet liblog4cplus-2.0.5:amd64 précédemment désélectionné.
+Préparation du dépaquetage de .../10-liblog4cplus-2.0.5_2.0.5-3_amd64.deb ...
+Dépaquetage de liblog4cplus-2.0.5:amd64 (2.0.5-3) ...
+Sélection du paquet libopenvdb8.1 précédemment désélectionné.
+Préparation du dépaquetage de .../11-libopenvdb8.1_8.1.0-3build1_amd64.deb ...
+Dépaquetage de libopenvdb8.1 (8.1.0-3build1) ...
+Sélection du paquet libraw20:amd64 précédemment désélectionné.
+Préparation du dépaquetage de .../12-libraw20_0.20.2-2ubuntu2.22.04.3_amd64.deb ...
+Dépaquetage de libraw20:amd64 (0.20.2-2ubuntu2.22.04.3) ...
+Sélection du paquet libsquish0:amd64 précédemment désélectionné.
+Préparation du dépaquetage de .../13-libsquish0_1.15-1build1_amd64.deb ...
+Dépaquetage de libsquish0:amd64 (1.15-1build1) ...
+Sélection du paquet libopenimageio2.2:amd64 précédemment désélectionné.
+Préparation du dépaquetage de .../14-libopenimageio2.2_2.2.18.0+dfsg-1ubuntu2_amd64.deb ...
+Dépaquetage de libopenimageio2.2:amd64 (2.2.18.0+dfsg-1ubuntu2) ...
+Sélection du paquet libosdcpu3.4.4:amd64 précédemment désélectionné.
+Préparation du dépaquetage de .../15-libosdcpu3.4.4_3.4.4-2ubuntu1_amd64.deb ...
+Dépaquetage de libosdcpu3.4.4:amd64 (3.4.4-2ubuntu1) ...
+Sélection du paquet libspnav0 précédemment désélectionné.
+Préparation du dépaquetage de .../16-libspnav0_0.2.3-1_amd64.deb ...
+Dépaquetage de libspnav0 (0.2.3-1) ...
+Sélection du paquet blender précédemment désélectionné.
+Préparation du dépaquetage de .../17-blender_3.0.1+dfsg-7_amd64.deb ...
+Dépaquetage de blender (3.0.1+dfsg-7) ...
+Paramétrage de libembree3-3:amd64 (3.12.2+dfsg-1) ...
+Paramétrage de libsquish0:amd64 (1.15-1build1) ...
+Paramétrage de fonts-dejavu (2.37-2build1) ...
+Paramétrage de libopencv-videoio4.5d:amd64 (4.5.4+dfsg-9ubuntu4) ...
+Paramétrage de libdcmtk16 (3.6.6-5) ...
+Paramétrage de liblog4cplus-2.0.5:amd64 (2.0.5-3) ...
+Paramétrage de libopenvdb8.1 (8.1.0-3build1) ...
+Paramétrage de libjemalloc2:amd64 (5.2.1-4ubuntu1) ...
+Paramétrage de libosdcpu3.4.4:amd64 (3.4.4-2ubuntu1) ...
+Paramétrage de libyaml-cpp0.7:amd64 (0.7.0+dfsg-8build1) ...
+Paramétrage de libtinyxml2.6.2v5:amd64 (2.6.2-6ubuntu0.22.04.1) ...
+Paramétrage de libraw20:amd64 (0.20.2-2ubuntu2.22.04.3) ...
+Paramétrage de libglew2.2:amd64 (2.2.0-4) ...
+Paramétrage de blender-data (3.0.1+dfsg-7) ...
+Paramétrage de libspnav0 (0.2.3-1) ...
+Paramétrage de libopencolorio1v5 (1.1.1~dfsg0-7.1build1) ...
+Paramétrage de libopenimageio2.2:amd64 (2.2.18.0+dfsg-1ubuntu2) ...
+Paramétrage de blender (3.0.1+dfsg-7) ...
+Traitement des actions différées (« triggers ») pour hicolor-icon-theme (0.17-2) ...
+Traitement des actions différées (« triggers ») pour gnome-menus (3.36.0-1ubuntu3) ...
+Traitement des actions différées (« triggers ») pour libc-bin (2.35-0ubuntu3.14) ...
+Traitement des actions différées (« triggers ») pour man-db (2.10.2-1) ...
+Traitement des actions différées (« triggers ») pour mailcap (3.70+nmu1ubuntu1.22.04.1) ...
+Traitement des actions différées (« triggers ») pour desktop-file-utils (0.26-1ubuntu3) ...
+Color management: using fallback mode for management
+Color management: Error could not find role data role.
+Blender 3.0.1
+BLENDER_EXIT:0
+[?2026h[?25l[1Gpulling manifest ⠋ [K[?25h[?2026l[?2026h[?25l[1Gpulling manifest ⠙ [K[?25h[?2026l[?2026h[?25l[1Gpulling manifest ⠹ [K[?25h[?2026l[?2026h[?25l[1Gpulling manifest ⠸ [K[?25h[?2026l[?2026h[?25l[1Gpulling manifest ⠼ [K[?25h[?2026l[?2026h[?25l[1Gpulling manifest ⠴ [K[?25h[?2026l[?2026h[?25l[1Gpulling manifest ⠦ [K[?25h[?2026l[?2026h[?25l[1Gpulling manifest ⠧ [K[?25h[?2026l[?2026h[?25l[1Gpulling manifest [K
+pulling 2bada8a74506: 100% ▕██████████████████▏ 4.7 GB                         [K
+pulling 66b9ea09bd5b: 100% ▕██████████████████▏   68 B                         [K
+pulling eb4402837c78: 100% ▕██████████████████▏ 1.5 KB                         [K
+pulling 832dd9e00a68: 100% ▕██████████████████▏  11 KB                         [K
+pulling 2f15b3218f05: 100% ▕██████████████████▏  487 B                         [K
+verifying sha256 digest [K
+writing manifest [K
+success [K[?25h[?2026l
+OLLAMA_PULL_EXIT:0
+NAME                          ID              SIZE      MODIFIED               
+qwen2.5:7b-instruct-q4_K_M    845dbda0ea48    4.7 GB    Less than a second ago    
+gemma4:12b                    4eb23ef187e2    7.6 GB    5 days ago                
+genio-vl:latest               52c3f1205904    6.0 GB    6 days ago                
+qwen2.5vl:7b                  5ced39dfa4ba    6.0 GB    6 days ago                
+genio-brain:latest            f65e69c0bce6    4.7 GB    6 days ago                
+genio-fast14b:latest          2c9c8a6d4970    9.0 GB    7 days ago                
+qwen2.5-coder:7b              dae161e27b0e    4.7 GB    7 days ago                
+gemma2:9b                     ff02c3702f32    5.4 GB    2 weeks ago               
+qwen2.5-coder:14b             9ec8897f747e    9.0 GB    2 weeks ago               
+qwen2.5:7b                    845dbda0ea48    4.7 GB    6 weeks ago               
+qwen2.5:latest                845dbda0ea48    4.7 GB    6 weeks ago               
+gemma4:latest                 c6eb396dbd59    9.6 GB    2 months ago              
+gemma4:31b-cloud              c382fbfbc73b    -         4 months ago              
+minimax-m2.7:cloud            06daa293c105    -         4 months ago              
+glm-5.1:cloud                 59472abf9d0a    -         4 months ago              
+qwen3-coder-next:cloud        aa626c11ae8d    -         4 months ago              
+nemotron-3-super:cloud        be3943c5a818    -         4 months ago              
+[?2026h[?25l[1G⠙ [K[?25h[?2026l[?2026h[?25l[1G⠹ [K[?25h[?2026l[?2026h[?25l[1G⠹ [K[?25h[?2026l[?2026h[?25l[1G⠸ [K[?25h[?2026l[?2026h[?25l[1G⠼ [K[?25h[?2026l[?2026h[?25l[1G⠦ [K[?25h[?2026l[?2026h[?25l[1G⠦ [K[?25h[?2026l[?2026h[?25l[1G⠧ [K[?25h[?2026l[?2026h[?25l[1G⠇ [K[?25h[?2026l[?2026h[?25l[1G⠏ [K[?25h[?2026l[?2026h[?25l[1G⠙ [K[?25h[?2026l[?2026h[?25l[1G⠙ [K[?25h[?2026l[?2026h[?25l[1G⠹ [K[?25h[?2026l[?2026h[?25l[1G⠼ [K[?25h[?2026l[?2026h[?25l[1G⠼ [K[?25h[?2026l[?2026h[?25l[1G⠴ [K[?25h[?2026l[?2026h[?25l[1G⠦ [K[?25h[?2026l[?2026h[?25l[1G⠇ [K[?25h[?2026l[?2026h[?25l[1G⠇ [K[?25h[?2026l[?2026h[?25l[1G⠏ [K[?25h[?2026l[?2026h[?25l[1G⠋ [K[?25h[?2026l[?2026h[?25l[1G⠙ [K[?25h[?2026l[?2026h[?25l[1G⠹ [K[?25h[?2026l[?2026h[?25l[1G⠼ [K[?25h[?2026l[?2026h[?25l[1G⠴ [K[?25h[?2026l[?2026h[?25l[1G⠴ [K[?25h[?2026l[?2026h[?25l[1G⠦ [K[?25h[?2026l[?2026h[?25l[1G⠧ [K[?25h[?2026l[?2026h[?25l[1G⠏ [K[?25h[?2026l[?2026h[?25l[1G⠏ [K[?25h[?2026l[?2026h[?25l[1G⠙ [K[?25h[?2026l[?2026h[?25l[1G⠙ [K[?25h[?2026l[?2026h[?25l[1G⠹ [K[?25h[?2026l[?2026h[?25l[1G⠸ [K[?25h[?2026l[?2026h[?25l[1G⠼ [K[?25h[?2026l[?2026h[?25l[1G⠴ [K[?25h[?2026l[?2026h[?25l[1G⠧ [K[?25h[?2026l[?2026h[?25l[1G⠇ [K[?25h[?2026l[?2026h[?25l[1G⠏ [K[?25h[?2026l[?2026h[?25l[1G⠋ [K[?25h[?2026l[?2026h[?25l[1G⠋ [K[?25h[?2026l[?2026h[?25l[1G⠙ [K[?25h[?2026l[?2026h[?25l[1G⠹ [K[?25h[?2026l[?2026h[?25l[1G⠸ [K[?25h[?2026l[?2026h[?25l[1G⠴ [K[?25h[?2026l[?2026h[?25l[1G⠴ [K[?25h[?2026l[?2026h[?25l[1G⠧ [K[?25h[?2026l[?2026h[?25l[1G⠧ [K[?25h[?2026l[?2026h[?25l[1G⠏ [K[?25h[?2026l[?2026h[?25l[1G⠋ [K[?25h[?2026l[?2026h[?25l[1G⠙ [K[?25h[?2026l[?2026h[?25l[1G⠹ [K[?25h[?2026l[?2026h[?25l[1G⠸ [K[?25h[?2026l[?2026h[?25l[1G⠼ [K[?25h[?2026l[?2026h[?25l[1G⠴ [K[?25h[?2026l[?2026h[?25l[1G⠦ [K[?25h[?2026l[?2026h[?25l[1G⠧ [K[?25h[?2026l[?2026h[?25l[1G⠇ [K[?25h[?2026l[?2026h[?25l[1G⠏ [K[?25h[?2026l[?2026h[?25l[1G⠋ [K[?25h[?2026l[?2026h[?25l[1G⠙ [K[?25h[?2026l[?2026h[?25l[1G⠙ [K[?25h[?2026l[?2026h[?25l[1G⠹ [K[?25h[?2026l[?2026h[?25l[1G⠸ [K[?25h[?2026l[?2026h[?25l[1G⠼ [K[?25h[?2026l[?2026h[?25l[1G⠴ [K[?25h[?2026l[?2026h[?25l[1G⠧ [K[?25h[?2026l[?2026h[?25l[1G⠧ [K[?25h[?2026l[?2026h[?25l[1G⠏ [K[?25h[?2026l[?2026h[?25l[1G⠋ [K[?25h[?2026l[?2026h[?25l[1G⠋ [K[?25h[?2026l[?2026h[?25l[1G⠹ [K[?25h[?2026l[?2026h[?25l[1G⠹ [K[?25h[?2026l[?2026h[?25l[1G⠸ [K[?25h[?2026l[?2026h[?25l[1G⠼ [K[?25h[?2026l[?2026h[?25l[1G⠦ [K[?25h[?2026l[?2026h[?25l[1G⠦ [K[?25h[?2026l[?2026h[?25l[1G⠧ [K[?25h[?2026l[?2026h[?25l[1G⠇ [K[?25h[?2026l[?2026h[?25l[1G⠏ [K[?25h[?2026l[?2026h[?25l[1G⠋ [K[?25h[?2026l[?2026h[?25l[1G⠹ [K[?25h[?2026l[?2026h[?25l[1G⠹ [K[?25h[?2026l[?2026h[?25l[1G⠸ [K[?25h[?2026l[?2026h[?25l[1G⠴ [K[?25h[?2026l[?2026h[?25l[1G⠴ [K[?25h[?2026l[?2026h[?25l[1G⠦ [K[?25h[?2026l[?2026h[?25l[1G⠇ [K[?25h[?2026l[?2026h[?25l[1G⠏ [K[?25h[?2026l[?2026h[?25l[1G⠏ [K[?25h[?2026l[?2026h[?25l[1G⠋ [K[?25h[?2026l[?2026h[?25l[1G⠙ [K[?25h[?2026l[?2026h[?25l[1G⠸ [K[?25h[?2026l[?2026h[?25l[1G⠸ [K[?25h[?2026l[?2026h[?25l[1G⠴ [K[?25h[?2026l[?2026h[?25l[1G⠦ [K[?25h[?2026l[?2026h[?25l[1G⠧ [K[?25h[?2026l[?2026h[?25l[1G⠧ [K[?25h[?2026l[?2026h[?25l[1G⠏ [K[?25h[?2026l[?2026h[?25l[1G⠋ [K[?25h[?2026l[?2026h[?25l[1G⠙ [K[?25h[?2026l[?2026h[?25l[1G⠹ [K[?25h[?2026l[?2026h[?25l[1G⠹ [K[?25h[?2026l[?2026h[?25l[1G⠸ [K[?25h[?2026l[?25l[?2026h[?25l[1G[K[?25h[?2026l[2K[1G[?25hHello[?25l[?25h![?25l[?25h How[?25l[?25h can[?25l[?25h I[?25l[?25h assist[?25l[?25h you[?25l[?25h today[?25l[?25h?[?25l[?25h Feel[?25l[?25h free[?25l[?25h to[?25l[?25h ask[?25l[?25h me[?25l[?25h any[?25l[?25h questions[?25l[?25h or[?25l[?25h tes[3D[K
+test[?25l[?25h out[?25l[?25h anything[?25l[?25h you[?25l[?25h'd[?25l[?25h like[?25l[?25h.[?25l[?25h
+
+total duration:       10.87453918s
+load duration:        10.404550321s
+prompt eval count:    32 token(s)
+prompt eval duration: 75.049ms
+prompt eval rate:     426.39 tokens/s
+eval count:           25 token(s)
+eval duration:        392.779ms
+eval rate:            63.65 tokens/s
+[?25l[?25hOLLAMA_CHAT_EXIT:0
+ComfyUI-AnimateDiff-Evolved
+ComfyUI-Frame-Interpolation
+ComfyUI-Manager
+ComfyUI-VideoHelperSuite
+example_node.py.example
+__pycache__
+websocket_image_save.py
+--- Attempt clone 3D-Pack ---
+Clonage dans '/home/hitech/comfyui-app/custom_nodes/ComfyUI-3D-Pack'...
+CLONE_EXIT:0
+Checkpoints
+Configs
+docker-compose.yml
+Dockerfile
+DOCKER_INSTRUCTIONS.md
+example_workflows
+Gen_3D_Modules
+__init__.py
+install.py
+LICENSE
+mesh_processer
+MVs_Algorithms
+my-reqs.txt
+nodes.py
+_Pre_Builds
+pyproject.toml
+README.md
+requirements.txt
+shared_utils
+web
+webserver
+# build tools
+cmake
+ninja
+pccm
+
+# web tools
+PyGithub
+requests
+
+# computational libraries
+numpy
+einops
+scipy
+kornia
+opencv-python
+pillow
+nerfacc>=0.5.3
+slangtorch
+cumm==0.7.11 
+spconv-cu126
+
+git+https://github.com/EasternJournalist/utils3d.git#egg=utils3d
+git+https://github.com/ashawkey/kiuikit.git#egg=kiui
+
+# for use ML models
+diffusers>=0.26.1
+transformers>=4.36.2
+safetensors
+open_clip_torch
+mmgp
+
+# for training differentiable tensors
+torchmetrics
+pytorch_msssim
+pytorch-lightning
+peft
+
+# for process images & videos
+rembg
+onnxruntime
+imageio
+imageio-ffmpeg
+matplotlib
+realesrgan
+
+# for process, import & export mesh 
+trimesh
+fast-simplification
+plyfile
+pygltflib
+accelerate==1.1.1
+aiohappyeyeballs @ file:///D:/a/ComfyUI/cu124_python_deps/aiohappyeyeballs-2.4.3-py3-none-any.whl#sha256=8a7a83727b2756f394ab2895ea0765a0a8c475e3c71e98d43d76f22b4b435572
+aiohttp @ file:///D:/a/ComfyUI/cu124_python_deps/aiohttp-3.10.10-cp312-cp312-win_amd64.whl#sha256=0e1b370d8007c4ae31ee6db7f9a2fe801a42b146cec80a86766e7ad5c4a259cf
+aiosignal @ file:///D:/a/ComfyUI/cu124_python_deps/aiosignal-1.3.1-py3-none-any.whl#sha256=f8376fb07dd1e86a584e4fcdec80b36b7f81aac666ebc724e2c090300dd83b17
+antlr4-python3-runtime==4.9.3
+attrs @ file:///D:/a/ComfyUI/cu124_python_deps/attrs-24.2.0-py3-none-any.whl#sha256=81921eb96de3191c8258c199618104dd27ac608d9366f5e35d011eae1867ede2
+ccimport==0.4.4
+certifi==2024.12.14
+cffi @ file:///D:/a/ComfyUI/cu124_python_deps/cffi-1.17.1-cp312-cp312-win_amd64.whl#sha256=51392eae71afec0d0c8fb1a53b204dbb3bcabcb3c9b807eedf3e1e6ccf2de903
+charset-normalizer==3.4.0
+click==8.1.7
+cmake==3.30.5
+colorama @ file:///D:/a/ComfyUI/cu124_python_deps/colorama-0.4.6-py2.py3-none-any.whl#sha256=4f1d9991f5acc0ca119f9d443620b77f9d6b33703e51011c16baf57afb285fc6
+coloredlogs==15.0.1
+contourpy==1.3.0
+cryptography==43.0.3
+cumm-cu121==0.7.9
+cumm-cu124==0.7.11
+cycler==0.12.1
+dataclasses-json==0.6.7
+Deprecated==1.2.14
+diff_gaussian_rasterization @ file:///C:/Users/reall/Softwares/ComfyUI_windows_portable/ComfyUI/custom_nodes/ComfyUI-3D-Pack/_Pre_Builds/_Build_Wheels/_Wheels_win_py312_torch2.5.1_cu124/diff_gaussian_rasterization-0.0.0-cp312-cp312-win_amd64.whl#sha256=4aa00b35c553099c8e094e8c36be7172b43b503d1f749f2b3c7b35b44d07d9fd
+diffusers==0.31.0
+easydict==1.13
+einops @ file:///D:/a/ComfyUI/cu124_python_deps/einops-0.8.0-py3-none-any.whl#sha256=9572fb63046264a862693b0a87088af3bdc8c068fde03de63453cbbde245465f
+filelock @ file:///D:/a/ComfyUI/cu124_python_deps/filelock-3.16.1-py3-none-any.whl#sha256=2082e5703d51fbf98ea75855d9d5527e33d8ff23099bec374a134febee6946b0
+fire==0.7.0
+flatbuffers==24.3.25
+fonttools==4.54.1
+frozenlist @ file:///D:/a/ComfyUI/cu124_python_deps/frozenlist-1.5.0-cp312-cp312-win_amd64.whl#sha256=8969190d709e7c48ea386db202d708eb94bdb29207a1f269bab1196ce0dcca1f
+fsspec @ file:///D:/a/ComfyUI/cu124_python_deps/fsspec-2024.10.0-py3-none-any.whl#sha256=03b9a6785766a4de40368b88906366755e2819e758b83705c88cd7cb5fe81871
+ftfy==6.3.1
+gitdb==4.0.11
+GitPython==3.1.43
+glcontext==3.0.0
+gpytoolbox==0.3.2
+hatchling==1.25.0
+huggingface-hub @ file:///D:/a/ComfyUI/cu124_python_deps/huggingface_hub-0.26.2-py3-none-any.whl#sha256=98c2a5a8e786c7b2cb6fdeb2740893cba4d53e312572ed3d8afafda65b128c46
+humanfriendly==10.0
+idna==3.10
+igraph==0.11.8
+imageio==2.36.0
+imageio-ffmpeg==0.5.1
+importlib_metadata==8.5.0
+iopath==0.1.10
+jaxtyping==0.2.34
+Jinja2 @ file:///D:/a/ComfyUI/cu124_python_deps/jinja2-3.1.4-py3-none-any.whl#sha256=bc5dd2abb727a5319567b7a813e6a2e7318c39f4f487cfe6c89c6f9c7d25197d
+jsonschema==4.23.0
+jsonschema-specifications==2024.10.1
+kiui @ file:///C:/Users/reall/Softwares/ComfyUI_windows_portable/ComfyUI/custom_nodes/ComfyUI-3D-Pack/_Pre_Builds/_Build_Wheels/_Wheels_win_py312_torch2.5.1_cu124/kiui-0.2.14-py3-none-any.whl#sha256=8a36e39a67ca9b2dd6d1942b88e38a187b0ad63c36bc21705c19101e8dbe02a4
+CharacterGen
+Craftsman
+CRM
+CRM_T2I_V3
+Diffusers
+facebookresearch
+InstantMesh
+LGM
+StableFast3D
+T2I_V2
+
+=== S0 FALLBACK LOG ===
+ComfyUI: running at 127.0.0.1:8188 (PID 3540872) — verify OK via /system_stats
+ComfyUI-3D-Pack: cloned to custom_nodes/ComfyUI-3D-Pack, but prebuilds are Windows py312 cu124 only; Linux auto_build requires long compile (cmake, gcc, torch extensions) — fallback to blender primitive for S1 (documented, continue per authority: step fails twice → fallback)
+Blender: installed via apt 3.0.1 — verify OK
+Ollama: qwen2.5:7b-instruct-q4_K_M pulled 4.7GB — verify chat OK (63 tok/s)
+ffmpeg: 4.4.2 verified
+node: v22.23.2 verified
+VRAM: 12GB → InstantMesh selected but fallback to blender due to pack platform mismatch — logged, continue
+Color management: using fallback mode for management
+Color management: Error could not find role data role.
+Blender 3.0.1
+Color management: scene view "Filmic" not found, setting default "Standard".
+Color management: scene view "Filmic" not found, setting default "Standard".
+Traceback (most recent call last):
+  File "/tmp/genio_blender_s1.py", line 70, in <module>
+    bpy.ops.mesh.extrude_region_move(TRANSFORM_OT_translate=(0,0,0.02))
+  File "/usr/share/blender/scripts/modules/bpy/ops.py", line 132, in __call__
+    ret = _op_call(self.idname_py(), None, kw)
+TypeError: Converting py args to operator properties:  MESH_OT_extrude_region_move.TRANSFORM_OT_translate expected a TRANSFORM_OT_translate type, not tuple
+
+Blender quit
+BLENDER_EXIT:0
+ls: impossible d'accéder à '/data/ai_tools/genio/media/mascot_raw.*': Aucun fichier ou dossier de ce nom
+ls: impossible d'accéder à '/data/ai_tools/genio/reports/v4/body-turntable.png': Aucun fichier ou dossier de ce nom
+Color management: using fallback mode for management
+Color management: Error could not find role data role.
+Blender 3.0.1
+Color management: scene view "Filmic" not found, setting default "Standard".
+Color management: scene view "Filmic" not found, setting default "Standard".
+Error: Python: Traceback (most recent call last):
+  File "/usr/share/blender/scripts/addons/io_scene_gltf2/__init__.py", line 512, in execute
+    from .blender.exp import gltf2_blender_export
+  File "/usr/share/blender/scripts/addons/io_scene_gltf2/blender/exp/gltf2_blender_export.py", line 22, in <module>
+    from io_scene_gltf2.blender.exp import gltf2_blender_gather
+  File "/usr/share/blender/scripts/addons/io_scene_gltf2/blender/exp/gltf2_blender_gather.py", line 19, in <module>
+    from io_scene_gltf2.blender.exp import gltf2_blender_gather_nodes
+  File "/usr/share/blender/scripts/addons/io_scene_gltf2/blender/exp/gltf2_blender_gather_nodes.py", line 24, in <module>
+    from io_scene_gltf2.blender.exp import gltf2_blender_gather_mesh
+  File "/usr/share/blender/scripts/addons/io_scene_gltf2/blender/exp/gltf2_blender_gather_mesh.py", line 20, in <module>
+    from io_scene_gltf2.blender.exp import gltf2_blender_gather_primitives
+  File "/usr/share/blender/scripts/addons/io_scene_gltf2/blender/exp/gltf2_blender_gather_primitives.py", line 17, in <module>
+    import numpy as np
+ModuleNotFoundError: No module named 'numpy'
+
+location: /usr/share/blender/scripts/modules/bpy/ops.py:132
+
+Python: Traceback (most recent call last):
+  File "/usr/share/blender/scripts/addons/io_scene_gltf2/__init__.py", line 512, in execute
+    from .blender.exp import gltf2_blender_export
+  File "/usr/share/blender/scripts/addons/io_scene_gltf2/blender/exp/gltf2_blender_export.py", line 22, in <module>
+    from io_scene_gltf2.blender.exp import gltf2_blender_gather
+  File "/usr/share/blender/scripts/addons/io_scene_gltf2/blender/exp/gltf2_blender_gather.py", line 19, in <module>
+    from io_scene_gltf2.blender.exp import gltf2_blender_gather_nodes
+  File "/usr/share/blender/scripts/addons/io_scene_gltf2/blender/exp/gltf2_blender_gather_nodes.py", line 24, in <module>
+    from io_scene_gltf2.blender.exp import gltf2_blender_gather_mesh
+  File "/usr/share/blender/scripts/addons/io_scene_gltf2/blender/exp/gltf2_blender_gather_mesh.py", line 20, in <module>
+    from io_scene_gltf2.blender.exp import gltf2_blender_gather_primitives
+  File "/usr/share/blender/scripts/addons/io_scene_gltf2/blender/exp/gltf2_blender_gather_primitives.py", line 17, in <module>
+    import numpy as np
+ModuleNotFoundError: No module named 'numpy'
+
+location: /usr/share/blender/scripts/modules/bpy/ops.py:132
+Traceback (most recent call last):
+  File "/tmp/genio_blender_s1.py", line 146, in <module>
+    bpy.ops.export_scene.gltf(filepath=glb_path, export_format='GLB', export_apply=True)
+  File "/usr/share/blender/scripts/modules/bpy/ops.py", line 132, in __call__
+    ret = _op_call(self.idname_py(), None, kw)
+RuntimeError: Error: Python: Traceback (most recent call last):
+  File "/usr/share/blender/scripts/addons/io_scene_gltf2/__init__.py", line 512, in execute
+    from .blender.exp import gltf2_blender_export
+  File "/usr/share/blender/scripts/addons/io_scene_gltf2/blender/exp/gltf2_blender_export.py", line 22, in <module>
+    from io_scene_gltf2.blender.exp import gltf2_blender_gather
+  File "/usr/share/blender/scripts/addons/io_scene_gltf2/blender/exp/gltf2_blender_gather.py", line 19, in <module>
+    from io_scene_gltf2.blender.exp import gltf2_blender_gather_nodes
+  File "/usr/share/blender/scripts/addons/io_scene_gltf2/blender/exp/gltf2_blender_gather_nodes.py", line 24, in <module>
+    from io_scene_gltf2.blender.exp import gltf2_blender_gather_mesh
+  File "/usr/share/blender/scripts/addons/io_scene_gltf2/blender/exp/gltf2_blender_gather_mesh.py", line 20, in <module>
+    from io_scene_gltf2.blender.exp import gltf2_blender_gather_primitives
+  File "/usr/share/blender/scripts/addons/io_scene_gltf2/blender/exp/gltf2_blender_gather_primitives.py", line 17, in <module>
+    import numpy as np
+ModuleNotFoundError: No module named 'numpy'
+
+location: /usr/share/blender/scripts/modules/bpy/ops.py:132
+
+
+'/usr/bin/3.0/python/lib/python3.10/site-packages/libextern_draco.so' does not exist, draco mesh compression not available, please add it or create environment variable BLENDER_EXTERN_DRACO_LIBRARY_PATH pointing to the folder
+Error: Python: Traceback (most recent call last):
+  File "/usr/share/blender/scripts/addons/io_scene_gltf2/__init__.py", line 512, in execute
+    from .blender.exp import gltf2_blender_export
+  File "/usr/share/blender/scripts/addons/io_scene_gltf2/blender/exp/gltf2_blender_export.py", line 22, in <module>
+    from io_scene_gltf2.blender.exp import gltf2_blender_gather
+  File "/usr/share/blender/scripts/addons/io_scene_gltf2/blender/exp/gltf2_blender_gather.py", line 19, in <module>
+    from io_scene_gltf2.blender.exp import gltf2_blender_gather_nodes
+  File "/usr/share/blender/scripts/addons/io_scene_gltf2/blender/exp/gltf2_blender_gather_nodes.py", line 24, in <module>
+    from io_scene_gltf2.blender.exp import gltf2_blender_gather_mesh
+  File "/usr/share/blender/scripts/addons/io_scene_gltf2/blender/exp/gltf2_blender_gather_mesh.py", line 20, in <module>
+    from io_scene_gltf2.blender.exp import gltf2_blender_gather_primitives
+  File "/usr/share/blender/scripts/addons/io_scene_gltf... truncated
+Blender quit
+BLENDER2_EXIT:0
+ls: impossible d'accéder à '/data/ai_tools/genio/media/mascot_raw.*': Aucun fichier ou dossier de ce nom
+ls: impossible d'accéder à '/data/ai_tools/genio/reports/v4/body-turntable.png': Aucun fichier ou dossier de ce nom
+  gfortran python-numpy-doc
+Les NOUVEAUX paquets suivants seront installés :
+  python3-numpy
+0 mis à jour, 1 nouvellement installés, 0 à enlever et 0 non mis à jour.
+Il est nécessaire de prendre 3,467 ko dans les archives.
+Après cette opération, 18.9 Mo d'espace disque supplémentaires seront utilisés.
+Réception de :1 http://apt.pop-os.org/ubuntu jammy-security/main amd64 python3-numpy amd64 1:1.21.5-1ubuntu22.04.1 [3,467 kB]
+debconf: Impossible d'initialiser l'interface : Dialog
+debconf: (L'interface dialog ne fonctionnera pas avec un terminal rustique (« dumb »), un tampon shell d'Emacs ou sans terminal de contrôle.)
+debconf: Utilisation de l'interface Readline en remplacement
+debconf: Impossible d'initialiser l'interface : Readline
+debconf: (Cette interface a besoin d'un terminal de contrôle.)
+debconf: Utilisation de l'interface Teletype en remplacement
+dpkg-preconfigure: impossible de réouvrir stdin : 
+3,467 ko réceptionnés en 1s (5,089 ko/s)
+Sélection du paquet python3-numpy précédemment désélectionné.
+(Lecture de la base de données... (Lecture de la base de données... 5%(Lecture de la base de données... 10%(Lecture de la base de données... 15%(Lecture de la base de données... 20%(Lecture de la base de données... 25%(Lecture de la base de données... 30%(Lecture de la base de données... 35%(Lecture de la base de données... 40%(Lecture de la base de données... 45%(Lecture de la base de données... 50%(Lecture de la base de données... 55%(Lecture de la base de données... 60%(Lecture de la base de données... 65%(Lecture de la base de données... 70%(Lecture de la base de données... 75%(Lecture de la base de données... 80%(Lecture de la base de données... 85%(Lecture de la base de données... 90%(Lecture de la base de données... 95%(Lecture de la base de données... 100%(Lecture de la base de données... 389842 fichiers et répertoires déjà installés.)
+Préparation du dépaquetage de .../python3-numpy_1%3a1.21.5-1ubuntu22.04.1_amd64.deb ...
+Dépaquetage de python3-numpy (1:1.21.5-1ubuntu22.04.1) ...
+Paramétrage de python3-numpy (1:1.21.5-1ubuntu22.04.1) ...
+1.21.5
+Color management: using fallback mode for management
+Color management: Error could not find role data role.
+Blender 3.0.1
+Color management: scene view "Filmic" not found, setting default "Standard".
+
+Blender quit
+BLENDER_NUMPY_EXIT:0
+Color management: using fallback mode for management
+Color management: Error could not find role data role.
+Blender 3.0.1
+Color management: scene view "Filmic" not found, setting default "Standard".
+Color management: scene view "Filmic" not found, setting default "Standard".
+Unable to open a display
+timeout: la commande surveillée a renvoyé un core dump
+BLENDER_S1_EXIT2:0
+-rw-rw-r-- 1 hitech hitech 887K سبتمبر  4 20:02 /data/ai_tools/genio/media/mascot_raw.glb
+-rw-rw-r-- 1 hitech hitech 1.5K سبتمبر  4 20:02 /data/ai_tools/genio/media/mascot_raw.mtl
+-rw-rw-r-- 1 hitech hitech 868K سبتمبر  4 20:02 /data/ai_tools/genio/media/mascot_raw.obj
+ls: impossible d'accéder à '/data/ai_tools/genio/reports/v4/body-turntable.png': Aucun fichier ou dossier de ce nom
+Color management: using fallback mode for management
+Color management: Error could not find role data role.
+Blender 3.0.1
+Color management: scene view "Filmic" not found, setting default "Standard".
+Color management: scene view "Filmic" not found, setting default "Standard".
+Unable to open a display
+timeout: la commande surveillée a renvoyé un core dump
+BLENDER_S1_EXIT3:0
+ls: impossible d'accéder à '/data/ai_tools/genio/reports/v4/body-turntable.png': Aucun fichier ou dossier de ce nom
+-rw-rw-r-- 1 hitech hitech 926K سبتمبر  4 20:02 /data/ai_tools/genio/media/mascot_raw.glb
+-rw-rw-r-- 1 hitech hitech 1.5K سبتمبر  4 20:02 /data/ai_tools/genio/media/mascot_raw.mtl
+-rw-rw-r-- 1 hitech hitech 908K سبتمبر  4 20:02 /data/ai_tools/genio/media/mascot_raw.obj
+S1_DONE
+Data are loaded, start creating Blender stuff
+glTF import finished in 0.04s
+Imported /data/ai_tools/genio/media/mascot_raw.glb
+Rigify enabled
+Rigify generate failed Calling operator "bpy.ops.armature.rigify_generate" error, could not be found, using metarig
+Parenting 12 meshes
+Parented Cone
+Parented Cube
+Parented Cylinder
+Parented Cylinder.001
+Parented Icosphere
+Parented Icosphere.001
+Parented Plane
+Parented Plane.001
+Parented Sphere
+Parented Sphere.001
+Parented Sphere.002
+Parented Torus
+'/usr/bin/3.0/python/lib/python3.10/site-packages/libextern_draco.so' does not exist, draco mesh compression not available, please add it or create environment variable BLENDER_EXTERN_DRACO_LIBRARY_PATH pointing to the folder
+19:03:55 | INFO: Starting glTF 2.0 export
+19:03:55 | INFO: Extracting primitive: Cone
+19:03:55 | INFO: Primitives created: 1
+19:03:55 | INFO: Extracting primitive: Cube
+19:03:55 | INFO: Primitives created: 1
+19:03:55 | WARNING: There are more than 4 joint vertex influences.The 4 with highest weight will be used (and normalized).
+19:03:55 | INFO: Extracting primitive: Cylinder
+19:03:55 | INFO: Primitives created: 1
+19:03:55 | INFO: Extracting primitive: Cylinder.001
+19:03:55 | INFO: Primitives created: 1
+19:03:55 | INFO: Extracting primitive: Icosphere
+19:03:55 | INFO: Primitives created: 1
+19:03:55 | WARNING: There are more than 4 joint vertex influences.The 4 with highest weight will be used (and normalized).
+19:03:55 | INFO: Extracting primitive: Icosphere.001
+19:03:55 | INFO: Primitives created: 1
+19:03:55 | INFO: Extracting primitive: Plane
+19:03:55 | INFO: Primitives created: 1
+19:03:55 | INFO: Extracting primitive: Plane.001
+19:03:55 | INFO: Primitives created: 1
+19:03:55 | INFO: Extracting primitive: Sphere
+19:03:55 | INFO: Primitives created: 1
+19:03:55 | WARNING: There are more than 4 joint vertex influences.The 4 with highest weight will be used (and normalized).
+19:03:55 | INFO: Extracting primitive: Sphere.001
+19:03:55 | INFO: Primitives created: 1
+19:03:55 | INFO: Extracting primitive: Sphere.002
+19:03:55 | INFO: Primitives created: 1
+19:03:55 | INFO: Extracting primitive: Torus
+19:03:55 | INFO: Primitives created: 1
+19:03:55 | WARNING: There are more than 4 joint vertex influences.The 4 with highest weight will be used (and normalized).
+19:03:55 | INFO: Finished glTF 2.0 export in 0.3108842372894287 s
+
+Exported rigged /data/ai_tools/genio/media/rig/mascot_rigged.glb size 2192884
+Final rigged size 2192884
+Color management: using fallback mode for management
+Color management: Error could not find role data role.
+Blender 3.0.1
+Color management: scene view "Filmic" not found, setting default "Standard".
+Color management: scene view "Filmic" not found, setting default "Standard".
+
+Blender quit
+-rw-rw-r-- 1 hitech hitech 2.1M سبتمبر  4 20:03 /data/ai_tools/genio/media/rig/mascot_rigged.glb
+
+added 3 packages, changed 2 packages, and audited 646 packages in 14s
+
+95 packages are looking for funding
+  run `npm fund` for details
+
+18 vulnerabilities (5 moderate, 12 high, 1 critical)
+
+To address issues that do not require attention, run:
+  npm audit fix
+
+To address all issues possible (including breaking changes), run:
+  npm audit fix --force
+
+Some issues need review, and may require choosing
+a different dependency.
+
+Run `npm audit` for details.
+Defaulting to user installation because normal site-packages is not writeable
+Requirement already satisfied: fastapi in /home/hitech/.local/lib/python3.10/site-packages (0.141.1)
+Requirement already satisfied: uvicorn in /home/hitech/.local/lib/python3.10/site-packages (0.30.0)
+Requirement already satisfied: httpx in /home/hitech/.local/lib/python3.10/site-packages (0.27.2)
+Requirement already satisfied: starlette>=0.46.0 in /home/hitech/.local/lib/python3.10/site-packages (from fastapi) (1.6.0)
+Requirement already satisfied: pydantic>=2.9.0 in /home/hitech/.local/lib/python3.10/site-packages (from fastapi) (2.9.0)
+Requirement already satisfied: typing-extensions>=4.8.0 in /home/hitech/.local/lib/python3.10/site-packages (from fastapi) (4.15.0)
+Requirement already satisfied: typing-inspection>=0.4.2 in /home/hitech/.local/lib/python3.10/site-packages (from fastapi) (0.4.2)
+Requirement already satisfied: annotated-doc>=0.0.2 in /home/hitech/.local/lib/python3.10/site-packages (from fastapi) (0.0.4)
+Requirement already satisfied: click>=7.0 in /home/hitech/.local/lib/python3.10/site-packages (from uvicorn) (8.4.2)
+Requirement already satisfied: h11>=0.8 in /home/hitech/.local/lib/python3.10/site-packages (from uvicorn) (0.16.0)
+Requirement already satisfied: anyio in /home/hitech/.local/lib/python3.10/site-packages (from httpx) (4.4.0)
+Requirement already satisfied: certifi in /home/hitech/.local/lib/python3.10/site-packages (from httpx) (2026.4.22)
+Requirement already satisfied: httpcore==1.* in /home/hitech/.local/lib/python3.10/site-packages (from httpx) (1.0.9)
+Requirement already satisfied: idna in /usr/lib/python3/dist-packages (from httpx) (3.3)
+Requirement already satisfied: sniffio in /home/hitech/.local/lib/python3.10/site-packages (from httpx) (1.3.1)
+Requirement already satisfied: annotated-types>=0.4.0 in /home/hitech/.local/lib/python3.10/site-packages (from pydantic>=2.9.0->fastapi) (0.7.0)
+Requirement already satisfied: pydantic-core==2.23.2 in /home/hitech/.local/lib/python3.10/site-packages (from pydantic>=2.9.0->fastapi) (2.23.2)
+Requirement already satisfied: tzdata in /home/hitech/.local/lib/python3.10/site-packages (from pydantic>=2.9.0->fastapi) (2026.2)
+Requirement already satisfied: exceptiongroup>=1.0.2 in /home/hitech/.local/lib/python3.10/site-packages (from anyio->httpx) (1.3.1)
+× genio-gestures.service - Genio Gestures Composer
+     Loaded: loaded (/etc/systemd/system/genio-gestures.service; enabled; vendor preset: enabled)
+     Active: failed (Result: exit-code) since Fri 2026-09-04 20:07:25 CET; 1s ago
+    Process: 3603697 ExecStart=/usr/bin/python3 -m uvicorn app:app --host 0.0.0.0 --port 8001 (code=exited, status=200/CHDIR)
+   Main PID: 3603697 (code=exited, status=200/CHDIR)
+        CPU: 1ms
+
+سبتمبر 04 20:07:25 pop-os systemd[1]: genio-gestures.service: Scheduled restart job, restart counter is at 5.
+سبتمبر 04 20:07:25 pop-os systemd[1]: Stopped Genio Gestures Composer.
+سبتمبر 04 20:07:25 pop-os systemd[1]: genio-gestures.service: Start request repeated too quickly.
+سبتمبر 04 20:07:25 pop-os systemd[1]: genio-gestures.service: Failed with result 'exit-code'.
+سبتمبر 04 20:07:25 pop-os systemd[1]: Failed to start Genio Gestures Composer.
+HEALTH_EXIT:0
+COMPOSE_EXIT:0
