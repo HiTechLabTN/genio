@@ -1,7 +1,6 @@
 import { AnimatePresence } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
 import ConnectionHub from "./components/ConnectionHub";
-import Dashboard from "./components/Dashboard";
 import GoogleAuthOnboarding, { shouldShowGoogleAuth } from "./components/GoogleAuthOnboarding";
 import PermissionOnboarding, { shouldShowOnboarding } from "./components/PermissionOnboarding";
 import UpdateModal from "./components/UpdateModal";
@@ -10,25 +9,51 @@ import { useTaskProcessor } from "./hooks/useTaskProcessor";
 import { checkForUpdates } from "./lib/updater";
 import { useDeviceProfile } from "./lib/deviceProfiler";
 import { decideEngine } from "./lib/adaptiveEngine";
-import { getGoogleToken, hasGoogleAuth } from "./lib/googleAuth";
+import { hasGoogleAuth } from "./lib/googleAuth";
 import type { Attachment, ServerNode } from "./lib/types";
 import { ErrorBoundary } from "./components/v3";
 import { useVoiceOutput } from "./components/v3/useVoiceOutput";
-// New Islamic HUD imports
 import IslamicPatterns from "./components/background/IslamicPatterns";
 import HologramMascot from "./components/mascot/HologramMascot";
 import SystemMetrics from "./components/hud/SystemMetrics";
 import BrainActivity from "./components/hud/BrainActivity";
 import MatrixTaskScreen from "./components/hud/MatrixTaskScreen";
 import SplashScreen from "./components/layout/SplashScreen";
-import { lazy, Suspense } from "react";
+import BottomInputBar from "./components/BottomInputBar";
+import { lazy, Suspense, useCallback } from "react";
 const LivingMascot3D = lazy(() => import("./components/mascot/LivingMascot3D"));
+
+/*
+ * S1 AUDIT — App.tsx root sections before cleanup:
+ * 1) SplashScreen z-50
+ * 2) IslamicPatterns z-0
+ * 3) Health chip (left top) + Voice toggle (right top)
+ * 4) MatrixTaskScreen z-8 (full 28vh→75vh panel)
+ * 5) LivingMascot3D z-1 inset-0
+ * 6) Chat wrapper z-15: border glow circle + AnimatePresence → Dashboard vs ConnectionHub vs UpdateModal + Chronos hint
+ * 7) SystemMetrics/BrainActivity z-20 bottom-right
+ * 8) TaskMinimizer fixed top-right
+ *
+ * Dashboard.tsx legacy stack:
+ * - Header (duplicate SYSTEM LIVE + metrics chips + SELFIE MODE) → duplicate TopBar
+ * - Engine tier bar (gray spacer band border-b bg-carbon/30)
+ * - Main flex: avatar zone h-[35vh] dot-grid + radial portals + CyberAvatar 340 (legacy)
+ * - Chat history h-[65vh] + HolographicHud when busy + ActivityBar
+ * - RightDrawer
+ * - BottomInputBar with GENIO APP footer gray band
+ *
+ * GenioShell.tsx (unused duplication):
+ * - IslamicPatterns + MatrixTaskScreen + HologramMascot + chat children + SystemMetrics (all duplicated)
+ *
+ * S1 DELETE: dot-grid avatar zone (Dashboard idle-avatar), duplicate Header,
+ * full-height panels (Dashboard h-screen flex-col, Chat h65vh), gray spacer bands (engine tier bar,
+ * BottomInputBar GENIO APP footer, Header border-b bg-slate-950/80). KEEP hooks (chat/WS/telemetry/voice/face tracking).
+ */
 
 export default function App() {
   const [showSplash, setShowSplash] = useState(true);
   const [showGoogleAuth, setShowGoogleAuth] = useState(() => shouldShowGoogleAuth());
   const [showOnboarding, setShowOnboarding] = useState(() => shouldShowOnboarding());
-  // P4 fallback: if token exists while welcome still shown (e.g. cached render), auto-continue after 1.2s
   useEffect(() => {
     if (!showGoogleAuth) return;
     if (!hasGoogleAuth()) return;
@@ -38,22 +63,22 @@ export default function App() {
   const deviceProfile = useDeviceProfile();
   const engineDecision = decideEngine();
   const isGeminiCloud = hasGoogleAuth();
-  const [chronosDismissed, setChronosDismissed] = useState(false);
+  // chronos hint removed S1 (gray band deleted)
 
   const {
     agentStatus: wsAgentStatus,
     telemetry,
     telemetryStale,
     chat: wsChat,
-    screen,
-    streaming,
+    screen: _screen,
+    streaming: _streaming,
     connect,
     disconnect,
     send,
     sendPrompt: wsSendPrompt,
     kill,
-    requestScreenshot,
-    toggleScreenStream,
+    requestScreenshot: _requestScreenshot,
+    toggleScreenStream: _toggleScreenStream,
   } = useGenioSocket();
   const [geminiChat, setGeminiChat] = useState<typeof wsChat>([]);
   const [geminiStatus, setGeminiStatus] = useState<typeof wsAgentStatus>({ kind: "idle" });
@@ -140,7 +165,7 @@ export default function App() {
 
   const [connected, setConnected] = useState(false);
   const [target, setTarget] = useState<ServerNode | null>(null);
-  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [, setDrawerOpen] = useState(false);
   const [update, setUpdate] = useState<{ version: string; notes?: string } | null>(null);
   const lastPromptRef = useRef("");
   const lastPromptFileRef = useRef<Attachment[] | undefined>(undefined);
@@ -150,7 +175,6 @@ export default function App() {
 
   useEffect(() => {
     let alive = true;
-    // F3: delay update check 3s + idle callback, never at boot (avoid freeze on mid-range Android)
     const ric = (window as unknown as { requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number }).requestIdleCallback;
     const schedule = (cb: () => void) => {
       if (ric) ric(cb, { timeout: 4000 });
@@ -170,7 +194,6 @@ export default function App() {
     };
   }, []);
 
-  // F1: /health pre-check 3s; fail -> On-Device Tier A + status chip + retry; never crash
   useEffect(() => {
     if (!splashReady) return;
     let alive = true;
@@ -192,7 +215,6 @@ export default function App() {
     return () => { alive = false; clearInterval(id); };
   }, [splashReady]);
 
-  // P3: Node auto-select on boot — try TN VPS /health 2s timeout → WS telemetry if OK else Gemini Cloud
   useEffect(() => {
     if (!splashReady) return;
     if (connected) return;
@@ -214,7 +236,7 @@ export default function App() {
               setHealthStatus("ok");
               return;
             }
-          } catch { /* fallback to cloud */ }
+          } catch { /* fallback */ }
           setHealthStatus("offline");
         } else {
           setHealthStatus("offline");
@@ -227,26 +249,19 @@ export default function App() {
     return () => { alive = false; clearTimeout(to); ctrl.abort(); };
   }, [splashReady, connected, connect]);
 
-  // Splash ready dispatch
   useEffect(() => {
     if (!splashReady) return;
     window.dispatchEvent(new CustomEvent("genio:ready"));
   }, [splashReady]);
 
   async function handleConnect(node: ServerNode) {
-    // F1 pre-check
     try {
       const c = new AbortController();
       const to = window.setTimeout(() => c.abort(), 3000);
       const res = await fetch(`http://${node.host}:${node.port}/api/v1/status`, { signal: c.signal }).catch(() => null);
       clearTimeout(to);
-      if (!res || !(res as Response).ok) {
-        setHealthStatus("offline");
-        // fallback Tier A is handled via deviceProfiler + adaptiveEngine elsewhere
-        // show status chip but still try connect
-      } else {
-        setHealthStatus("ok");
-      }
+      if (!res || !(res as Response).ok) setHealthStatus("offline");
+      else setHealthStatus("ok");
     } catch {
       setHealthStatus("offline");
     }
@@ -275,7 +290,6 @@ export default function App() {
   function handleSendPrompt(text: string, attachments?: Attachment[]) {
     lastPromptRef.current = text;
     lastPromptFileRef.current = attachments;
-    setChronosDismissed(false);
     taskProc.setIsMinimized(false);
     voice.stop();
     sendPrompt(text, attachments);
@@ -284,7 +298,6 @@ export default function App() {
     if (lastPromptRef.current) sendPrompt(lastPromptRef.current, lastPromptFileRef.current);
   }
 
-  // Map agentStatus to HologramMascot status
   const mascotStatus = (() => {
     if (taskProc.result && agentStatus.kind === "completed") return "answering";
     if (agentStatus.kind === "thinking") return "thinking";
@@ -295,18 +308,19 @@ export default function App() {
   })();
 
   const showV3Portal = (connected && target) || isGeminiCloud;
-
-  // audioLevel placeholder — reuse voice output level or 0.45 when listening
   const audioLevel = isListening ? 0.45 : 0;
+
+  const handleScrollStick = useCallback((e: React.UIEvent<HTMLDivElement>) => {
+    const el = e.currentTarget;
+    const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 140;
+    (e.currentTarget as unknown as { _stick?: boolean })._stick = nearBottom;
+  }, []);
 
   if (showGoogleAuth) {
     return (
       <div style={{ width: "100vw", height: "100vh", position: "relative", overflow: "hidden" }} className="bg-[#020B1E]">
         <ErrorBoundary name="IslamicPatterns"><IslamicPatterns /></ErrorBoundary>
-        <GoogleAuthOnboarding
-          onAuthed={() => setShowGoogleAuth(false)}
-          onSkip={() => setShowGoogleAuth(false)}
-        />
+        <GoogleAuthOnboarding onAuthed={() => setShowGoogleAuth(false)} onSkip={() => setShowGoogleAuth(false)} />
       </div>
     );
   }
@@ -319,19 +333,18 @@ export default function App() {
     );
   }
 
+  // S1: legacy stacked blocks (Dashboard.Header, avatar h35vh dot-grid, h-screen panels, gray bands) DELETED
+  // Hooks kept: chat/WS/telemetry/voice/face tracking. Minimal Transcript kept for verify.
+
   return (
     <div style={{ width: "100vw", height: "100vh", position: "relative", overflow: "hidden" }} className="bg-[#020B1E]">
-      {/* SplashScreen z-50 */}
       {showSplash && <SplashScreen onReady={() => { setShowSplash(false); setSplashReady(true); }} />}
-
-      {/* z-0 IslamicPatterns */}
       <ErrorBoundary name="IslamicPatterns">
         <div className="absolute inset-0 z-0">
           <IslamicPatterns />
         </div>
       </ErrorBoundary>
 
-      {/* Health status chip (F1) */}
       {healthStatus !== "checking" && (
         <div className="absolute left-3 top-3 z-30 flex items-center gap-2 rounded-full border px-3 py-1 font-mono text-[10px] backdrop-blur" style={{ borderColor: healthStatus === "ok" ? "rgba(52,211,153,0.3)" : "rgba(251,113,133,0.3)", background: healthStatus === "ok" ? "rgba(52,211,153,0.1)" : "rgba(251,113,133,0.1)", color: healthStatus === "ok" ? "#34d399" : "#fb7185" }}>
           <span className={`h-2 w-2 rounded-full ${healthStatus === "ok" ? "bg-emerald-400" : "bg-rose-400 animate-pulse"}`} />
@@ -339,7 +352,6 @@ export default function App() {
           {healthStatus === "offline" && <button onClick={() => window.location.reload()} className="ml-2 underline">retry</button>}
         </div>
       )}
-      {/* P2 speaker toggle — persisted localStorage, top bar */}
       <button
         aria-label={voice.enabled ? "Voice on" : "Voice off"}
         onClick={() => voice.toggleEnabled()}
@@ -349,19 +361,16 @@ export default function App() {
           background: voice.enabled ? "rgba(34,211,238,0.12)" : "rgba(15,23,42,0.6)",
           color: voice.enabled ? "#22d3ee" : "#94a3b8",
         }}
-        title={voice.enabled ? "Voix activée — appuyez pour couper" : "Voix coupée — appuyez pour activer"}
       >
         <span>{voice.enabled ? "🔊" : "🔇"}</span>
         {voice.enabled ? "voix" : "muet"}
       </button>
-      {/* P2 no voice chip */}
       {voice.noVoice && (
         <div className="absolute right-3 top-10 z-30 rounded-full border border-amber-400/30 bg-amber-500/10 px-3 py-1 font-mono text-[10px] text-amber-300 backdrop-blur">
           🔇 voix indisponible
         </div>
       )}
 
-      {/* z-8 MatrixTaskScreen */}
       {showV3Portal && (
         <div className="pointer-events-none absolute inset-x-3 top-16 z-[8] md:inset-x-6 md:top-20">
           <ErrorBoundary name="MatrixTaskScreen">
@@ -372,93 +381,60 @@ export default function App() {
         </div>
       )}
 
-      {/* Living 3D Mascot — Canvas absolute inset-0 z-1, centred upper third (~70vh portrait), fallback to HologramMascot */}
       {showV3Portal && (
         <div className="absolute inset-0 z-[1]">
           <ErrorBoundary name="LivingMascot3D">
-            <Suspense
-              fallback={
-                <div className="absolute z-10 flex h-[35vh] w-full items-center justify-center left-1/2 top-[72px] -translate-x-1/2 md:top-[80px]">
-                  <HologramMascot status={mascotStatus} audioLevel={audioLevel} isMinimized={mascotStatus === "answering" || expanded} />
-                </div>
-              }
-            >
+            <Suspense fallback={<div className="absolute z-10 flex h-[35vh] w-full items-center justify-center left-1/2 top-[72px] -translate-x-1/2 md:top-[80px]"><HologramMascot status={mascotStatus} audioLevel={audioLevel} isMinimized={mascotStatus === "answering" || expanded} /></div>}>
               <LivingMascot3D status={mascotStatus} audioLevel={audioLevel} />
             </Suspense>
           </ErrorBoundary>
         </div>
       )}
 
-      {/* z-15 Chat + VoiceInput (keep Dashboard's ChatBubble + BottomInputBar via GenioShell children) */}
+      {/* S1: Dashboard legacy stack DELETED — replaced by minimal transcript + input (no Header, no avatar h35vh, no full-height panels, no gray bands) */}
       <div className="relative z-[15] flex h-full w-full flex-col">
-        <div className="pointer-events-none absolute left-1/2 top-[52%] h-[420px] w-[420px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-cyan-400/10 md:h-[560px] md:w-[560px]" style={{ opacity: showV3Portal ? 1 : 0 }} />
         <AnimatePresence mode="wait">
           {showV3Portal ? (
             <div key="v3-portal" className="flex h-screen w-full flex-col">
-              <div className="flex min-h-0 flex-1 flex-col pt-[36vh] md:pt-[38vh]">
-                <Dashboard
-                  key={isGeminiCloud ? "dashboard-gemini" : "dashboard"}
-                  node={isGeminiCloud ? "Gemini Cloud" : target?.label || "Genio"}
-                  host={isGeminiCloud ? "genio-server" : target?.host || ""}
-                  apiKey={isGeminiCloud ? getGoogleToken() || undefined : target?.key}
-                  telemetry={telemetry}
-                  telemetryStale={telemetryStale}
-                  agentStatus={agentStatus}
-                  chat={chat}
-                  screen={screen}
-                  streaming={streaming}
-                  drawerOpen={drawerOpen}
-                  deviceProfile={deviceProfile}
-                  engineDecision={engineDecision}
-                  onToggleDrawer={() => setDrawerOpen((o) => !o)}
-                  onDisconnect={isGeminiCloud ? () => setShowGoogleAuth(true) : handleDisconnect}
-                  onKill={kill}
-                  onContinue={handleContinue}
-                  onSendPrompt={handleSendPrompt}
-                  onSendVoice={(dataB64, durationSec) => send({ action: "voice_wav", data_b64: dataB64, duration: durationSec, final: true })}
-                  onRequestScreenshot={requestScreenshot}
-                  onToggleScreenStream={toggleScreenStream}
-                  onSwitchNode={handleSwitchNode}
-                />
+              <div className="flex min-h-0 flex-1 flex-col pt-[36vh] md:pt-[38vh] p-4">
+                <div className="flex-1 overflow-auto custom-scrollbar rounded-2xl border border-white/10 bg-black/20 p-3 backdrop-blur" onScroll={handleScrollStick}>
+                  {chat.length === 0 ? (
+                    <p className="text-center font-mono text-xs text-white/40">Genio ready — S1 minimal transcript (S2 will be BottomSheet)</p>
+                  ) : (
+                    chat.slice(-20).map((c, i) => (
+                      <div key={i} className="py-1 font-mono text-[12px] text-white/80 truncate">
+                        <span className="text-white/30">{c.type}: </span>{(c as unknown as { text?: string }).text ?? (c as unknown as { message?: string }).message ?? JSON.stringify(c).slice(0, 80)}
+                      </div>
+                    ))
+                  )}
+                  {telemetryStale && <p className="text-amber-300 text-xs">TN stale</p>}
+                </div>
+                <BottomInputBar onSendPrompt={handleSendPrompt} onSendVoice={(dataB64, durationSec) => send({ action: "voice_wav", data_b64: dataB64, duration: durationSec, final: true })} />
+                <div className="mt-2 flex gap-2">
+                  <button onClick={handleContinue} className="text-xs text-cyan-300 underline">Continue</button>
+                  <button onClick={() => kill()} className="text-xs text-rose-300 underline">Kill</button>
+                  <button onClick={handleDisconnect} className="text-xs text-slate-400 underline">Disconnect</button>
+                  <button onClick={() => handleSwitchNode("tn", "TN Server")} className="text-xs text-slate-400 underline">Switch TN</button>
+                </div>
+                {deviceProfile && <p className="font-mono text-[10px] text-white/30">Tier {deviceProfile.tier} · {engineDecision.mode} · {deviceProfile.ramGB}GB · {isGeminiCloud ? "Gemini Cloud" : target?.host}</p>}
               </div>
             </div>
           ) : (
             <ConnectionHub key="hub" onConnect={handleConnect} />
           )}
         </AnimatePresence>
-
         {update && <UpdateModal version={update.version} notes={update.notes} onClose={() => setUpdate(null)} />}
-
-        {!chronosDismissed && taskProc.thinkingSteps.length === 0 && taskProc.toolActivity.length === 0 ? (
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10">
-            {/* keep ChronosPortal minimized hint but not full overlay to avoid z-conflict with new HUD */}
-          </div>
-        ) : null}
       </div>
 
-      {/* z-20 metrics/brain — P3 gauges reflect ACTIVE node; cloud badge when Gemini Cloud active */}
       {showV3Portal && (
         <div className="pointer-events-none absolute bottom-3 right-3 z-20 flex flex-col items-end gap-3 md:bottom-4 md:right-6">
           <div className="pointer-events-auto hidden md:block">
-            <ErrorBoundary name="SystemMetrics">
-              <SystemMetrics telemetry={telemetry ?? undefined} isCloud={isGeminiCloud && !telemetry} />
-            </ErrorBoundary>
+            <ErrorBoundary name="SystemMetrics"><SystemMetrics telemetry={telemetry ?? undefined} isCloud={isGeminiCloud && !telemetry} /></ErrorBoundary>
           </div>
           <div className="pointer-events-auto md:hidden">
-            <ErrorBoundary name="SystemMetrics-mobile">
-              <SystemMetrics telemetry={telemetry ?? undefined} isCloud={isGeminiCloud && !telemetry} />
-            </ErrorBoundary>
+            <ErrorBoundary name="SystemMetrics-mobile"><SystemMetrics telemetry={telemetry ?? undefined} isCloud={isGeminiCloud && !telemetry} /></ErrorBoundary>
           </div>
-          <ErrorBoundary name="BrainActivity">
-            <BrainActivity active={agentStatus.kind === "thinking" || agentStatus.kind === "executing"} />
-          </ErrorBoundary>
-        </div>
-      )}
-
-      {/* TaskMinimizer fixed top-right — keep for result */}
-      {showV3Portal && (
-        <div className="pointer-events-none absolute right-3 top-[58px] z-30 hidden md:block" style={{ zIndex: 30 }}>
-          {/* reuse v3 TaskMinimizer if exists */}
+          <ErrorBoundary name="BrainActivity"><BrainActivity active={agentStatus.kind === "thinking" || agentStatus.kind === "executing"} /></ErrorBoundary>
         </div>
       )}
     </div>
