@@ -138,13 +138,25 @@ export default function App() {
   const [expanded, setExpanded] = useState(false);
   const [healthStatus, setHealthStatus] = useState<"checking" | "ok" | "offline">("checking");
 
+  // S3: Updater OFF on web — never check/render on browser/web (keep for Android APK / desktop only)
+  const isWebPlatform = (() => {
+    if (typeof window === "undefined" || typeof navigator === "undefined") return false;
+    const ua = navigator.userAgent || "";
+    const isAndroid = /android/i.test(ua);
+    const isElectron = !!(window as unknown as { process?: { versions?: { electron?: string } } }).process?.versions?.electron;
+    const isTauri = !!(window as unknown as { __TAURI__?: unknown }).__TAURI__ || !!(window as unknown as { __TAURI_IPC__?: unknown }).__TAURI_IPC__;
+    const isCapacitorNative = !!(window as unknown as { Capacitor?: { isNativePlatform?: () => boolean } }).Capacitor?.isNativePlatform?.();
+    // web = not Android, not Electron, not Tauri, not Capacitor native, and not file:// tauri dev
+    return !isAndroid && !isElectron && !isTauri && !isCapacitorNative;
+  })();
   useEffect(() => {
+    if (isWebPlatform) return; // S3: never check updates on web
     let alive = true;
     const ric = (window as unknown as { requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number }).requestIdleCallback;
     const schedule = (cb: () => void) => { if (ric) ric(cb, { timeout: 4000 }); else window.setTimeout(cb, 3000); };
     const tid = window.setTimeout(() => { schedule(() => { if (!alive) return; checkForUpdates().then((u) => { if (alive && u) setUpdate(u); }); }); }, 3000);
     return () => { alive = false; clearTimeout(tid); };
-  }, []);
+  }, [isWebPlatform]);
   useEffect(() => {
     if (!splashReady) return;
     let alive = true;
@@ -347,7 +359,7 @@ export default function App() {
         </div>
       )}
 
-      {update && <UpdateModal version={update.version} notes={update.notes} onClose={() => setUpdate(null)} />}
+      {update && !isWebPlatform && <UpdateModal version={update.version} notes={update.notes} onClose={() => setUpdate(null)} />}
     </div>
   );
 }
