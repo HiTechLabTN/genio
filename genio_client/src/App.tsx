@@ -20,6 +20,8 @@ import MatrixTaskScreen from "./components/hud/MatrixTaskScreen";
 import SplashScreen from "./components/layout/SplashScreen";
 import BottomInputBar from "./components/BottomInputBar";
 import IntroCinematic from "./components/intro/IntroCinematic";
+import { lazy, Suspense } from "react";
+const GenioBody = lazy(() => import("./components/mascot/GenioBody"));
 
 // S2 SINGLE ROOT LAYOUT — h-[100dvh] fixed inset-0, no page scroll
 // z-0 IslamicPatterns .07, z-1 LivingMascot3D middle 60%, z-20 TopBar, z-15 TaskMatrix compact collapsed, z-15 BottomSheet
@@ -289,11 +291,19 @@ export default function App() {
         </div>
       </ErrorBoundary>
 
-      {/* z-1 HologramPuppet middle 60% — brand puppet, mask+screen, breathing+tilt, tap reactions */}
+      {/* z-1 GenioBody R3F + Rapier physics stage — HologramPuppet Tier-B fallback */}
       {showV3Portal && (
         <div className="absolute inset-x-0 z-[1] top-[56px] bottom-[32%] md:bottom-[30%]">
-          <ErrorBoundary name="HologramPuppet">
-            <HologramPuppet status={mascotStatus} audioLevel={audioLevel} />
+          <ErrorBoundary name="GenioBody">
+            <Suspense fallback={<HologramPuppet status={mascotStatus} audioLevel={audioLevel} />}>
+              {(() => {
+                // flag genio:body:3d (desktop on, tier-low off) + tier check
+                const isLow = typeof navigator !== "undefined" && ((navigator as unknown as { deviceMemory?: number }).deviceMemory ?? 8) <= 2;
+                const flag = typeof localStorage !== "undefined" ? localStorage.getItem("genio:body:3d") : null;
+                const useBody = flag !== "off" && !isLow;
+                return useBody ? <GenioBody status={mascotStatus} audioLevel={audioLevel} gestureHint={mascotStatus} /> : <HologramPuppet status={mascotStatus} audioLevel={audioLevel} />;
+              })()}
+            </Suspense>
           </ErrorBoundary>
         </div>
       )}
