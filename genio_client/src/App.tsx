@@ -14,13 +14,11 @@ import type { Attachment, ServerNode } from "./lib/types";
 import { ErrorBoundary } from "./components/v3";
 import { useVoiceOutput } from "./components/v3/useVoiceOutput";
 import IslamicPatterns from "./components/background/IslamicPatterns";
-import HologramMascot from "./components/mascot/HologramMascot";
+import HologramPuppet from "./components/mascot/HologramPuppet";
 import SystemMetrics from "./components/hud/SystemMetrics";
 import MatrixTaskScreen from "./components/hud/MatrixTaskScreen";
 import SplashScreen from "./components/layout/SplashScreen";
 import BottomInputBar from "./components/BottomInputBar";
-import { lazy, Suspense } from "react";
-const LivingMascot3D = lazy(() => import("./components/mascot/LivingMascot3D"));
 
 // S2 SINGLE ROOT LAYOUT — h-[100dvh] fixed inset-0, no page scroll
 // z-0 IslamicPatterns .07, z-1 LivingMascot3D middle 60%, z-20 TopBar, z-15 TaskMatrix compact collapsed, z-15 BottomSheet
@@ -275,13 +273,11 @@ export default function App() {
         </div>
       </ErrorBoundary>
 
-      {/* z-1 LivingMascot3D middle 60% — not behind TopBar/BottomSheet, full body head→feet with 10% margin */}
+      {/* z-1 HologramPuppet middle 60% — brand puppet, mask+screen, breathing+tilt, tap reactions */}
       {showV3Portal && (
         <div className="absolute inset-x-0 z-[1] top-[56px] bottom-[32%] md:bottom-[30%]">
-          <ErrorBoundary name="LivingMascot3D">
-            <Suspense fallback={<div className="absolute z-10 flex h-full w-full items-center justify-center"><HologramMascot status={mascotStatus} audioLevel={audioLevel} isMinimized={mascotStatus === "answering" || expanded} /></div>}>
-              <LivingMascot3D status={mascotStatus} audioLevel={audioLevel} />
-            </Suspense>
+          <ErrorBoundary name="HologramPuppet">
+            <HologramPuppet status={mascotStatus} audioLevel={audioLevel} />
           </ErrorBoundary>
         </div>
       )}
