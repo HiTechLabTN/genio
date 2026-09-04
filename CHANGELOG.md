@@ -481,3 +481,40 @@ engine.match('please tell me a joke about robots')
 ### Verification
 - `npx tsc --noEmit` exit 0, `npm run build` 2861 modules → `LivingMascot3D 9.75KB` `face_mesh 64KB` codé-split, total `1495KB gzip 436KB` (+3KB vs 3.1.2), fallback Tier low vérifié, `document.hidden` pause, `TTI` inchangé via lazy.
 
+## 2026-09-03 — Genio v3.2.1: Hotfix P1-P4 (portrait, voice, gauges, welcome)
+
+### P1 Portrait
+- `LivingMascot3D.tsx` enveloppé `<Bounds fit clip observe margin={1.4}>` caméra `fov35 [0,1,6]`, clamp radii `≤0.35` hauteur `≤2.2`, centrage middle 60%, `ContactShadows [0,-1.1,0] opacity0.42 scale3` + re-fit resize/orientation → 390x844 head→feet ≥10% margin.
+
+### P2 Voice
+- `useVoiceOutput.ts` `speechSynthesis.resume()` avant `speak()`, gate premier gesture, `lang ar-TN fallback fr-FR volume1 rate1`, chip `🔇 voix indisponible` si `!speechSynthesis`, toggle top-bar persist `genio:voice:enabled`.
+
+### P3 Gauges
+- `App.tsx` auto-select `fetch http://tn:8000/api/v1/status 2s` → `connect WS` si OK sinon Gemini Cloud, `SystemMetrics isCloud` → badge `☁️ CLOUD MODE` jamais 0%, `useGenioSocket` backoff exponentiel + `visibilitychange`.
+
+### P4 Welcome
+- `GoogleAuthOnboarding.tsx` + `App.tsx` auto-continue 1.2s si `getGoogleToken()` existe.
+
+### Version
+- Bump `3.2.0→3.2.1` `package.json` + `capacitor.config.json` + `src-tauri/tauri.conf.json`; `tsc 0 vite 2853 modules 413k+911k`.
+
+## 2026-09-04 — Genio v3.3.0: CLEAN UI REBUILD (mobile-first fixed root)
+
+### S1 Audit & Delete Legacy Stack
+- Audit `App.tsx`/`GenioShell.tsx`/`Dashboard.tsx` : listé 8 sections root; supprimé `Header` duplicate, avatar `h-[35vh]` dot-grid `radial-gradient/starfield/anneaux`, panels `h-screen/h65vh`, bandes grises `tier bar bg-carbon/30` + `GENIO APP` footer; conservé hooks `chat/WS/telemetry/voice/face tracking`.
+
+### S2 Single Root Layout
+- `fixed inset-0 h-[100dvh] overflow-hidden` `z-0 IslamicPatterns .07 + glow`, `z-1 LivingMascot3D inset-x-0 top-[56px] bottom-[32%] middle60% Bounds margin1.4`, `z-20 TopBar [☰][SYSTEM LIVE]…[VOIX]`, `z-15 TaskMatrix compact collapsible max-h 28% backdrop-blur collapsed mobile / right panel desktop`, `z-15 BottomSheet status+gauges/cloud+transcript+input env(safe-area-inset-bottom)`, desktop même root; pas de scroll, pas de bandes grises.
+
+### S3 Updater OFF on Web
+- `isWebPlatform !android && !electron && !__TAURI__ && !Capacitor native` → skip `checkForUpdates` et ne jamais rendre `UpdateModal` (gardé Android APK/desktop).
+
+### S4 Visual Acceptance
+- Servi `dist` via `python3 -m http.server 4173`, Playwright headless `390x844` + `1280x800`, vérifié mascot full head→feet + input visible sans scroll + pas de bandes/duplicates + pas de triangle rouge leaking; fixes `BottomInputBar w-full min-w-0 flex-1` + pills `px-2.5 sm:px-4 hidden sm:inline`, `MatrixTaskScreen` `110px` collapsed; shots `reports/ui-v3.3.0-mobile.png + -desktop.png`.
+
+### S5 Release & Deploy
+- Bump `3.2.1→3.3.0` `package.json` + `capacitor.config.json` + `src-tauri/tauri.conf.json`; `tsc 0 vite 2853 modules 413k+911k`.
+
+### Verification
+- `npx tsc --noEmit` exit 0, `npm run build` exit 0 (2853 modules), screenshots valid, mascot full visible, input visible, no gray bands.
+
