@@ -28,13 +28,12 @@ export default function App() {
   const [showSplash, setShowSplash] = useState(true);
   const [showGoogleAuth, setShowGoogleAuth] = useState(() => shouldShowGoogleAuth());
   const [showOnboarding, setShowOnboarding] = useState(() => shouldShowOnboarding());
-  // S4 Intro — first visit to /app only, localStorage genio:intro:seen
+  // S4 Intro — first visit to /app only, localStorage genio:intro:seen (S5 routing: App only mounted at /app)
   const [showIntro, setShowIntro] = useState(() => {
     try {
       const seen = localStorage.getItem("genio:intro:seen");
       const isAppPath = typeof window !== "undefined" && window.location.pathname.startsWith("/app");
-      // before routing, show on any first visit if not on landing; after routing, only /app
-      const should = !seen && (isAppPath || window.location.pathname === "/");
+      const should = !seen && isAppPath;
       return !!should;
     } catch {
       return false;
