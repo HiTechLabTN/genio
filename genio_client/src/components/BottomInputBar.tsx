@@ -130,7 +130,7 @@ export default function BottomInputBar({ onSendPrompt, onSendVoice, disabled }: 
 
   return (
     <div
-      className={`flex-none border-t border-slate-700/40 bg-slate-950/80 px-4 py-3 backdrop-blur-lg transition-colors ${
+      className={`w-full flex-none border-t border-slate-700/40 bg-slate-950/80 px-2 sm:px-4 py-3 backdrop-blur-lg transition-colors ${
         dragOver ? "ring-2 ring-inset ring-neon bg-slate-900/90" : ""
       }`}
       onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
@@ -158,7 +158,7 @@ export default function BottomInputBar({ onSendPrompt, onSendVoice, disabled }: 
         </div>
       )}
 
-      <div className="flex items-end gap-2">
+      <div className="flex w-full items-end gap-1 sm:gap-2">
         {/* attachment picker */}
         <label
           className="flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-xl border border-slate-700/50 bg-slate-900/60 text-slate-400 transition-all hover:border-neon/40 hover:bg-neon/5 hover:text-neon"
@@ -182,7 +182,7 @@ export default function BottomInputBar({ onSendPrompt, onSendVoice, disabled }: 
           onKeyDown={handleKeyDown}
           rows={1}
           placeholder="Message Genio… (Enter to send, Shift+Enter for newline)"
-          className="min-h-[40px] max-h-[160px] flex-1 resize-none rounded-xl border border-slate-700/60 bg-slate-950/60 px-4 py-2.5 text-sm text-slate-100 placeholder-slate-500 outline-none transition-all focus:border-neon/60 focus:bg-slate-900/80 focus:shadow-neon font-mono"
+          className="min-h-[40px] max-h-[160px] min-w-0 flex-1 resize-none rounded-xl border border-slate-700/60 bg-slate-950/60 px-3 sm:px-4 py-2.5 text-sm text-slate-100 placeholder-slate-500 outline-none transition-all focus:border-neon/60 focus:bg-slate-900/80 focus:shadow-neon font-mono"
           disabled={disabled || recording}
         />
 
@@ -190,7 +190,7 @@ export default function BottomInputBar({ onSendPrompt, onSendVoice, disabled }: 
         <button
           onClick={toggleMic}
           title={recording ? "Stop recording" : "Écoute"}
-          className={`flex h-10 shrink-0 items-center justify-center gap-2 rounded-full border px-4 text-[12px] font-bold tracking-wider backdrop-blur transition-all duration-200 ${
+          className={`flex h-10 shrink-0 items-center justify-center gap-1.5 rounded-full border px-2.5 sm:px-4 text-[11px] sm:text-[12px] font-bold tracking-wider backdrop-blur transition-all duration-200 ${
             recording
               ? "border-red-500 bg-red-500/15 text-red-300 shadow-[0_0_16px_rgba(239,68,68,0.5)] animate-pulse"
               : "border-red-500/40 bg-red-500/5 text-red-300 hover:border-red-500/70 hover:bg-red-500/10 hover:shadow-[0_0_12px_rgba(239,68,68,0.25)]"
@@ -204,21 +204,21 @@ export default function BottomInputBar({ onSendPrompt, onSendVoice, disabled }: 
             </span>
             <Mic size={14} className={recording ? "text-red-300" : "text-red-400/70"} />
           </span>
-          ÉCOUTE
+          <span className="hidden sm:inline">ÉCOUTE</span>
         </button>
 
         {/* send - PRÊT pill */}
         <button
           onClick={handleSubmit}
           disabled={disabled || recording || (!value.trim() && attachments.length === 0)}
-          className={`flex h-10 shrink-0 items-center justify-center gap-2 rounded-full border px-5 text-[12px] font-bold tracking-wider backdrop-blur transition-all ${
+          className={`flex h-10 shrink-0 items-center justify-center gap-1.5 rounded-full border px-3 sm:px-5 text-[11px] sm:text-[12px] font-bold tracking-wider backdrop-blur transition-all ${
             !value.trim() && attachments.length === 0
               ? "border-slate-700/30 bg-slate-900/30 text-slate-600"
               : "border-cyan-400 bg-cyan-400/10 text-cyan-300 shadow-[0_0_16px_rgba(0,229,255,0.35)] hover:bg-cyan-400/15 hover:shadow-[0_0_20px_rgba(0,229,255,0.5)] active:scale-95"
           } disabled:opacity-40`}
         >
           <span className="text-cyan-300">✦✦</span>
-          PRÊT
+          <span className="hidden sm:inline">PRÊT</span>
         </button>
       </div>
 

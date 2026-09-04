@@ -248,11 +248,11 @@ export default function App() {
         </div>
       </ErrorBoundary>
 
-      {/* z-1 LivingMascot3D middle 60% */}
+      {/* z-1 LivingMascot3D middle 60% — not behind TopBar/BottomSheet, full body head→feet with 10% margin */}
       {showV3Portal && (
-        <div className="absolute inset-0 z-[1]">
+        <div className="absolute inset-x-0 z-[1] top-[56px] bottom-[32%] md:bottom-[30%]">
           <ErrorBoundary name="LivingMascot3D">
-            <Suspense fallback={<div className="absolute z-10 flex h-[35vh] w-full items-center justify-center left-1/2 top-[72px] -translate-x-1/2 md:top-[80px]"><HologramMascot status={mascotStatus} audioLevel={audioLevel} isMinimized={mascotStatus === "answering" || expanded} /></div>}>
+            <Suspense fallback={<div className="absolute z-10 flex h-full w-full items-center justify-center"><HologramMascot status={mascotStatus} audioLevel={audioLevel} isMinimized={mascotStatus === "answering" || expanded} /></div>}>
               <LivingMascot3D status={mascotStatus} audioLevel={audioLevel} />
             </Suspense>
           </ErrorBoundary>
