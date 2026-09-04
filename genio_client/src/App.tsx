@@ -359,7 +359,7 @@ export default function App() {
             )}
           </div>
 
-          <BottomInputBar onSendPrompt={handleSendPrompt} onSendVoice={(dataB64, durationSec) => send({ action: "voice_wav", data_b64: dataB64, duration: durationSec, final: true })} />
+          <BottomInputBar onSendPrompt={handleSendPrompt} onSendVoice={(dataB64, durationSec) => send({ action: "voice_wav", data_b64: dataB64, duration: durationSec, final: true })} isConnected={!!(connected && target)} target={target} />
         </div>
       )}
 

@@ -1,16 +1,19 @@
 import { motion } from "framer-motion";
 import { Mic, Paperclip, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import type { Attachment } from "../lib/types";
-import { setIntermediateTranscript, startVoiceRecording, stopVoiceRecording, speechRecognitionSupported } from "../lib/audio";
+import type { Attachment, ServerNode } from "../lib/types";
+import { setIntermediateTranscript, startVoiceRecording, stopVoiceRecording, speechRecognitionSupported, transcribeAudio } from "../lib/audio";
 
 interface Props {
   onSendPrompt: (text: string, attachments?: Attachment[]) => void;
   onSendVoice: (dataB64: string, durationSec: number) => void;
   disabled?: boolean;
+  /** P2: when a node is connected, blob POSTed to /api/v1/voice/transcribe language ar */
+  isConnected?: boolean;
+  target?: ServerNode | null;
 }
 
-export default function BottomInputBar({ onSendPrompt, onSendVoice, disabled }: Props) {
+export default function BottomInputBar({ onSendPrompt, onSendVoice, disabled, isConnected, target }: Props) {
   const [value, setValue] = useState("");
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [recording, setRecording] = useState(false);
@@ -64,8 +67,27 @@ export default function BottomInputBar({ onSendPrompt, onSendVoice, disabled }: 
     if (recording) {
       const audio = await stopVoiceRecording();
       setRecording(false);
-      // Keep any live-transcribed words so they can be sent as text too.
-      if (audio?.transcript && !value.trim()) {
+      // P2: Darija — when node connected, POST blob to /api/v1/voice/transcribe language ar
+      // interimResults already gave Arabic-script live preview; final authoritative transcript from server overwrites
+      if (audio?.blob && isConnected) {
+        try {
+          const base = target && target.host !== "genio.hitech.tn" && !target.host.includes("genio.hitech.tn")
+            ? `http://${target.host}:${target.port}`
+            : "";
+          const apiBase = base || undefined;
+          const key = target?.key;
+          const transcribed = await transcribeAudio(audio.blob, apiBase, key);
+          if (transcribed && transcribed.trim()) {
+            setValue(transcribed.trim());
+            // also keep transcript for send path
+            audio.transcript = transcribed.trim();
+          } else if (audio?.transcript && !value.trim()) {
+            setValue(audio.transcript.trim());
+          }
+        } catch {
+          if (audio?.transcript && !value.trim()) setValue(audio.transcript.trim());
+        }
+      } else if (audio?.transcript && !value.trim()) {
         setValue(audio.transcript.trim());
       }
       if (audio && audio.dataB64) onSendVoice(audio.dataB64, audio.durationSec);
@@ -73,7 +95,7 @@ export default function BottomInputBar({ onSendPrompt, onSendVoice, disabled }: 
       setIntermediateTranscript("");
       try {
         await startVoiceRecording((text: string) => {
-          // Live STT: stream recognized words into the input in real-time.
+          // Live STT: stream recognized words into the input in real-time (ar-TN interim Arabic-script).
           setValue(text);
         });
         setRecording(true);
