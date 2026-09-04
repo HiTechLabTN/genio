@@ -138,25 +138,29 @@ export default function App() {
   const [expanded, setExpanded] = useState(false);
   const [healthStatus, setHealthStatus] = useState<"checking" | "ok" | "offline">("checking");
 
-  // S3: Updater OFF on web — never check/render on browser/web (keep for Android APK / desktop only)
-  const isWebPlatform = (() => {
-    if (typeof window === "undefined" || typeof navigator === "undefined") return false;
-    const ua = navigator.userAgent || "";
-    const isAndroid = /android/i.test(ua);
-    const isElectron = !!(window as unknown as { process?: { versions?: { electron?: string } } }).process?.versions?.electron;
-    const isTauri = !!(window as unknown as { __TAURI__?: unknown }).__TAURI__ || !!(window as unknown as { __TAURI_IPC__?: unknown }).__TAURI_IPC__;
-    const isCapacitorNative = !!(window as unknown as { Capacitor?: { isNativePlatform?: () => boolean } }).Capacitor?.isNativePlatform?.();
-    // web = not Android, not Electron, not Tauri, not Capacitor native, and not file:// tauri dev
-    return !isAndroid && !isElectron && !isTauri && !isCapacitorNative;
+  // P1 FIX v3.3.1: native ONLY via real bridges — NEVER show updater on browsers.
+  // Old isWebPlatform mis-detected mobile Chrome as native (UA contains "Android").
+  // Correct: isNative = !!(window.__TAURI__ || window.Capacitor?.isNative)
+  const isNative = (() => {
+    if (typeof window === "undefined") return false;
+    const w = window as unknown as Record<string, unknown>;
+    // Tauri bridge present only in Tauri WebView
+    const hasTauri = !!(w.__TAURI__ || w.__TAURI_IPC__ || w.__TAURI_INTERNALS__);
+    // Capacitor: isNative boolean OR isNativePlatform() fn
+    const cap = w.Capacitor as { isNative?: boolean; isNativePlatform?: () => boolean } | undefined;
+    const capNative = !!(cap?.isNative || cap?.isNativePlatform?.());
+    // Electron
+    const isElectron = !!(w.process as { versions?: { electron?: string } } | undefined)?.versions?.electron;
+    return hasTauri || capNative || isElectron;
   })();
   useEffect(() => {
-    if (isWebPlatform) return; // S3: never check updates on web
+    if (!isNative) return; // P1: never check updates on web/browsers
     let alive = true;
     const ric = (window as unknown as { requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number }).requestIdleCallback;
     const schedule = (cb: () => void) => { if (ric) ric(cb, { timeout: 4000 }); else window.setTimeout(cb, 3000); };
     const tid = window.setTimeout(() => { schedule(() => { if (!alive) return; checkForUpdates().then((u) => { if (alive && u) setUpdate(u); }); }); }, 3000);
     return () => { alive = false; clearTimeout(tid); };
-  }, [isWebPlatform]);
+  }, [isNative]);
   useEffect(() => {
     if (!splashReady) return;
     let alive = true;
@@ -359,7 +363,7 @@ export default function App() {
         </div>
       )}
 
-      {update && !isWebPlatform && <UpdateModal version={update.version} notes={update.notes} onClose={() => setUpdate(null)} />}
+      {update && isNative && <UpdateModal version={update.version} notes={update.notes} onClose={() => setUpdate(null)} />}
     </div>
   );
 }
