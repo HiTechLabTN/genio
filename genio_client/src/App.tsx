@@ -14,13 +14,12 @@ import type { Attachment, ServerNode } from "./lib/types";
 import { ErrorBoundary } from "./components/v3";
 import { useVoiceOutput } from "./components/v3/useVoiceOutput";
 import IslamicPatterns from "./components/background/IslamicPatterns";
-import HologramMascot from "./components/mascot/HologramMascot";
+import HologramPuppet from "./components/mascot/HologramPuppet";
 import SystemMetrics from "./components/hud/SystemMetrics";
 import MatrixTaskScreen from "./components/hud/MatrixTaskScreen";
 import SplashScreen from "./components/layout/SplashScreen";
 import BottomInputBar from "./components/BottomInputBar";
-import { lazy, Suspense } from "react";
-const LivingMascot3D = lazy(() => import("./components/mascot/LivingMascot3D"));
+import IntroCinematic from "./components/intro/IntroCinematic";
 
 // S2 SINGLE ROOT LAYOUT — h-[100dvh] fixed inset-0, no page scroll
 // z-0 IslamicPatterns .07, z-1 LivingMascot3D middle 60%, z-20 TopBar, z-15 TaskMatrix compact collapsed, z-15 BottomSheet
@@ -29,6 +28,17 @@ export default function App() {
   const [showSplash, setShowSplash] = useState(true);
   const [showGoogleAuth, setShowGoogleAuth] = useState(() => shouldShowGoogleAuth());
   const [showOnboarding, setShowOnboarding] = useState(() => shouldShowOnboarding());
+  // S4 Intro — first visit to /app only, localStorage genio:intro:seen (S5 routing: App only mounted at /app)
+  const [showIntro, setShowIntro] = useState(() => {
+    try {
+      const seen = localStorage.getItem("genio:intro:seen");
+      const isAppPath = typeof window !== "undefined" && window.location.pathname.startsWith("/app");
+      const should = !seen && isAppPath;
+      return !!should;
+    } catch {
+      return false;
+    }
+  });
   useEffect(() => {
     if (!showGoogleAuth) return;
     if (!hasGoogleAuth()) return;
@@ -153,6 +163,10 @@ export default function App() {
   const lastPromptRef = useRef("");
   const lastPromptFileRef = useRef<Attachment[] | undefined>(undefined);
   const [splashReady, setSplashReady] = useState(false);
+  const handleIntroDone = () => {
+    try { localStorage.setItem("genio:intro:seen", "1"); } catch {}
+    setShowIntro(false);
+  };
   const [expanded, setExpanded] = useState(false);
   const [healthStatus, setHealthStatus] = useState<"checking" | "ok" | "offline">("checking");
 
@@ -275,13 +289,11 @@ export default function App() {
         </div>
       </ErrorBoundary>
 
-      {/* z-1 LivingMascot3D middle 60% — not behind TopBar/BottomSheet, full body head→feet with 10% margin */}
+      {/* z-1 HologramPuppet middle 60% — brand puppet, mask+screen, breathing+tilt, tap reactions */}
       {showV3Portal && (
         <div className="absolute inset-x-0 z-[1] top-[56px] bottom-[32%] md:bottom-[30%]">
-          <ErrorBoundary name="LivingMascot3D">
-            <Suspense fallback={<div className="absolute z-10 flex h-full w-full items-center justify-center"><HologramMascot status={mascotStatus} audioLevel={audioLevel} isMinimized={mascotStatus === "answering" || expanded} /></div>}>
-              <LivingMascot3D status={mascotStatus} audioLevel={audioLevel} />
-            </Suspense>
+          <ErrorBoundary name="HologramPuppet">
+            <HologramPuppet status={mascotStatus} audioLevel={audioLevel} />
           </ErrorBoundary>
         </div>
       )}
@@ -416,6 +428,8 @@ export default function App() {
           {connectionToast}
         </div>
       )}
+      {/* S4 Intro Cinematic — first visit to /app only */}
+      {showIntro && <IntroCinematic onComplete={handleIntroDone} onSkip={handleIntroDone} />}
     </div>
   );
 }

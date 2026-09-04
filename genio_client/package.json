@@ -1,8 +1,8 @@
 {
   "name": "genio-client",
   "private": true,
-  "version": "3.3.1",
-  "description": "Genio \u2014 Assistant IA intelligent avec Chronos Portal, Avatar 3D et multilingue (Darija/FR/EN)",
+  "version": "3.4.0",
+  "description": "Genio — Assistant IA intelligent avec Chronos Portal, Avatar 3D et multilingue (Darija/FR/EN)",
   "author": "HiTechLabTN <contact@hitechlab.tn>",
   "homepage": "https://github.com/HiTechLabTN/genio",
   "main": "electron/main.js",
@@ -39,6 +39,7 @@
     "lucide-react": "^1.37.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
+    "react-router-dom": "^6.30.6",
     "three": "^0.185.1"
   },
   "devDependencies": {
@@ -46,6 +47,8 @@
     "@capacitor/assets": "^3.0.5",
     "@capacitor/cli": "^5.0.0",
     "@capacitor/ios": "^5.0.0",
+    "@playwright/test": "^1.62.1",
+    "playwright": "^1.62.1",
     "@tauri-apps/cli": "^2",
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
