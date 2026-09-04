@@ -57,6 +57,7 @@ export default function App() {
     kill,
     requestScreenshot: _requestScreenshot,
     toggleScreenStream: _toggleScreenStream,
+    connectionToast,
   } = useGenioSocket();
   const [geminiChat, setGeminiChat] = useState<typeof wsChat>([]);
   const [geminiStatus, setGeminiStatus] = useState<typeof wsAgentStatus>({ kind: "idle" });
@@ -409,6 +410,12 @@ export default function App() {
       )}
 
       {update && isNative && <UpdateModal version={update.version} notes={update.notes} onClose={() => setUpdate(null)} />}
+      {/* P5: connection resilience toast */}
+      {connectionToast && (
+        <div className="fixed bottom-[84px] left-1/2 z-50 -translate-x-1/2 rounded-full border border-amber-400/30 bg-amber-500/15 px-4 py-2 font-mono text-[11px] text-amber-200 backdrop-blur-md shadow-lg">
+          {connectionToast}
+        </div>
+      )}
     </div>
   );
 }

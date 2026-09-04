@@ -269,7 +269,7 @@ export function useGenioSocket(): UseGenioSocket {
     [disconnect, scheduleReconnect],
   );
 
-  // P3: WS reconnect on visibilitychange (when tab becomes visible again)
+  // P3 + P5: WS reconnect on visibilitychange (when tab becomes visible again)
   useEffect(() => {
     const onVis = () => {
       if (!document.hidden && shouldReconnectRef.current && activeRef.current) {
@@ -283,6 +283,38 @@ export function useGenioSocket(): UseGenioSocket {
     document.addEventListener("visibilitychange", onVis);
     return () => document.removeEventListener("visibilitychange", onVis);
   }, [scheduleReconnect]);
+
+  // P5: window online/offline listeners; WS auto-reconnect without page reload + toast
+  const [connectionToast, setConnectionToast] = useState<string | null>(null);
+  useEffect(() => {
+    const onOffline = () => {
+      setConnectionToast("الاتصال انقطع — نعاودو نربطو…");
+    };
+    const onOnline = () => {
+      setConnectionToast(null);
+      if (shouldReconnectRef.current && activeRef.current) {
+        reconnectAttemptsRef.current = 0;
+        scheduleReconnect(activeRef.current);
+      }
+    };
+    window.addEventListener("offline", onOffline);
+    window.addEventListener("online", onOnline);
+    // also watch onClose to set toast when WS drops
+    return () => {
+      window.removeEventListener("offline", onOffline);
+      window.removeEventListener("online", onOnline);
+    };
+  }, [scheduleReconnect]);
+  // when socket closes unexpectedly, also show toast
+  const prevStatusRef = useRef(status);
+  useEffect(() => {
+    if (prevStatusRef.current.kind === "connected" && status.kind === "idle" && shouldReconnectRef.current) {
+      setConnectionToast("الاتصال انقطع — نعاودو نربطو…");
+      const t = window.setTimeout(() => setConnectionToast(null), 8000);
+      return () => clearTimeout(t);
+    }
+    prevStatusRef.current = status;
+  }, [status]);
 
   useEffect(() => () => disconnect(), [disconnect]);
 
@@ -305,6 +337,7 @@ export function useGenioSocket(): UseGenioSocket {
     requestScreenshot,
     toggleScreenStream,
     error: status.kind === "error" ? status.message : undefined,
+    connectionToast,
   };
 }
 
