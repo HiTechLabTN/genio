@@ -37,7 +37,11 @@ export default function App() {
   }, [showGoogleAuth]);
   const deviceProfile = useDeviceProfile();
   const engineDecision = decideEngine();
-  const isGeminiCloud = hasGoogleAuth();
+  const [connected, setConnected] = useState(false);
+  const [target, setTarget] = useState<ServerNode | null>(null);
+  // P3: cloud mode is when NO node connected (phones via HiTech Cloud) — even without token we show card (a)
+  const hasToken = hasGoogleAuth();
+  const isGeminiCloud = !connected;
 
   const {
     agentStatus: wsAgentStatus,
@@ -61,6 +65,16 @@ export default function App() {
   const sendPrompt = isGeminiCloud
     ? (text: string, attachments?: Attachment[]) => {
         setGeminiChat((prev) => [...prev.slice(-299), { type: "user", text, timestamp: Date.now() } as const]);
+        // P3 (a): cloud mode + !token => inline card, don't call proxy
+        if (!hasToken) {
+          setGeminiChat((prev) => [
+            ...prev.slice(-299),
+            { type: "answer", text: "سجّل بـ Google باش تكمّل في السحاب" } as const,
+            { type: "error", message: "NEED_GOOGLE_AUTH" } as const,
+          ]);
+          setGeminiStatus({ kind: "idle" });
+          return true;
+        }
         setGeminiStatus({ kind: "thinking" });
         void (async () => {
           try {
@@ -91,7 +105,12 @@ export default function App() {
             }
           } catch (e: unknown) {
             const msg = e instanceof Error ? e.message : String(e);
-            if (msg.includes("السيرفر طايح")) setGeminiChat((prev) => [...prev.slice(-299), { type: "answer", text: msg }]);
+            // P3 (b): token present + proxy fail => specific message
+            if (msg === "NO_GOOGLE_TOKEN" || msg.includes("NO_GOOGLE_TOKEN")) {
+              setGeminiChat((prev) => [...prev.slice(-299), { type: "answer", text: "سجّل بـ Google باش تكمّل في السحاب" } as const, { type: "error", message: "NEED_GOOGLE_AUTH" } as const]);
+            } else if (msg === "GEMINI_PROXY_FAIL" || msg.includes("GEMINI_PROXY_FAIL") || msg.includes("السيرفر طايح")) {
+              setGeminiChat((prev) => [...prev.slice(-299), { type: "answer", text: "مشكل في الاتصال بالسحاب — عاود جرّب" } as const]);
+            } else if (msg.includes("السيرفر طايح")) setGeminiChat((prev) => [...prev.slice(-299), { type: "answer", text: msg }]);
             else setGeminiChat((prev) => [...prev.slice(-299), { type: "error", message: msg }]);
             setGeminiStatus({ kind: "idle" });
           }
@@ -128,8 +147,6 @@ export default function App() {
   }, [taskProc.result, taskProc.setIsMinimized, voice]);
   useEffect(() => { if (isThinking) voice.stop(); }, [isThinking, voice]);
 
-  const [connected, setConnected] = useState(false);
-  const [target, setTarget] = useState<ServerNode | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [update, setUpdate] = useState<{ version: string; notes?: string } | null>(null);
   const lastPromptRef = useRef("");
@@ -350,11 +367,34 @@ export default function App() {
               <p className="text-center font-mono text-[11px] text-white/30">Genio ready — tape un message ↓</p>
             ) : (
               <div className="space-y-1">
-                {chat.slice(-12).map((c, i) => (
-                  <div key={i} className={`font-mono text-[11px] ${c.type === "user" ? "text-cyan-200" : c.type === "error" ? "text-rose-300" : "text-white/80"}`}>
-                    <span className="text-white/20">{c.type}:</span> {(c as unknown as { text?: string }).text ?? (c as unknown as { message?: string }).message ?? JSON.stringify(c).slice(0, 90)}
-                  </div>
-                ))}
+                {chat.slice(-12).map((c, i) => {
+                  const text = (c as unknown as { text?: string }).text;
+                  const msg = (c as unknown as { message?: string }).message;
+                  // P3 (a) inline card for missing Google token
+                  if (text === "سجّل بـ Google باش تكمّل في السحاب") {
+                    return (
+                      <div key={i} className="rounded-xl border border-cyan-500/30 bg-cyan-500/10 p-3">
+                        <p className="font-mono text-[12px] font-bold text-cyan-200">{text}</p>
+                        <button onClick={() => setShowGoogleAuth(true)} className="mt-2 rounded-full bg-white px-4 py-1.5 font-mono text-[11px] font-bold text-slate-900 hover:bg-slate-100">سجّل بـ Google</button>
+                      </div>
+                    );
+                  }
+                  if (msg === "NEED_GOOGLE_AUTH") return null; // already rendered via answer card
+                  // P3 (b) proxy fail
+                  if (text === "مشكل في الاتصال بالسحاب — عاود جرّب") {
+                    return (
+                      <div key={i} className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-2">
+                        <p className="font-mono text-[11px] text-amber-200">{text}</p>
+                        <button onClick={() => lastPromptRef.current && handleSendPrompt(lastPromptRef.current)} className="mt-1 rounded-full border border-amber-400/30 px-3 py-1 font-mono text-[10px] text-amber-200">عاود جرّب</button>
+                      </div>
+                    );
+                  }
+                  return (
+                    <div key={i} className={`font-mono text-[11px] ${c.type === "user" ? "text-cyan-200" : c.type === "error" ? "text-rose-300" : "text-white/80"}`}>
+                      <span className="text-white/20">{c.type}:</span> {text ?? msg ?? JSON.stringify(c).slice(0, 90)}
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
