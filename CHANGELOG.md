@@ -541,4 +541,24 @@ engine.match('please tell me a joke about robots')
 ### Version
 - Bump `3.3.0→3.3.1` `package.json` + `capacitor.config.json` + `src-tauri/tauri.conf.json`; `tsc 0 vite 418k+911k`.
 
+## 2026-09-04 — Genio v3.4.0: BRAND PUPPET + LANDING + INTRO
+
+### S1 Assets
+- `genio-hero/listen/think/speak/wave.png` 1.7-2.4M → `webp q80` 120-196K keeping names; `intro_voiceover.m4a` 52s 634K at `src/assets/audio/` forced via `git add -f` (bypass `audio/` ignore).
+
+### S2 HologramPuppet (REPLACE LivingMascot3D)
+- New `HologramPuppet.tsx` state→image `idle/completed=wave listening=listen thinking=think answering/executing=speak` crossfade `250ms spring`; `mask-image radial-gradient soft` + `mix-blend screen` dissolves dark rect; alive: breathing `±.015@4.5s`, tilt `rotateY±8°` via `useFaceTracking` + pointer fallback, glow pulse per status, ring+particles, scanline shimmer; tap head→think→wave, body→speak 800ms, double-tap jump+spark burst; answering mouth glow `audioLevel`; deleted `LivingMascot3D.tsx` (911K) → bundle `2291` modules `463k` (was 2853 `418k+911k`).
+
+### S3 Landing at `/`
+- `pages/Landing.tsx` hero `genio-hero` + `أول صاحب ذكاء اصطناعي تونسي` + CTA `جرّب Genio توة → /app`; sections `how-it-works 3 steps`, `tech & privacy` (Gemini proxy, on-device), `ROADMAP 4` (Academy/Education/SysAdmin/Daily), `FOUNDER محمد عزمي كعنيش` + portrait, footer; `dir=rtl` `Tajawal UI + Reem Kufi` via Google Fonts, `dark void #020B1E + zellij .07`, mobile-first, Lighthouse >90; `index.html` fonts + title; `react-router-dom@6` added.
+
+### S4 Intro Cinematic (first visit /app only)
+- `components/intro/IntroCinematic.tsx` `intro_voiceover.m4a` 5 scenes `0-10 wave 10-25 listen 25-45 think 45-70 speak 70-80 hero+CTA` crossfade `250ms`; progress bar, `تخطي` top-right, `localStorage genio:intro:seen` no replay, autoplay tap fallback; `App.tsx` `showIntro` + `handleIntroDone` overlay `z-[60]`.
+
+### S5 Routing + P6
+- `main.tsx` `BrowserRouter Routes / → Landing /app → App /about → About *→/`; `pages/About.tsx` founder long-form RTL; keep `updater off web, Google auth, persona, gemini proxy, RootErrorBoundary, voice, CLOUD MODE`; `App.tsx` intro scoped to `/app` only; `P6` nginx `/ws/` already `proxy_pass http://100.85.172.4:8000` with `Upgrade $http_upgrade Connection upgrade` verified, phone `wss://genio.hitech.tn/ws/agent` gauges live.
+
+### Version
+- Bump `3.3.1→3.4.0` `package.json` + `capacitor.config.json` + `src-tauri/tauri.conf.json`; `tsc 0 vite 2300 modules 463k`.
+
 
