@@ -13,6 +13,7 @@ interface Telemetry {
 
 interface Props {
   telemetry?: Telemetry | null;
+  isCloud?: boolean;
 }
 
 /**
@@ -20,7 +21,17 @@ interface Props {
  * - real CPU/GPU/RAM (+NET/TEMP/VRAM if available)
  * - memo(); 1s internal poll; must NOT re-render mascot (isolated via memo)
  */
-const SystemMetrics = memo(function SystemMetrics({ telemetry }: Props) {
+const SystemMetrics = memo(function SystemMetrics({ telemetry, isCloud = false }: Props) {
+  // P3: when cloud is active, never show dead 0% rings — show badge instead
+  if (isCloud) {
+    return (
+      <div className="flex items-center gap-2 rounded-full border border-cyan-400/20 bg-cyan-500/10 px-4 py-2 backdrop-blur">
+        <span className="text-sm">☁️</span>
+        <span className="font-mono text-[10px] font-bold tracking-widest text-cyan-300">CLOUD MODE</span>
+        <span className="font-mono text-[9px] text-white/50">Gemini • live</span>
+      </div>
+    );
+  }
   // local poll to avoid parent re-render churn — snapshot copy
   const [snap, setSnap] = useState<Telemetry | null>(telemetry ?? null);
   useEffect(() => {

@@ -1,5 +1,6 @@
 import { memo, useEffect, useRef, useState, Suspense } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
+import { Bounds, ContactShadows } from "@react-three/drei";
 import * as THREE from "three";
 import { useFaceTrackingContext } from "../avatar/useFaceTracking";
 import HologramMascot from "./HologramMascot";
@@ -182,8 +183,8 @@ function LivingSceneInner({ status, audioLevel = 0 }: { status: Status; audioLev
   });
 
   return (
-    <group ref={group} position={[0, -0.1, 0]}>
-      {/* Body — crimson jebba capsule + gold sfifa strips + G emblem */}
+    <group ref={group} position={[0, 0.15, 0]}>
+      {/* Body — crimson jebba capsule + gold sfifa strips + G emblem — radii clamped ≤0.35, total height ≤2.2 */}
       <mesh position={[0, -0.35, 0]}>
         <capsuleGeometry args={[0.32, 0.55, 8, 16]} />
         <meshStandardMaterial color="#8B0F1A" roughness={0.7} metalness={0.05} />
@@ -203,7 +204,7 @@ function LivingSceneInner({ status, audioLevel = 0 }: { status: Status; audioLev
         <meshStandardMaterial color="#FFD700" roughness={0.3} metalness={0.85} />
       </mesh>
 
-      {/* Head — white ceramic sphere */}
+      {/* Head — white ceramic sphere — radius clamped 0.34 ≤0.35 */}
       <group ref={head} position={[0, 0.42, 0]}>
         <mesh>
           <sphereGeometry args={[0.34, 32, 32]} />
@@ -337,11 +338,26 @@ const LivingMascot3D = memo(function LivingMascot3D({ status, audioLevel = 0 }: 
     );
   }
 
+  // Re-fit on resize/orientation: Bounds observe handles automatically, plus explicit resize listener to invalidate
+  useEffect(() => {
+    const onResize = () => {
+      // force bounds re-fit on next frame via dispatch
+      window.dispatchEvent(new Event("resize"));
+    };
+    window.addEventListener("resize", onResize);
+    window.addEventListener("orientationchange", onResize);
+    return () => {
+      window.removeEventListener("resize", onResize);
+      window.removeEventListener("orientationchange", onResize);
+    };
+  }, []);
+
   return (
     <Canvas
       dpr={[1, isCoarse ? 1.2 : 1.5] as unknown as [number, number]}
-      camera={{ position: [0, 0.9, 3.2], fov: 38 }}
+      camera={{ position: [0, 1, 6], fov: 35 }}
       gl={{ antialias: !isCoarse, alpha: true, powerPreference: "high-performance" }}
+      shadows={false}
       onCreated={({ gl }) => {
         // pause frameloop on hidden
         const onVis = () => {
@@ -360,7 +376,12 @@ const LivingMascot3D = memo(function LivingMascot3D({ status, audioLevel = 0 }: 
         <pointLight position={[2, -0.5, -1]} color="#FFD700" intensity={0.45} />
         {/* Andalusian lattice light glow pulse */}
         <color attach="background" args={["#0a0e1a"]} />
-        <LivingSceneInner status={status} audioLevel={audioLevel} />
+        {/* P1 portrait auto-framing: Bounds fits entire character (chachia→feet, both arms) with 1.4 margin, clip+observe for ANY aspect */}
+        <Bounds fit clip observe margin={1.4}>
+          <LivingSceneInner status={status} audioLevel={audioLevel} />
+        </Bounds>
+        {/* Contact shadow under feet — centered, adds grounding in portrait upper 60% */}
+        <ContactShadows position={[0, -1.1, 0]} opacity={0.42} scale={3} blur={2.2} far={4} color="#000000" />
         {/* radial light beam sprite behind mascot */}
         <mesh position={[0, -0.2, -0.6]}>
           <planeGeometry args={[3.2, 3.2]} />
