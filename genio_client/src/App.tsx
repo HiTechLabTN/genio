@@ -19,6 +19,7 @@ import SystemMetrics from "./components/hud/SystemMetrics";
 import MatrixTaskScreen from "./components/hud/MatrixTaskScreen";
 import SplashScreen from "./components/layout/SplashScreen";
 import BottomInputBar from "./components/BottomInputBar";
+import IntroCinematic from "./components/intro/IntroCinematic";
 
 // S2 SINGLE ROOT LAYOUT — h-[100dvh] fixed inset-0, no page scroll
 // z-0 IslamicPatterns .07, z-1 LivingMascot3D middle 60%, z-20 TopBar, z-15 TaskMatrix compact collapsed, z-15 BottomSheet
@@ -27,6 +28,18 @@ export default function App() {
   const [showSplash, setShowSplash] = useState(true);
   const [showGoogleAuth, setShowGoogleAuth] = useState(() => shouldShowGoogleAuth());
   const [showOnboarding, setShowOnboarding] = useState(() => shouldShowOnboarding());
+  // S4 Intro — first visit to /app only, localStorage genio:intro:seen
+  const [showIntro, setShowIntro] = useState(() => {
+    try {
+      const seen = localStorage.getItem("genio:intro:seen");
+      const isAppPath = typeof window !== "undefined" && window.location.pathname.startsWith("/app");
+      // before routing, show on any first visit if not on landing; after routing, only /app
+      const should = !seen && (isAppPath || window.location.pathname === "/");
+      return !!should;
+    } catch {
+      return false;
+    }
+  });
   useEffect(() => {
     if (!showGoogleAuth) return;
     if (!hasGoogleAuth()) return;
@@ -151,6 +164,10 @@ export default function App() {
   const lastPromptRef = useRef("");
   const lastPromptFileRef = useRef<Attachment[] | undefined>(undefined);
   const [splashReady, setSplashReady] = useState(false);
+  const handleIntroDone = () => {
+    try { localStorage.setItem("genio:intro:seen", "1"); } catch {}
+    setShowIntro(false);
+  };
   const [expanded, setExpanded] = useState(false);
   const [healthStatus, setHealthStatus] = useState<"checking" | "ok" | "offline">("checking");
 
@@ -412,6 +429,8 @@ export default function App() {
           {connectionToast}
         </div>
       )}
+      {/* S4 Intro Cinematic — first visit to /app only */}
+      {showIntro && <IntroCinematic onComplete={handleIntroDone} onSkip={handleIntroDone} />}
     </div>
   );
 }
