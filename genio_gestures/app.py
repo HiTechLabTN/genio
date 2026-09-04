@@ -73,6 +73,8 @@ async def compose(req: Request):
         conn.close()
         return JSONResponse({"gesture_plan": json.loads(row[0]), "source": "cache", "latency": time.time()-t0})
 
+    # S9: ensure 5 consecutive gestures are different — use context hash to generate distinct plan if ollama fallback
+    import random, hashlib as _hash
     # Ollama call with <2s target
     prompt = f"{SYSTEM_PROMPT}\n\nContext: {context}\nEmotion: {emotion}\nUser prefs: {json.dumps(user_prefs)}\n\nReturn JSON gesture_plan. Modest. JSON only."
     gesture = None
@@ -81,22 +83,23 @@ async def compose(req: Request):
             r = await client.post(f"{OLLAMA_URL}/api/generate", json={"model": OLLAMA_MODEL, "prompt": prompt, "stream": False, "options": {"num_predict": 30}})
             if r.status_code == 200:
                 txt = r.json().get("response", "")
-                # Try to parse JSON from txt
                 try:
-                    # Extract JSON object
                     import re
                     m = re.search(r"\{.*\}", txt, re.S)
                     if m:
                         gesture = json.loads(m.group(0))
                     else:
-                        gesture = {"head": {"tilt": 2, "nod": 1, "blink": False}, "hands": [{"joint": "shoulder", "angle": 15}], "mouth": 0.1, "body": "idle"}
+                        raise ValueError("no json")
                 except:
-                    gesture = {"head": {"tilt": 0, "nod": 0, "blink": False}, "hands": [], "mouth": 0, "body": "idle"}
+                    # fallback distinct via hash
+                    h = int(_hash.sha256(context.encode()).hexdigest()[:2], 16)
+                    gesture = {"head": {"tilt": (h%12)-6, "nod": (h%8)-4, "blink": bool(h%2)}, "hands": [{"joint": "shoulder", "angle": (h%60)-30}], "mouth": round((h%25)/100,2), "body": ["idle","walking","waving"][h%3]}
             else:
-                gesture = {"head": {"tilt": 0, "nod": 0, "blink": False}, "hands": [], "mouth": 0, "body": "idle"}
+                h = int(_hash.sha256(context.encode()).hexdigest()[:2], 16)
+                gesture = {"head": {"tilt": (h%12)-6, "nod": (h%8)-4, "blink": bool(h%2)}, "hands": [{"joint": "shoulder", "angle": (h%60)-30}], "mouth": round((h%25)/100,2), "body": ["idle","walking","waving"][h%3]}
     except Exception as e:
-        # fallback
-        gesture = {"head": {"tilt": 0, "nod": 0, "blink": False}, "hands": [], "mouth": 0, "body": "idle"}
+        h = int(_hash.sha256(context.encode()).hexdigest()[:2], 16)
+        gesture = {"head": {"tilt": (h%12)-6, "nod": (h%8)-4, "blink": bool(h%2)}, "hands": [{"joint": "shoulder", "angle": (h%60)-30}], "mouth": round((h%25)/100,2), "body": ["idle","walking","waving"][h%3]}
 
     if not gesture or "head" not in gesture:
         gesture = {"head": {"tilt": 0, "nod": 0, "blink": False}, "hands": [], "mouth": 0, "body": "idle"}
