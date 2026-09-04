@@ -5,6 +5,7 @@ import type { FormEvent } from "react";
 import type { ServerNode } from "../lib/types";
 
 export const NODE_PRESETS: ServerNode[] = [
+  { id: "hitech-cloud", label: "HiTech Cloud", host: "genio.hitech.tn", port: 443 },
   { id: "pop", label: "Pop!_OS (Tailscale)", host: "pop-os", port: 8000 },
   { id: "tn", label: "TN Server", host: "tn", port: 8000 },
 ];
@@ -14,9 +15,13 @@ interface Props {
 }
 
 export default function ConnectionHub({ onConnect }: Props) {
-  const [nodeId, setNodeId] = useState<string>("pop");
-  const [host, setHost] = useState<string>("pop-os");
-  const [port, setPort] = useState<string>("8000");
+  // P4: default on web = HiTech Cloud (same-origin wss://genio.hitech.tn) so phones on 5G work
+  const isWebDefault = typeof window !== "undefined" && !(window as unknown as Record<string, unknown>).__TAURI__ && !(window as unknown as { Capacitor?: { isNative?: boolean } }).Capacitor?.isNative;
+  const defaultNode = isWebDefault ? "hitech-cloud" : "pop";
+  const defaultPreset = NODE_PRESETS.find((n) => n.id === defaultNode) ?? NODE_PRESETS[0];
+  const [nodeId, setNodeId] = useState<string>(defaultNode);
+  const [host, setHost] = useState<string>(defaultPreset.host);
+  const [port, setPort] = useState<string>(String(defaultPreset.port));
   const [key, setKey] = useState<string>("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);

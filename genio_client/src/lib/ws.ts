@@ -23,8 +23,14 @@ export function isChatEvent(event: GenioEvent): event is ChatEvent {
 
 export function buildWsUrl(target: ServerNode): string {
   const host = target.host.trim().replace(/^ws:\/\//, "").replace(/^wss:\/\//, "");
-  const proto = "ws";
   const qs = target.key ? `?key=${encodeURIComponent(target.key)}` : "";
+  // P4: HiTech Cloud = same-origin wss://genio.hitech.tn/ws/agent (nginx proxies /ws → pop-os)
+  if (host === "genio.hitech.tn" || target.id === "hitech-cloud") {
+    const proto = typeof window !== "undefined" && window.location.protocol === "https:" ? "wss" : "wss";
+    // omit :443 for standard https
+    return `${proto}://${host}/ws/agent${qs}`;
+  }
+  const proto = "ws";
   return `${proto}://${host}:${target.port}/ws/agent${qs}`;
 }
 
@@ -128,7 +134,18 @@ export async function streamTelemetry(
 ): Promise<void> {
   const headers: Record<string, string> = { Accept: "text/event-stream" };
   if (target.key) headers["X-API-Key"] = target.key;
-  const response = await fetch(`http://${target.host}:${target.port}/api/v1/telemetry`, {
+  // P4: HiTech Cloud uses same-origin https://genio.hitech.tn/api/v1/telemetry (nginx proxies /api → pop-os)
+  let url: string;
+  if (target.host === "genio.hitech.tn" || target.id === "hitech-cloud") {
+    url = `/api/v1/telemetry`;
+    // if not same-origin (e.g., dev), fallback to https://genio.hitech.tn
+    if (typeof window !== "undefined" && window.location.hostname !== "genio.hitech.tn") {
+      url = `https://genio.hitech.tn/api/v1/telemetry`;
+    }
+  } else {
+    url = `http://${target.host}:${target.port}/api/v1/telemetry`;
+  }
+  const response = await fetch(url, {
     headers,
     signal,
   });

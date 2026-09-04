@@ -199,27 +199,32 @@ export default function App() {
     if (!splashReady) return;
     if (connected) return;
     let alive = true;
-    const tnNode: ServerNode = { id: "tn", label: "TN Server", host: "tn", port: 8000 };
+    // P4: default on web = HiTech Cloud (same-origin wss://genio.hitech.tn) so phones on 5G work
+    const defaultNode: ServerNode = !isNative
+      ? { id: "hitech-cloud", label: "HiTech Cloud", host: "genio.hitech.tn", port: 443 }
+      : { id: "tn", label: "TN Server", host: "tn", port: 8000 };
+    const statusUrl = !isNative ? "/api/v1/status" : `http://${defaultNode.host}:${defaultNode.port}/api/v1/status`;
     const ctrl = new AbortController();
-    const to = window.setTimeout(() => ctrl.abort(), 2000);
-    fetch(`http://${tnNode.host}:${tnNode.port}/api/v1/status`, { signal: ctrl.signal })
+    const to = window.setTimeout(() => ctrl.abort(), 2500);
+    fetch(statusUrl, { signal: ctrl.signal })
       .then(async (r) => {
         clearTimeout(to);
         if (!alive) return;
         if (r.ok) {
-          try { const ok = await connect(tnNode); if (!alive) return; if (ok) { setTarget(tnNode); setConnected(true); setHealthStatus("ok"); return; } } catch { /* fallback */ }
+          try { const ok = await connect(defaultNode); if (!alive) return; if (ok) { setTarget(defaultNode); setConnected(true); setHealthStatus("ok"); return; } } catch { /* fallback */ }
           setHealthStatus("offline");
         } else setHealthStatus("offline");
       })
       .catch(() => { clearTimeout(to); if (alive) setHealthStatus("offline"); });
     return () => { alive = false; clearTimeout(to); ctrl.abort(); };
-  }, [splashReady, connected, connect]);
+  }, [splashReady, connected, connect, isNative]);
   useEffect(() => { if (!splashReady) return; window.dispatchEvent(new CustomEvent("genio:ready")); }, [splashReady]);
 
   async function handleConnect(node: ServerNode) {
     try {
       const c = new AbortController(); const to = window.setTimeout(() => c.abort(), 3000);
-      const res = await fetch(`http://${node.host}:${node.port}/api/v1/status`, { signal: c.signal }).catch(() => null);
+      const statusUrl = node.host === "genio.hitech.tn" || node.id === "hitech-cloud" ? "/api/v1/status" : `http://${node.host}:${node.port}/api/v1/status`;
+      const res = await fetch(statusUrl, { signal: c.signal }).catch(() => null);
       clearTimeout(to); if (!res || !(res as Response).ok) setHealthStatus("offline"); else setHealthStatus("ok");
     } catch { setHealthStatus("offline"); }
     const ok = await connect(node); if (ok) { setTarget(node); setConnected(true); setDrawerOpen(false); } return ok;
