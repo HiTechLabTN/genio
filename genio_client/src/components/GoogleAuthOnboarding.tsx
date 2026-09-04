@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import { Globe, Shield, Sparkles, Loader2, LogIn, Zap } from "lucide-react";
-import { useState } from "react";
-import { signInWithGoogle, getGoogleProfile, hasGoogleAuth } from "../lib/googleAuth";
+import { useEffect, useState } from "react";
+import { signInWithGoogle, getGoogleProfile, getGoogleToken, hasGoogleAuth } from "../lib/googleAuth";
 
 interface Props {
   onAuthed: (token: string) => void;
@@ -27,6 +27,15 @@ export default function GoogleAuthOnboarding({ onAuthed, onSkip }: Props) {
 
   const profile = getGoogleProfile();
   const already = hasGoogleAuth();
+
+  // P4: if stored token exists, auto-continue after 1.2s (no manual tap)
+  useEffect(() => {
+    if (!already) return;
+    const token = getGoogleToken();
+    if (!token) return;
+    const id = window.setTimeout(() => onAuthed(token), 1200);
+    return () => clearTimeout(id);
+  }, [already, onAuthed]);
 
   return (
     <div className="flex h-screen w-full items-center justify-center bg-void px-6 py-8">

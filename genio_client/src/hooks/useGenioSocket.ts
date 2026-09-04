@@ -24,6 +24,9 @@ export function useGenioSocket(): UseGenioSocket {
   const sseRef = useRef<AbortController | null>(null);
   const activeRef = useRef<ServerNode | null>(null);
   const lastTelemetryAtRef = useRef<number>(0);
+  const reconnectAttemptsRef = useRef(0);
+  const reconnectTimerRef = useRef<number | null>(null);
+  const shouldReconnectRef = useRef(false);
 
   // flag telemetry as stale when no snapshot arrives within a window
   // (backend event loop blocked during heavy LLM / tool execution)
@@ -101,6 +104,12 @@ export function useGenioSocket(): UseGenioSocket {
   );
 
   const disconnect = useCallback(() => {
+    shouldReconnectRef.current = false;
+    reconnectAttemptsRef.current = 0;
+    if (reconnectTimerRef.current !== null) {
+      clearTimeout(reconnectTimerRef.current);
+      reconnectTimerRef.current = null;
+    }
     socketRef.current?.disconnect();
     sseRef.current?.abort();
     socketRef.current = null;
@@ -114,9 +123,79 @@ export function useGenioSocket(): UseGenioSocket {
     setStreaming(false);
   }, []);
 
+  const scheduleReconnect = useCallback((target: ServerNode) => {
+    if (!shouldReconnectRef.current) return;
+    if (document.hidden) return; // wait for visibilitychange
+    const attempt = reconnectAttemptsRef.current;
+    const delay = Math.min(30000, 1000 * Math.pow(2, attempt));
+    reconnectAttemptsRef.current = attempt + 1;
+    if (reconnectTimerRef.current !== null) clearTimeout(reconnectTimerRef.current);
+    reconnectTimerRef.current = window.setTimeout(async () => {
+      if (!shouldReconnectRef.current || document.hidden) return;
+      // try reconnect
+      try {
+        // reuse internal connect without full disconnect reset of shouldReconnect
+        shouldReconnectRef.current = true; // keep true
+        // we call the same logic but avoid infinite recursion — directly attempt socket reconnect
+        const prevTarget = activeRef.current || target;
+        // clean old socket but keep activeRef
+        socketRef.current?.disconnect();
+        sseRef.current?.abort();
+        const socket = new GenioSocket(
+          () => {
+            reconnectAttemptsRef.current = 0;
+            setStatus({ kind: "connected", node: prevTarget.host });
+          },
+          (event: GenioEvent) => {
+            const ev = event as Record<string, unknown>;
+            if (ev.type === "screen" || ev.type === "browser_view") { setScreen(ev.data_b64 as string); return; }
+            if (ev.type === "telemetry") { setTelemetry(event as unknown as TelemetrySnapshot); lastTelemetryAtRef.current = Date.now(); return; }
+            if (isChatEvent(event)) {
+              const chatEv = event as ChatEvent;
+              setChat((prev) => [...prev.slice(-299), chatEv]);
+              if ((chatEv as Record<string, unknown>).type === "tool_call") {
+                const toolName = extractToolName((chatEv as { command: string }).command || "");
+                setAgentStatus({ kind: "executing", tool: toolName });
+              } else if (chatEv.type === "stats" || chatEv.type === "answer" || chatEv.type === "artifact") setAgentStatus({ kind: "completed" });
+              else if (chatEv.type === "error" || chatEv.type === "killed") setAgentStatus({ kind: "idle" });
+              return;
+            }
+            setChat((prev) => [...prev.slice(-299), event as unknown as ChatEvent]);
+          },
+          () => setStatus({ kind: "error", message: `WebSocket error on ${prevTarget.host}` }),
+          () => {
+            if (shouldReconnectRef.current) {
+              setStatus({ kind: "idle" });
+              setAgentStatus({ kind: "idle" });
+              setTelemetry(null);
+              setScreen(null);
+              setStreaming(false);
+              scheduleReconnect(prevTarget);
+            }
+          },
+        );
+        socketRef.current = socket;
+        activeRef.current = prevTarget;
+        await socket.connect(prevTarget);
+        const controller = new AbortController();
+        sseRef.current = controller;
+        streamTelemetry(prevTarget, setTelemetry, controller.signal).catch(() => {});
+        setStatus({ kind: "connected", node: prevTarget.host });
+        reconnectAttemptsRef.current = 0;
+      } catch {
+        scheduleReconnect(target);
+      }
+    }, delay) as unknown as number;
+  }, []);
+
   const connect = useCallback(
     async (target: ServerNode): Promise<boolean> => {
+      shouldReconnectRef.current = true;
+      reconnectAttemptsRef.current = 0;
+      if (reconnectTimerRef.current !== null) { clearTimeout(reconnectTimerRef.current); reconnectTimerRef.current = null; }
       disconnect();
+      shouldReconnectRef.current = true;
+      reconnectAttemptsRef.current = 0;
       setStatus({ kind: "connecting" });
 
        const socket = new GenioSocket(
@@ -155,12 +234,15 @@ export function useGenioSocket(): UseGenioSocket {
         },
         () => setStatus({ kind: "error", message: `WebSocket error on ${target.host}` }),
         () => {
-          if (activeRef.current) {
+          if (activeRef.current || shouldReconnectRef.current) {
             setStatus({ kind: "idle" });
             setAgentStatus({ kind: "idle" });
             setTelemetry(null);
             setScreen(null);
             setStreaming(false);
+            if (shouldReconnectRef.current && activeRef.current) {
+              scheduleReconnect(activeRef.current);
+            }
           }
         },
       );
@@ -184,8 +266,23 @@ export function useGenioSocket(): UseGenioSocket {
       ]);
       return true;
     },
-    [disconnect],
+    [disconnect, scheduleReconnect],
   );
+
+  // P3: WS reconnect on visibilitychange (when tab becomes visible again)
+  useEffect(() => {
+    const onVis = () => {
+      if (!document.hidden && shouldReconnectRef.current && activeRef.current) {
+        const s = socketRef.current;
+        if (!s || s.readyState !== WebSocket.OPEN) {
+          reconnectAttemptsRef.current = 0;
+          scheduleReconnect(activeRef.current);
+        }
+      }
+    };
+    document.addEventListener("visibilitychange", onVis);
+    return () => document.removeEventListener("visibilitychange", onVis);
+  }, [scheduleReconnect]);
 
   useEffect(() => () => disconnect(), [disconnect]);
 

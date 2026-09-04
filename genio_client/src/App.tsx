@@ -28,6 +28,13 @@ export default function App() {
   const [showSplash, setShowSplash] = useState(true);
   const [showGoogleAuth, setShowGoogleAuth] = useState(() => shouldShowGoogleAuth());
   const [showOnboarding, setShowOnboarding] = useState(() => shouldShowOnboarding());
+  // P4 fallback: if token exists while welcome still shown (e.g. cached render), auto-continue after 1.2s
+  useEffect(() => {
+    if (!showGoogleAuth) return;
+    if (!hasGoogleAuth()) return;
+    const id = window.setTimeout(() => setShowGoogleAuth(false), 1200);
+    return () => clearTimeout(id);
+  }, [showGoogleAuth]);
   const deviceProfile = useDeviceProfile();
   const engineDecision = decideEngine();
   const isGeminiCloud = hasGoogleAuth();
@@ -185,6 +192,41 @@ export default function App() {
     return () => { alive = false; clearInterval(id); };
   }, [splashReady]);
 
+  // P3: Node auto-select on boot — try TN VPS /health 2s timeout → WS telemetry if OK else Gemini Cloud
+  useEffect(() => {
+    if (!splashReady) return;
+    if (connected) return;
+    let alive = true;
+    const tnNode: ServerNode = { id: "tn", label: "TN Server", host: "tn", port: 8000 };
+    const ctrl = new AbortController();
+    const to = window.setTimeout(() => ctrl.abort(), 2000);
+    fetch(`http://${tnNode.host}:${tnNode.port}/api/v1/status`, { signal: ctrl.signal })
+      .then(async (r) => {
+        clearTimeout(to);
+        if (!alive) return;
+        if (r.ok) {
+          try {
+            const ok = await connect(tnNode);
+            if (!alive) return;
+            if (ok) {
+              setTarget(tnNode);
+              setConnected(true);
+              setHealthStatus("ok");
+              return;
+            }
+          } catch { /* fallback to cloud */ }
+          setHealthStatus("offline");
+        } else {
+          setHealthStatus("offline");
+        }
+      })
+      .catch(() => {
+        clearTimeout(to);
+        if (alive) setHealthStatus("offline");
+      });
+    return () => { alive = false; clearTimeout(to); ctrl.abort(); };
+  }, [splashReady, connected, connect]);
+
   // Splash ready dispatch
   useEffect(() => {
     if (!splashReady) return;
@@ -297,6 +339,27 @@ export default function App() {
           {healthStatus === "offline" && <button onClick={() => window.location.reload()} className="ml-2 underline">retry</button>}
         </div>
       )}
+      {/* P2 speaker toggle — persisted localStorage, top bar */}
+      <button
+        aria-label={voice.enabled ? "Voice on" : "Voice off"}
+        onClick={() => voice.toggleEnabled()}
+        className="absolute right-3 top-3 z-30 flex items-center gap-1.5 rounded-full border px-3 py-1 font-mono text-[10px] backdrop-blur transition"
+        style={{
+          borderColor: voice.enabled ? "rgba(34,211,238,0.3)" : "rgba(100,116,139,0.3)",
+          background: voice.enabled ? "rgba(34,211,238,0.12)" : "rgba(15,23,42,0.6)",
+          color: voice.enabled ? "#22d3ee" : "#94a3b8",
+        }}
+        title={voice.enabled ? "Voix activée — appuyez pour couper" : "Voix coupée — appuyez pour activer"}
+      >
+        <span>{voice.enabled ? "🔊" : "🔇"}</span>
+        {voice.enabled ? "voix" : "muet"}
+      </button>
+      {/* P2 no voice chip */}
+      {voice.noVoice && (
+        <div className="absolute right-3 top-10 z-30 rounded-full border border-amber-400/30 bg-amber-500/10 px-3 py-1 font-mono text-[10px] text-amber-300 backdrop-blur">
+          🔇 voix indisponible
+        </div>
+      )}
 
       {/* z-8 MatrixTaskScreen */}
       {showV3Portal && (
@@ -373,17 +436,17 @@ export default function App() {
         ) : null}
       </div>
 
-      {/* z-20 metrics/brain */}
+      {/* z-20 metrics/brain — P3 gauges reflect ACTIVE node; cloud badge when Gemini Cloud active */}
       {showV3Portal && (
         <div className="pointer-events-none absolute bottom-3 right-3 z-20 flex flex-col items-end gap-3 md:bottom-4 md:right-6">
           <div className="pointer-events-auto hidden md:block">
             <ErrorBoundary name="SystemMetrics">
-              <SystemMetrics telemetry={telemetry ?? undefined} />
+              <SystemMetrics telemetry={telemetry ?? undefined} isCloud={isGeminiCloud && !telemetry} />
             </ErrorBoundary>
           </div>
           <div className="pointer-events-auto md:hidden">
             <ErrorBoundary name="SystemMetrics-mobile">
-              <SystemMetrics telemetry={telemetry ?? undefined} />
+              <SystemMetrics telemetry={telemetry ?? undefined} isCloud={isGeminiCloud && !telemetry} />
             </ErrorBoundary>
           </div>
           <ErrorBoundary name="BrainActivity">
