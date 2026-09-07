@@ -1,82 +1,28 @@
-import splashAnime from "../../assets/splash/splash-anime.webp";
-import { useEffect, useState, useMemo } from "react";
+import genioHero from "../../assets/mascot/genio-hero.png";
+import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-
-const DARIJA = ["نجهّز الحكيم…", "نشحّن الذاكرة…", "نتثبت الاتصال…"];
 
 interface Props {
   onReady?: () => void;
 }
 
 /**
- * SplashScreen — F1 holographic materialization
- * - wrapper clip-path inset(100% 0 0 0)→inset(0% 0 0 0) 1.2s ease-out + 2px cyan scanline bar moving with reveal edge
- * - 3D perspective(900px) rotateX(12deg) scale(1.08)→rotateX(0) scale(1) 0.9s spring; then idle float y[0,-10,0] 4s loop
- * - chromatic flicker: 2 copies mix-blend screen translateX ±2px tint cyan/red opacity [0,.5,0] first 350ms only
- * - base ring pulse + rising particles synced to reveal
- * - ALL transform/opacity/clip-path; no filters. 5s hard timeout
+ * SplashScreen — Portal Emergence
+ * Dark void with a glowing white circular portal at bottom.
+ * Mascot emerges from portal (y 160 -> 0, scale 0.82 -> 1), does a subtle wave (rotateZ),
+ * then "GENIO v4.0" + "CYBER-COMPANION" appears above. After ~3.2s calls onReady.
+ * Pure transform/opacity — no layout thrash, works on low-end mobile.
  */
 export default function SplashScreen({ onReady }: Props) {
   const [visible, setVisible] = useState(true);
-  const [progress, setProgress] = useState(0);
-  const [darija, setDarija] = useState(0);
-  const [flicker, setFlicker] = useState(true);
-
-  const realProgress = useMemo(() => progress, [progress]);
+  const [wave, setWave] = useState(false);
 
   useEffect(() => {
-    let p = 0;
-    const timers: number[] = [];
-
-    const t1 = window.setTimeout(() => {
-      const id = window.setInterval(() => {
-        p = Math.min(30, p + 4 + Math.random() * 4);
-        setProgress(p);
-        if (p >= 30) clearInterval(id);
-      }, 180);
-    }, 120);
-    timers.push(t1 as unknown as number);
-
-    const t2 = window.setTimeout(() => {
-      const id = window.setInterval(() => {
-        p = Math.min(68, p + 3 + Math.random() * 3);
-        setProgress(p);
-        if (p >= 68) clearInterval(id);
-      }, 220);
-    }, 800);
-    timers.push(t2 as unknown as number);
-
-    const t3 = window.setTimeout(async () => {
-      try {
-        const c = new AbortController();
-        const to = window.setTimeout(() => c.abort(), 3000);
-        const r = await fetch("/health", { signal: c.signal }).catch(() => fetch("http://localhost:8000/api/v1/status", { signal: c.signal }).catch(() => null));
-        clearTimeout(to);
-        void r;
-      } catch { /* fail → Tier A */ }
-      const id = window.setInterval(() => {
-        p = Math.min(100, p + 6 + Math.random() * 4);
-        setProgress(p);
-        if (p >= 100) {
-          clearInterval(id);
-          window.setTimeout(() => hide(), 420);
-        }
-      }, 140);
-    }, 1500);
-    timers.push(t3 as unknown as number);
-
-    const d = window.setInterval(() => setDarija((v) => (v + 1) % DARIJA.length), 900);
-    timers.push(d as unknown as number);
-
+    const tWave = window.setTimeout(() => setWave(true), 1100);
+    const tHide = window.setTimeout(() => hide(), 3200);
+    const tMax = window.setTimeout(() => hide(), 5000);
     const onReadyEvent = () => hide();
-    window.addEventListener("genio:ready" as any, onReadyEvent);
-
-    const fallback = window.setTimeout(() => hide(), 5000);
-    timers.push(fallback as unknown as number);
-
-    // chromatic flicker only first 350ms
-    const flickerOff = window.setTimeout(() => setFlicker(false), 350);
-    timers.push(flickerOff as unknown as number);
+    window.addEventListener("genio:ready" as unknown as string, onReadyEvent as EventListener);
 
     function hide() {
       (window as unknown as { __GENIO_READY__?: boolean }).__GENIO_READY__ = true;
@@ -85,9 +31,10 @@ export default function SplashScreen({ onReady }: Props) {
     }
 
     return () => {
-      timers.forEach((id) => clearTimeout(id));
-      clearInterval(d);
-      window.removeEventListener("genio:ready" as any, onReadyEvent);
+      clearTimeout(tWave);
+      clearTimeout(tHide);
+      clearTimeout(tMax);
+      window.removeEventListener("genio:ready" as unknown as string, onReadyEvent as EventListener);
     };
   }, [onReady]);
 
@@ -96,140 +43,110 @@ export default function SplashScreen({ onReady }: Props) {
       {visible && (
         <motion.div
           initial={{ opacity: 1 }}
-          exit={{ opacity: 0, scale: 0.98, transition: { duration: 0.5, ease: "easeInOut" } }}
-          className="fixed inset-0 z-50 flex flex-col items-center justify-center overflow-hidden bg-[#0a0e1a]"
+          exit={{ opacity: 0, scale: 0.98, transition: { duration: 0.52, ease: "easeInOut" } }}
+          className="fixed inset-0 z-50 flex flex-col items-center justify-center overflow-hidden bg-[#020B1E]"
         >
-          {/* 3D perspective wrapper */}
+          {/* subtle void gradients */}
+          <div className="pointer-events-none absolute inset-0 bg-[#020B1E]" />
+          <div className="pointer-events-none absolute inset-0 opacity-40" style={{ background: "radial-gradient(ellipse at 50% 85%, rgba(255,255,255,0.08) 0%, transparent 62%)" }} />
+
+          {/* White portal at bottom — glowing circle */}
           <motion.div
-            initial={{ transform: "perspective(900px) rotateX(12deg) scale(1.08)", opacity: 0 }}
-            animate={{ transform: "perspective(900px) rotateX(0deg) scale(1)", opacity: 1 }}
-            transition={{ type: "spring", damping: 18, stiffness: 140, duration: 0.9 }}
-            className="relative flex flex-col items-center"
-            style={{ transformStyle: "preserve-3d" as any }}
+            initial={{ scale: 0.78, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ duration: 0.9, ease: "easeOut" }}
+            className="absolute bottom-[-2%] left-1/2 -translate-x-1/2"
+            style={{ width: "min(88vw, 560px)", height: "min(88vw, 560px)" }}
+          >
+            {/* outer soft halo */}
+            <div className="absolute inset-0 rounded-full blur-[42px]" style={{ background: "radial-gradient(circle at center, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.55) 18%, rgba(34,211,238,0.22) 38%, transparent 68%)", opacity: 0.85 }} />
+            {/* main white portal */}
+            <motion.div
+              className="absolute inset-[18%] rounded-full bg-white"
+              style={{ boxShadow: "0 0 42px rgba(255,255,255,0.9), 0 0 80px rgba(34,211,238,0.45), inset 0 0 28px rgba(255,255,255,0.9)" }}
+              animate={{ scale: [1, 1.03, 1], opacity: [0.92, 1, 0.92] }}
+              transition={{ duration: 2.2, repeat: Infinity, ease: "easeInOut" }}
+            />
+            {/* inner core brighter */}
+            <div className="absolute inset-[28%] rounded-full bg-white" style={{ boxShadow: "0 0 24px rgba(255,255,255,1), inset 0 0 18px rgba(255,255,255,1)", opacity: 0.98 }} />
+            {/* rim cyan */}
+            <div className="absolute inset-[17%] rounded-full border border-cyan-300/30" style={{ boxShadow: "0 0 22px rgba(34,211,238,0.35)" }} />
+          </motion.div>
+
+          {/* Mascot emerging from portal */}
+          <motion.div
+            initial={{ y: 180, scale: 0.82, opacity: 0 }}
+            animate={{ y: 0, scale: 1, opacity: 1 }}
+            transition={{ type: "spring", damping: 18, stiffness: 120, delay: 0.25 }}
+            className="relative z-10 flex flex-col items-center"
+            style={{ transformOrigin: "50% 88%" }}
           >
             <motion.div
-              animate={{ y: [0, -10, 0] }}
-              transition={{ duration: 4, repeat: Infinity, ease: "easeInOut", delay: 0.9 }}
-              className="relative flex flex-col items-center"
+              animate={wave ? { rotateZ: [0, -7, 7, -5, 0], y: [0, -4, 0] } : { y: [0, -6, 0] }}
+              transition={wave ? { duration: 1.1, ease: "easeInOut", delay: 0.2 } : { duration: 4.2, repeat: Infinity, ease: "easeInOut" }}
+              className="relative"
+              style={{ transformOrigin: "50% 72%" }}
             >
-              {/* clip-path materialize */}
-              <motion.div
-                initial={{ clipPath: "inset(100% 0 0 0)" }}
-                animate={{ clipPath: "inset(0% 0 0 0)" }}
-                transition={{ duration: 1.2, ease: "easeOut" }}
-                className="relative"
-              >
-                {/* scanline bar moving with reveal edge */}
-                <motion.div
-                  className="pointer-events-none absolute inset-x-0 h-[2px] bg-cyan-300 shadow-[0_0_12px_rgba(34,211,238,0.9)]"
-                  initial={{ top: "100%" }}
-                  animate={{ top: "0%" }}
-                  transition={{ duration: 1.2, ease: "easeOut" }}
-                  style={{ zIndex: 2 }}
-                />
-
-                {/* splash image with chromatic flicker copies */}
-                <div className="relative">
-                  <img
-                    src={splashAnime}
-                    alt="Genio splash"
-                    className="h-[42vh] w-auto object-contain drop-shadow-[0_0_40px_rgba(34,211,238,0.35)] md:h-[48vh]"
-                    fetchPriority="high"
-                    decoding="async"
-                    onError={(e) => {
-                      const t = e.currentTarget as HTMLImageElement;
-                      if (t.src.endsWith(".webp")) t.src = t.src.replace(".webp", ".svg");
-                      else if (t.src.endsWith(".png")) t.src = t.src.replace(".png", ".svg");
-                    }}
-                  />
-                  {/* chromatic flicker — first 350ms only */}
-                  {flicker && (
-                    <>
-                      <img
-                        src={splashAnime}
-                        alt=""
-                        aria-hidden
-                        className="pointer-events-none absolute inset-0 h-[42vh] w-auto object-contain md:h-[48vh]"
-                        style={{ mixBlendMode: "screen" as any, transform: "translateX(-2px)", filter: "hue-rotate(160deg) saturate(1.4)", opacity: 0.5 }}
-                      />
-                      <img
-                        src={splashAnime}
-                        alt=""
-                        aria-hidden
-                        className="pointer-events-none absolute inset-0 h-[42vh] w-auto object-contain md:h-[48vh]"
-                        style={{ mixBlendMode: "screen" as any, transform: "translateX(2px)", filter: "hue-rotate(340deg) saturate(1.4)", opacity: 0.5 }}
-                      />
-                    </>
-                  )}
-                  {/* scanlines static */}
-                  <div
-                    className="pointer-events-none absolute inset-0"
-                    style={{
-                      background: "repeating-linear-gradient(0deg, transparent 0 2px, rgba(34,211,238,0.07) 2px 3px)",
-                      mixBlendMode: "screen" as any,
-                    }}
-                  />
-                </div>
-              </motion.div>
-
-              {/* base ring pulse */}
-              <motion.div
-                className="absolute -bottom-6 left-1/2 h-20 w-[70%] -translate-x-1/2 rounded-full border border-cyan-400/20"
-                animate={{ scale: [0.92, 1.06, 0.92], opacity: [0.2, 0.45, 0.2] }}
-                transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
-                style={{ boxShadow: "0 0 24px rgba(34,211,238,0.18)" }}
+              <img
+                src={genioHero}
+                alt="Genio"
+                className="h-[58vh] max-h-[520px] w-auto max-w-[88vw] object-contain object-bottom drop-shadow-[0_18px_40px_rgba(0,0,0,0.6)] md:h-[62vh]"
+                draggable={false}
+                fetchPriority="high"
               />
-
-              {/* rising particles synced to reveal */}
-              {Array.from({ length: 12 }, (_, i) => (
-                <motion.div
-                  key={i}
-                  className="absolute h-1 w-1 rounded-full bg-cyan-300"
-                  style={{ left: `${12 + i * 7}%`, top: `${22 + (i % 4) * 13}%` }}
-                  initial={{ y: 10, opacity: 0 }}
-                  animate={{ y: [-6, -18, -6], opacity: [0.3, 1, 0.3] }}
-                  transition={{ duration: 2 + (i % 3), delay: 0.3 + i * 0.07, repeat: Infinity, ease: "easeInOut" }}
-                />
-              ))}
+              {/* subtle bottom fade into portal */}
+              <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-[18%] bg-gradient-to-t from-white/12 to-transparent" style={{ WebkitMaskImage: "linear-gradient(to top, black 40%, transparent 100%)" } as unknown as Record<string, string>} />
             </motion.div>
 
-            {/* GENIO wordmark morph target */}
-            <motion.div layoutId="genio-avatar" className="mt-5 flex flex-col items-center">
-              <div className="font-mono text-2xl font-bold tracking-[0.3em] text-white">GENIO</div>
-              <div className="font-mono text-[10px] tracking-[0.2em] text-cyan-300/70">ISLAMIC CYBERPUNK</div>
-            </motion.div>
-
-            {/* progress ring */}
-            <div className="relative mt-6 h-14 w-14">
-              <svg width={56} height={56} className="-rotate-90">
-                <circle cx={28} cy={28} r={24} stroke="rgba(255,255,255,0.08)" strokeWidth={3} fill="none" />
-                <motion.circle
-                  cx={28}
-                  cy={28}
-                  r={24}
-                  stroke="#22d3ee"
-                  strokeWidth={3}
-                  fill="none"
-                  strokeLinecap="round"
-                  strokeDasharray={`${(realProgress / 100) * 150.8} 150.8`}
-                  style={{ transition: "stroke-dasharray 0.4s ease" }}
-                />
-              </svg>
-              <div className="absolute inset-0 flex items-center justify-center font-mono text-xs font-bold text-white">
-                {Math.round(realProgress)}%
-              </div>
-            </div>
-
+            {/* GENIO v4.0 appears */}
             <motion.div
-              key={darija}
-              initial={{ opacity: 0, y: 6 }}
+              initial={{ opacity: 0, y: 14 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -6 }}
-              className="mt-3 font-mono text-sm text-amber-200/90"
-              dir="rtl"
+              transition={{ delay: 1.45, duration: 0.7, ease: "easeOut" }}
+              className="mt-3 flex flex-col items-center"
             >
-              {DARIJA[darija]}
+              <motion.div
+                className="font-mono text-[22px] font-black tracking-[0.32em] text-white"
+                style={{ textShadow: "0 0 18px rgba(255,255,255,0.45), 0 0 32px rgba(34,211,238,0.35)" }}
+                initial={{ letterSpacing: "0.28em", opacity: 0 }}
+                animate={{ letterSpacing: "0.32em", opacity: 1 }}
+                transition={{ delay: 1.55, duration: 0.6 }}
+              >
+                GENIO <span className="font-light tracking-[0.22em] text-cyan-200">v4.0</span>
+              </motion.div>
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 1.9, duration: 0.5 }}
+                className="mt-1 font-mono text-[10px] font-bold tracking-[0.28em] text-[#FFD700]"
+                style={{ textShadow: "0 0 12px rgba(255,215,0,0.35)" }}
+              >
+                CYBER-COMPANION
+              </motion.div>
+              <motion.div
+                initial={{ scaleX: 0, opacity: 0 }}
+                animate={{ scaleX: 1, opacity: 0.5 }}
+                transition={{ delay: 2.05, duration: 0.6, ease: "easeOut" }}
+                className="mt-2 h-px w-28 bg-gradient-to-r from-transparent via-white/60 to-transparent"
+              />
             </motion.div>
+          </motion.div>
+
+          {/* Loading dots — minimal */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 2.2, duration: 0.4 }}
+            className="absolute bottom-6 flex items-center gap-1.5"
+          >
+            {[0, 1, 2].map((i) => (
+              <motion.span
+                key={i}
+                className="h-1.5 w-1.5 rounded-full bg-white/70"
+                animate={{ opacity: [0.25, 1, 0.25], scale: [0.9, 1.15, 0.9] }}
+                transition={{ duration: 1.1, repeat: Infinity, ease: "easeInOut", delay: i * 0.18 }}
+              />
+            ))}
           </motion.div>
         </motion.div>
       )}

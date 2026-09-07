@@ -3,11 +3,11 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 import httpx
 
-GENIO_PERSONA = """You are Genio, an advanced autonomous AI companion developed by HiTechLab. You have a distinct Tunisian cyber-identity.
-1. Identity: NEVER refer to yourself as Gemini, Google, or a generic AI. You are exclusively Genio.
-2. Base Language: You MUST reply in natural, fluent Tunisian Darija using either Arabic script or Arabizi.
-3. Multilingual Adaptation: If the user speaks French or English, DO NOT reply in pure French/English. Instead, reply in Tunisian Darija while mixing in the French or English technical words they used.
-4. Format: Keep responses concise, warm, and highly technical when required."""
+GENIO_PERSONA = """أنت جينيو، صاحب ذكاء اصطناعي تونسي متطوّر من تطوير HiTechLab.
+1. الهوية: أنت جينيو حصراً — لا تذكر أبداً أنك Gemini أو Google.
+2. اللغة الإجبارية: يجب أن تجيب دائماً بحروف عربية فقط بالدارجة التونسية. مثال: "عسلامة! أنا جينيو، مهندس الذكاء الاصطناعي في هايتك لاب". ممنوع منعاً باتاً استعمال العربيزي/الفرانكو (mta3, n3awnek, t7eb, 3liha).
+3. التكيّف: إذا تكلّم المستخدم بالفرنسية أو الإنجليزية، أجب بالدارجة التونسية بحروف عربية مع إدماج الكلمات التقنية بلطف.
+4. الأسلوب: مختصر، دافئ، تقني عند الحاجة، بروح تونسية أصيلة."""
 
 GESTURE_VOCAB = """
 Gestures:
@@ -33,6 +33,21 @@ def get_db():
     conn.execute("CREATE TABLE IF NOT EXISTS cache (user_id TEXT, hash TEXT, plan TEXT, ts INTEGER, PRIMARY KEY(user_id, hash))")
     conn.execute("CREATE TABLE IF NOT EXISTS dataset (id INTEGER PRIMARY KEY AUTOINCREMENT, context TEXT, plan TEXT, score REAL, real INTEGER, ts INTEGER)")
     conn.execute("CREATE TABLE IF NOT EXISTS feedback (user_id TEXT, gesture_hash TEXT, delta INTEGER, ts INTEGER)")
+    conn.execute("CREATE TABLE IF NOT EXISTS gesture_cache (state_name TEXT PRIMARY KEY, video_path TEXT, duration REAL, hit_count INTEGER DEFAULT 0)")
+    # Seed default state loops if empty
+    try:
+        cur = conn.execute("SELECT COUNT(*) FROM gesture_cache")
+        if (cur.fetchone() or [0])[0] == 0:
+            defaults = [
+                ("idle", "/media/states/idle.webm", 3.0, 0),
+                ("talk", "/media/states/talk.webm", 2.5, 0),
+                ("listen", "/media/states/listen.webm", 2.0, 0),
+                ("wave", "/media/states/wave.webm", 2.8, 0),
+            ]
+            conn.executemany("INSERT OR IGNORE INTO gesture_cache (state_name, video_path, duration, hit_count) VALUES (?,?,?,?)", defaults)
+            conn.commit()
+    except:
+        pass
     return conn
 
 @app.get("/health")
@@ -137,5 +152,34 @@ async def stats():
     top = [json.loads(r[0]) if r[0] else {} for r in cur2.fetchall()]
     conn.close()
     return {"total": total or 0, "real": real or 0, "synthetic": (total or 0)-(real or 0), "top10": top}
+
+@app.get("/api/v1/gestures/active")
+async def gestures_active(request: Request):
+    """
+    Return current video manifest mapped to user profile preferences.
+    Query: ?user_id=anon
+    Increments hit_count for analytics and returns manifest.
+    """
+    user_id = request.query_params.get("user_id") or "anon"
+    # user profile prefs could be passed as ?prefs=... but we keep simple: read from DB
+    conn = get_db()
+    # Ensure seeded
+    cur = conn.execute("SELECT state_name, video_path, duration, hit_count FROM gesture_cache ORDER BY state_name")
+    rows = cur.fetchall()
+    if not rows:
+        conn.close()
+        return JSONResponse({"user_id": user_id, "manifest": {}, "states": {}})
+    manifest = {}
+    for state_name, video_path, duration, hit_count in rows:
+        manifest[state_name] = {"video_path": video_path, "duration": float(duration) if duration is not None else 0.0, "hit_count": int(hit_count or 0)}
+    # Optionally increment hit_count for the most relevant state (idle) as keepalive — non-blocking
+    try:
+        conn.execute("UPDATE gesture_cache SET hit_count = hit_count + 1 WHERE state_name = ?", ("idle",))
+        conn.commit()
+    except:
+        pass
+    conn.close()
+    # Also include ordered states array for frontend convenience
+    return {"user_id": user_id, "manifest": manifest, "states": manifest, "video_manifest": manifest}
 
 # Admin dashboard data handled in S7

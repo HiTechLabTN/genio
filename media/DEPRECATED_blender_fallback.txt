@@ -1,0 +1,3 @@
+DEPRECATED: genio_blender_glb_only.py fallback primitive is NOT used for production.
+Use TripoSR pipeline at /data/ai_tools/TripoSR (see TRIPOSR_SETUP.md).
+New clean mesh: media/mascot_raw.glb 3.1M baked 49k verts, rigged 3.9M with texture.

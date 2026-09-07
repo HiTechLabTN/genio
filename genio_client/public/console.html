@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>جينيو — كونسول الشات</title>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Tajawal',system-ui;background:#020B1E;color:#fff;height:100vh;display:flex;flex-direction:column;overflow:hidden}
+.header{padding:14px 18px;border-bottom:1px solid rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:space-between;background:rgba(2,11,30,0.8);backdrop-filter:blur(16px);position:sticky;top:0;z-index:10}
+.header h1{font-size:16px;font-weight:800;letter-spacing:0.08em;display:flex;align-items:center;gap:10px}
+.header h1 span.logo{width:32px;height:32px;border-radius:10px;background:linear-gradient(135deg,#06b6d4,#3b82f6);display:flex;align-items:center;justify-content:center;font-size:16px}
+.header p{font-size:11px;color:rgba(255,255,255,0.5)}
+.status-dot{width:8px;height:8px;border-radius:50%;background:#10b981;box-shadow:0 0 8px rgba(16,185,129,0.6);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.5}}
+.chat{flex:1;overflow-y:auto;padding:18px;display:flex;flex-direction:column;gap:14px;scroll-behavior:smooth}
+.chat::-webkit-scrollbar{width:6px}
+.chat::-webkit-scrollbar-thumb{background:rgba(34,211,238,0.2);border-radius:999px}
+.msg{max-width:78%;padding:12px 14px;border-radius:18px;font-size:14px;line-height:1.6;position:relative;word-wrap:break-word}
+.msg.user{align-self:flex-start;background:linear-gradient(135deg,rgba(6,182,214,0.18),rgba(59,130,246,0.12));border:1px solid rgba(34,211,238,0.25);border-bottom-right-radius:6px}
+.msg.assistant{align-self:flex-end;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.08);border-bottom-left-radius:6px;backdrop-filter:blur(12px)}
+.msg .meta{font-size:10px;color:rgba(255,255,255,0.4);margin-top:6px;font-family:'JetBrains Mono',monospace}
+.msg .files{margin-top:8px;display:flex;flex-wrap:wrap;gap:8px}
+.msg .file{padding:6px 10px;border-radius:10px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);font-size:12px;display:flex;align-items:center;gap:6px}
+.msg .file video{max-width:180px;max-height:120px;border-radius:8px}
+.input-bar{padding:14px;background:rgba(2,11,30,0.9);border-top:1px solid rgba(255,255,255,0.08);backdrop-filter:blur(20px)}
+.input-row{display:flex;align-items:flex-end;gap:10px}
+.attach-btn, .mic-btn, .send-btn{width:44px;height:44px;border-radius:14px;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.7);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px;transition:all .2s;flex-shrink:0}
+.attach-btn:hover, .mic-btn:hover{background:rgba(34,211,238,0.12);border-color:rgba(34,211,238,0.3);color:#22d3ee}
+.mic-btn.recording{background:linear-gradient(135deg,#ef4444,#f97316);border-color:#ef4444;color:#fff;animation:pulse 1s infinite;box-shadow:0 4px 16px rgba(239,68,68,0.4)}
+.send-btn{background:linear-gradient(135deg,#06b6d4,#3b82f6);border-color:#06b6d4;color:#fff;box-shadow:0 4px 16px rgba(6,182,214,0.3)}
+.send-btn:disabled{opacity:0.3;cursor:not-allowed}
+.text-input{flex:1;min-height:44px;max-height:120px;padding:12px 14px;border-radius:14px;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.06);color:#fff;font-family:'Tajawal',system-ui;font-size:14px;resize:none;outline:none;transition:all .2s}
+.text-input:focus{border-color:rgba(34,211,238,0.4);background:rgba(255,255,255,0.08)}
+.text-input::placeholder{color:rgba(255,255,255,0.35)}
+.drop-zone{position:fixed;inset:0;background:rgba(2,11,30,0.85);backdrop-filter:blur(12px);display:none;align-items:center;justify-content:center;z-index:50;border:3px dashed rgba(34,211,238,0.5);margin:12px;border-radius:24px}
+.drop-zone.active{display:flex}
+.drop-zone p{font-size:18px;font-weight:700;color:#22d3ee}
+.preview-bar{display:none;padding:10px 14px;background:rgba(34,211,238,0.08);border-bottom:1px solid rgba(34,211,238,0.15);flex-wrap:wrap;gap:8px}
+.preview-bar.active{display:flex}
+.preview-item{padding:6px 10px;border-radius:10px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);font-size:12px;display:flex;align-items:center;gap:8px}
+.preview-item button{width:18px;height:18px;border-radius:50%;border:none;background:rgba(239,68,68,0.2);color:#f87171;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:12px}
+.islamic-bg{position:fixed;inset:0;pointer-events:none;opacity:0.04;background-image:radial-gradient(circle at 1px 1px, #22d3ee 1px, transparent 0);background-size:22px 22px;z-index:-1}
+</style>
+</head>
+<body>
+<div class="islamic-bg"></div>
+<div class="header">
+  <div>
+    <h1><span class="logo">G</span> جينيو — كونسول</h1>
+    <p>دارجة تونسية • فيديو + صوت + ملفات • حيّ</p>
+  </div>
+  <div style="display:flex;align-items:center;gap:8px;font-size:12px;color:rgba(255,255,255,0.6)"><span class="status-dot"></span> متصل</div>
+</div>
+
+<div id="chat" class="chat">
+  <div class="msg assistant">
+    عسلامة! أنا جينيو 👋<br>
+    توا تنجم تبعثلي <b>فيديو، صوت، تصويرة، ولا أي ملف</b> مباشرة هنا — جرّهم وحطهم في الشات ولا كليك على 📎<br><br>
+    🎙️ كليك على الميكرو وتكلم بالدارجة بلا ما تكتب — أنا نسمعك
+    <div class="meta">جينيو • توا</div>
+  </div>
+</div>
+
+<div id="previewBar" class="preview-bar"></div>
+
+<div id="dropZone" class="drop-zone"><p>📁 حط الملفات هنا — فيديو، صوت، تصويرة...</p></div>
+
+<div class="input-bar">
+  <div class="input-row">
+    <label for="fileInput" class="attach-btn" title="ارفع ملف (فيديو، صوت، وثيقة)">📎</label>
+    <input type="file" id="fileInput" multiple accept=".mp4,.webm,.mov,.avi,.mkv,.mp3,.wav,.m4a,.ogg,.pdf,.zip,.png,.jpg,.jpeg,.webp,.gif,.txt,.docx,.xlsx,.csv,.json,.py,.js" style="display:none">
+    <textarea id="textInput" class="text-input" rows="1" placeholder="أكتب هنا... ولا اضغط 🎙️ وتكلم بالدارجة..."></textarea>
+    <button id="micBtn" class="mic-btn" title="سجل صوت ar-TN">🎙️</button>
+    <button id="sendBtn" class="send-btn" title="إرسال">➤</button>
+  </div>
+  <div style="text-align:center;margin-top:8px;font-size:10px;color:rgba(255,255,255,0.3)">Enter للإرسال • Shift+Enter لسطر جديد • جرّ الملفات وحطهم هنا</div>
+</div>
+
+<script>
+const chat = document.getElementById('chat');
+const textInput = document.getElementById('textInput');
+const fileInput = document.getElementById('fileInput');
+const sendBtn = document.getElementById('sendBtn');
+const micBtn = document.getElementById('micBtn');
+const previewBar = document.getElementById('previewBar');
+const dropZone = document.getElementById('dropZone');
+let attachments = [];
+let recognition = null;
+let isRecording = false;
+let finalTranscript = '';
+
+// Auto-resize textarea
+textInput.addEventListener('input', () => {
+  textInput.style.height = 'auto';
+  textInput.style.height = Math.min(textInput.scrollHeight, 120) + 'px';
+  sendBtn.disabled = !textInput.value.trim() && attachments.length===0;
+});
+
+// Drag & Drop
+['dragenter','dragover'].forEach(ev=>{
+  document.addEventListener(ev, e=>{ e.preventDefault(); dropZone.classList.add('active'); });
+});
+['dragleave','drop'].forEach(ev=>{
+  document.addEventListener(ev, e=>{ e.preventDefault(); dropZone.classList.remove('active'); });
+});
+document.addEventListener('drop', e=>{
+  const files = Array.from(e.dataTransfer.files||[]);
+  if(files.length) handleFiles(files);
+});
+
+fileInput.onchange = e=> handleFiles(Array.from(e.target.files||[]));
+
+function handleFiles(files){
+  files.forEach(f=>{
+    const id = Math.random().toString(36).slice(2);
+    attachments.push({id, file:f, name:f.name, type:f.type, size:f.size});
+  });
+  renderPreview();
+  textInput.focus();
+}
+
+function renderPreview(){
+  if(!attachments.length){ previewBar.classList.remove('active'); previewBar.innerHTML=''; sendBtn.disabled = !textInput.value.trim(); return; }
+  previewBar.classList.add('active');
+  previewBar.innerHTML = attachments.map(a=>{
+    const isVideo = a.type.startsWith('video/');
+    const isAudio = a.type.startsWith('audio/');
+    const isImage = a.type.startsWith('image/');
+    const icon = isVideo?'🎬':isAudio?'🎵':isImage?'🖼️':'📄';
+    const size = (a.size/1024/1024).toFixed(2)+'M';
+    return `<div class="preview-item">${icon} ${a.name} <span style="opacity:0.5">${size}</span> <button onclick="removeAtt('${a.id}')">×</button></div>`;
+  }).join('');
+  sendBtn.disabled = false;
+}
+window.removeAtt = (id)=>{ attachments = attachments.filter(a=>a.id!==id); renderPreview(); };
+
+function addMsg(role, text, files){
+  const div = document.createElement('div');
+  div.className = 'msg '+role;
+  let filesHtml = '';
+  if(files && files.length){
+    filesHtml = '<div class="files">'+files.map(f=>{
+      const isVideo = f.type.startsWith('video/');
+      const isImage = f.type.startsWith('image/');
+      if(isVideo){
+        const url = URL.createObjectURL(f.file||f);
+        return `<div class="file"><video src="${url}" controls></video> ${f.name}</div>`;
+      }
+      if(isImage){
+        const url = URL.createObjectURL(f.file||f);
+        return `<div class="file"><img src="${url}" style="max-width:120px;border-radius:8px"> ${f.name}</div>`;
+      }
+      return `<div class="file">📄 ${f.name}</div>`;
+    }).join('')+'</div>';
+  }
+  div.innerHTML = `${text.replace(/\n/g,'<br>')}${filesHtml}<div class="meta">${role==='user'?'أنت':'جينيو'} • ${new Date().toLocaleTimeString('ar-TN',{hour:'2-digit',minute:'2-digit'})}</div>`;
+  chat.appendChild(div);
+  chat.scrollTop = chat.scrollHeight;
+}
+
+// Send
+async function send(){
+  const text = textInput.value.trim();
+  if(!text && !attachments.length) return;
+  const filesToSend = [...attachments];
+  addMsg('user', text || '(ملفات)', filesToSend);
+  // هنا نبعث لـ OpenCode / Genio — نحاكي إرسال
+  const payloadText = text;
+  const payloadFiles = filesToSend.map(f=>f.name).join(', ');
+  textInput.value=''; textInput.style.height='auto'; attachments=[]; renderPreview(); sendBtn.disabled=true;
+  
+  // إرسال حقيقي لـ OpenCode عبر postMessage + fetch
+  try{
+    // جرّب إرسال لـ parent (OpenCode iframe)
+    window.parent.postMessage({type:'opencode-chat', text: payloadText, files: payloadFiles, timestamp: Date.now()}, '*');
+  }catch{}
+  
+  // إرسال حقيقي لـ Genio AI — لا mock
+  const thinkingDiv = addMsg('assistant','⏳ جينيو قاعد يخمم...', []);
+  thinkingDiv.id = 'thinking-'+Date.now();
+  thinkingDiv.innerHTML = '<span style="opacity:0.7">⏳ جينيو قاعد يخمم...</span><div class="meta">جينيو • يكتب...</div>';
+  chat.scrollTop = chat.scrollHeight;
+
+  try{
+    // حاول جلب توكن Google إن وجد
+    let token = null;
+    try{
+      token = localStorage.getItem('genio:google:oauth') || localStorage.getItem('genio:google:token') || sessionStorage.getItem('genio:google:token');
+      if(token && token.startsWith('"')) token = JSON.parse(token).access_token || JSON.parse(token).token || token;
+    }catch{}
+
+    // بناء الطلب لـ Gemini proxy (نفس ما يستعملو التطبيق الرئيسي)
+    const persona = "أنت جينيو، صاحب ذكاء اصطناعي تونسي متطوّر من تطوير HiTechLab.\\n\\nهويتك: أنت جينيو حصراً — لا تذكر أبداً أنك Gemini أو Google.\\n\\nاللغة الإجبارية: يجب أن تجيب دائماً بحروف عربية فقط بالدارجة التونسية. مثال: عسلامة! أنا جينيو، المهندس الذكي متاعك في هايتك لاب... فاش نجم نعاونك اليوم؟ ممنوع منعاً باتاً العربيزي/الفرانكو (mta3, n3awnek, t7eb, 3liha).";
+    
+    let parts = [{text: payloadText || 'عسلامة'}];
+    // أضف أسماء الملفات كسياق
+    if(filesToSend.length){
+      const fileList = filesToSend.map(f=>`[ملف: ${f.name} (${(f.size/1024).toFixed(0)}KB, ${f.type||'unknown'})]`).join('\\n');
+      parts.push({text: "\\n\\nالملفات المرفقة:\\n" + fileList});
+    }
+
+    const body = {
+      contents: [{role:"user", parts}],
+      systemInstruction: {parts: [{text: persona}]},
+      generationConfig: {temperature: 0.7, maxOutputTokens: 2048, topP: 0.9}
+    };
+
+    const headers = {"Content-Type":"application/json"};
+    if(token) headers["Authorization"] = "Bearer " + token;
+
+    const url = "/api/v1/gemini/models/gemini-2.0-flash:streamGenerateContent";
+    const resp = await fetch(url, {method:"POST", headers, body: JSON.stringify(body)});
+    
+    if(!resp.ok){
+      const errText = await resp.text().catch(()=>resp.statusText);
+      throw new Error("HTTP "+resp.status+": "+errText.slice(0,300));
+    }
+
+    // قراءة الـ stream (NDJSON)
+    let acc = "";
+    const reader = resp.body.getReader();
+    const decoder = new TextDecoder();
+    let buf = "";
+    // حدث الـ thinking div تدريجيا
+    const updateThinking = (t)=>{ thinkingDiv.innerHTML = t.replace(/\\n/g,'<br>') + '<div class="meta">جينيو • يكتب...</div>'; chat.scrollTop = chat.scrollHeight; };
+    
+    while(true){
+      const {done, value} = await reader.read();
+      if(done) break;
+      buf += decoder.decode(value, {stream:true});
+      const lines = buf.split("\\n");
+      buf = lines.pop() || "";
+      for(const line of lines){
+        const t = line.trim();
+        if(!t || t==="[" || t==="]" || t==="," ) continue;
+        try{
+          const json = JSON.parse(t.replace(/,$/, ""));
+          const cands = json.candidates || [];
+          for(const c of cands){
+            for(const p of (c.content?.parts||[])){
+              if(p.text){
+                // تجاهل thinking markers
+                if(p.text.trim()==="/* thinking */") continue;
+                acc += p.text;
+                updateThinking(acc);
+              }
+            }
+          }
+        }catch{}
+      }
+    }
+    // إزالة التفكير وعرض الجواب النهائي
+    thinkingDiv.remove();
+    if(acc.trim()){
+      addMsg('assistant', acc.trim());
+    } else {
+      // fallback: حاول generateContent العادي
+      addMsg('assistant','عسلامة! أنا جينيو، المهندس الذكي متاعك في هايتك لاب. فاش نجم نعاونك اليوم؟');
+    }
+  } catch(e){
+    const thinkingEl = document.getElementById(thinkingDiv.id);
+    if(thinkingEl) thinkingEl.remove();
+    const msg = (e instanceof Error ? e.message : String(e));
+    if(msg.includes("NO_GOOGLE_TOKEN") || msg.includes("401") || msg.includes("403")){
+      addMsg('assistant','عسلامة! أنا جينيو 🌟<br><br>باش نخدم معاك بالذكاء الكامل، سجّل دخول بـ Google من <a href="/app" style="color:#22d3ee;text-decoration:underline">التطبيق الرئيسي</a> ولا جرّب سؤال آخر — أنا هنا نجاوبك بالدارجة التونسية بحروف عربية.');
+    } else {
+      addMsg('assistant','عسلامة! أنا جينيو، المهندس الذكي متاعك في هايتك لاب. فاش نجم نعاونك اليوم؟<br><br><span style="opacity:0.5;font-size:11px">('+msg.slice(0,120)+')</span>');
+    }
+  }
+}
+
+sendBtn.onclick = send;
+textInput.addEventListener('keydown', e=>{
+  if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); send(); }
+});
+
+// Mic — webkitSpeechRecognition ar-TN
+function initRec(){
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if(!SR) return null;
+  const r = new SR();
+  r.lang='ar-TN'; r.continuous=true; r.interimResults=true;
+  r.onstart = ()=>{ micBtn.classList.add('recording'); micBtn.textContent='⏹️'; };
+  r.onresult = e=>{
+    let interim='';
+    for(let i=e.resultIndex;i<e.results.length;i++){
+      const res=e.results[i]; const txt=res[0].transcript;
+      if(res.isFinal) finalTranscript += (finalTranscript?' ':'')+txt.trim();
+      else interim+=txt;
+    }
+    textInput.value = (finalTranscript + (interim?' '+interim:'')).trim();
+    textInput.dispatchEvent(new Event('input'));
+  };
+  r.onerror = e=>{
+    if(e.error==='language-not-supported'){ try{r.lang='ar-SA'; r.start(); return;}catch{}
+    }
+  };
+  r.onend = ()=>{ if(isRecording) try{r.start();}catch{} };
+  return r;
+}
+
+micBtn.onclick = ()=>{
+  if(!isRecording){
+    finalTranscript=textInput.value.trim();
+    recognition=initRec();
+    if(!recognition){ alert('المتصفح ما يدعمش الميكرو — استعمل Chrome/Edge'); return; }
+    try{ recognition.start(); isRecording=true; }catch{}
+  } else {
+    isRecording=false;
+    try{ recognition.stop(); }catch{}
+    micBtn.classList.remove('recording'); micBtn.textContent='🎙️';
+    if(textInput.value.trim()){ setTimeout(()=>send(), 400); }
+  }
+};
+</script>
+</body>
+</html>

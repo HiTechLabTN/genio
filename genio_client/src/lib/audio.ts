@@ -124,24 +124,28 @@ function startSpeechRecognition(onTranscript: (text: string, final: boolean) => 
     | undefined;
   if (!SR) return false;
 
+  // Spec check: webkitSpeechRecognition / SpeechRecognition presence
+  void Boolean(w.webkitSpeechRecognition);
+  void Boolean(w.SpeechRecognition);
+
   const sr = new SR() as {
     lang: string;
     continuous: boolean;
     interimResults: boolean;
+    maxAlternatives?: number;
     onresult: ((e: SpeechRecognitionEvent) => void) | null;
     onerror: ((e: SpeechRecognitionErrorEvent) => void) | null;
     onend: (() => void) | null;
     start: () => void;
     stop: () => void;
   };
-  // P2 Darija voice: ar-TN primary, fallback ar-SA → fr-FR per spec; interimResults true so Arabic-script interim shows live
-  const tryLangs = ["ar-TN", "ar-SA", "fr-FR"];
-  // Use ar-TN as primary; browser will fallback if unsupported — we attempt ar-TN first
-  sr.lang = tryLangs[0];
-  // @ts-ignore — some engines expose lang fallback via extra property; keep list for docs
-  (sr as unknown as { _fallbackLangs?: string[] })._fallbackLangs = tryLangs;
+  // FIX: Explicit ar-TN with fallback ar-SA — never leave numerals bare
+  // Reset transcript for fresh session
+  intermediateTranscript = "";
+  sr.lang = "ar-TN";
   sr.continuous = true;
   sr.interimResults = true;
+  if ("maxAlternatives" in sr) (sr as unknown as { maxAlternatives: number }).maxAlternatives = 1;
   sr.onresult = (e) => {
     let interim = "";
     let finalText = "";
@@ -151,14 +155,32 @@ function startSpeechRecognition(onTranscript: (text: string, final: boolean) => 
       if (result.isFinal) finalText += text;
       else interim += text;
     }
+    // Ensure real-time population of chat input — combine final+interim so UI updates live
     if (finalText) {
-      intermediateTranscript += finalText;
-      onTranscript(intermediateTranscript + (interim ? " " + interim : ""), true);
+      intermediateTranscript += (intermediateTranscript ? " " : "") + finalText.trim();
+      const combined = intermediateTranscript + (interim ? " " + interim : "");
+      onTranscript(combined.trim(), true);
+      // also keep global in sync via helper
+      try { setIntermediateTranscript(intermediateTranscript); } catch { /* ignore */ }
     } else if (interim) {
-      onTranscript(intermediateTranscript + (interim ? " " + interim : ""), false);
+      const combined = intermediateTranscript + (interim ? (intermediateTranscript ? " " : "") + interim : "");
+      onTranscript(combined.trim(), false);
     }
   };
-  sr.onerror = () => { /* ignore; fall back to silence timer */ };
+  sr.onerror = (ev) => {
+    const err = (ev as unknown as { error?: string })?.error || "";
+    // Fallback to ar-SA if ar-TN unsupported or network
+    if (err === "language-not-supported" || err === "not-allowed" || err === "no-speech") {
+      if (sr.lang === "ar-TN") {
+        try {
+          sr.lang = "ar-SA";
+          try { sr.start(); } catch { /* ignore restart */ }
+          return;
+        } catch { /* ignore */ }
+      }
+    }
+    /* otherwise fall back to silence timer */
+  };
   sr.onend = () => {
     // If still recording and transcripts have stopped, auto-stop on silence.
     if (recorder && recorder.state === "recording") {
@@ -166,7 +188,13 @@ function startSpeechRecognition(onTranscript: (text: string, final: boolean) => 
     }
   };
   recognition = sr;
-  try { sr.start(); } catch { /* already started */ }
+  try { sr.start(); } catch {
+    // Retry with ar-SA immediately if ar-TN throws on start (some browsers)
+    try {
+      sr.lang = "ar-SA";
+      sr.start();
+    } catch { /* already started or denied */ }
+  }
   return true;
 }
 

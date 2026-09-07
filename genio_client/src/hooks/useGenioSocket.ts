@@ -148,18 +148,42 @@ export function useGenioSocket(): UseGenioSocket {
           },
           (event: GenioEvent) => {
             const ev = event as Record<string, unknown>;
+            // STRICT purge: pong heartbeats + stats leakage + thought internals never hit chat
+            const rawStr = JSON.stringify(ev).toLowerCase();
+            if (ev.type === "pong" || rawStr.includes('"pong"') || rawStr.includes("pong")) {
+              const isPongType = ev.type === "pong";
+              const isPongString = typeof ev.text === "string" && ev.text.toLowerCase().includes("pong");
+              if (isPongType || isPongString || rawStr.includes("pong")) return;
+            }
+            if (ev.type === "stats") return;
+            if (ev.type === "thought") return;
+            // strip thought blocks serialized as answer with <thought>
+            if (typeof ev.text === "string" && /<thought[\s>]/i.test(ev.text)) return;
+            if (typeof ev.text === "string" && /^thought\s*:/i.test(ev.text.trim())) return;
             if (ev.type === "screen" || ev.type === "browser_view") { setScreen(ev.data_b64 as string); return; }
             if (ev.type === "telemetry") { setTelemetry(event as unknown as TelemetrySnapshot); lastTelemetryAtRef.current = Date.now(); return; }
             if (isChatEvent(event)) {
               const chatEv = event as ChatEvent;
+              // double-guard: never surface stats/thought even if isChatEvent
+              if ((chatEv as unknown as { type: string }).type === "stats") return;
+              if ((chatEv as unknown as { type: string }).type === "thought") return;
+              if ((chatEv as unknown as { type: string }).type === "pong") return;
+              // sanitize answer text — strip <thought>...</thought>
+              if (chatEv.type === "answer" && typeof (chatEv as { text: string }).text === "string") {
+                const t = (chatEv as { text: string }).text;
+                if (/<thought[\s>]/i.test(t) || /^thought\s*:/i.test(t.trim())) return;
+              }
               setChat((prev) => [...prev.slice(-299), chatEv]);
               if ((chatEv as Record<string, unknown>).type === "tool_call") {
                 const toolName = extractToolName((chatEv as { command: string }).command || "");
                 setAgentStatus({ kind: "executing", tool: toolName });
-              } else if (chatEv.type === "stats" || chatEv.type === "answer" || chatEv.type === "artifact") setAgentStatus({ kind: "completed" });
+              } else if (chatEv.type === "answer" || chatEv.type === "artifact") setAgentStatus({ kind: "completed" });
               else if (chatEv.type === "error" || chatEv.type === "killed") setAgentStatus({ kind: "idle" });
               return;
             }
+            // Unknown tolerant fallback — but still purge pong/stats/thought
+            const fallbackStr = JSON.stringify(event).toLowerCase();
+            if (fallbackStr.includes("pong") && (ev.type === "pong" || fallbackStr.includes('"type":"pong"'))) return;
             setChat((prev) => [...prev.slice(-299), event as unknown as ChatEvent]);
           },
           () => setStatus({ kind: "error", message: `WebSocket error on ${prevTarget.host}` }),
@@ -202,6 +226,12 @@ export function useGenioSocket(): UseGenioSocket {
         () => setStatus({ kind: "connected", node: target.host }),
         (event: GenioEvent) => {
           const ev = event as Record<string, unknown>;
+          const rawStr2 = JSON.stringify(ev).toLowerCase();
+          if (ev.type === "pong" || rawStr2.includes('"pong"') || (typeof ev.text === "string" && ev.text.toLowerCase().includes("pong"))) return;
+          if (ev.type === "stats") return;
+          if (ev.type === "thought") return;
+          if (typeof ev.text === "string" && /<thought[\s>]/i.test(ev.text)) return;
+          if (typeof ev.text === "string" && /^thought\s*:/i.test(ev.text.trim())) return;
           if (ev.type === "screen" || ev.type === "browser_view") {
             setScreen(ev.data_b64 as string);
             return;
@@ -211,16 +241,20 @@ export function useGenioSocket(): UseGenioSocket {
             lastTelemetryAtRef.current = Date.now();
             return;
           }
-          // tolerant: artifact/session are handled as chat but also generic fallback
           if (isChatEvent(event)) {
-            // coerce unknown future types to ChatEvent via tolerant fallback
             const chatEv = event as ChatEvent;
+            if ((chatEv as unknown as { type: string }).type === "stats") return;
+            if ((chatEv as unknown as { type: string }).type === "thought") return;
+            if ((chatEv as unknown as { type: string }).type === "pong") return;
+            if (chatEv.type === "answer" && typeof (chatEv as { text: string }).text === "string") {
+              const t2 = (chatEv as { text: string }).text;
+              if (/<thought[\s>]/i.test(t2) || /^thought\s*:/i.test(t2.trim())) return;
+            }
             setChat((prev) => [...prev.slice(-299), chatEv]);
-            // update agent status from chat events
             if ((chatEv as Record<string, unknown>).type === "tool_call") {
               const toolName = extractToolName((chatEv as { command: string }).command || "");
               setAgentStatus({ kind: "executing", tool: toolName });
-            } else if (chatEv.type === "stats" || chatEv.type === "answer" || chatEv.type === "artifact") {
+            } else if (chatEv.type === "answer" || chatEv.type === "artifact") {
               setAgentStatus({ kind: "completed" });
             } else if (chatEv.type === "error") {
               setAgentStatus({ kind: "idle" });
@@ -229,7 +263,8 @@ export function useGenioSocket(): UseGenioSocket {
             }
             return;
           }
-          // Unknown tolerant fallback: surface as chat so UI never loses message
+          const fallbackStr2 = JSON.stringify(event).toLowerCase();
+          if (fallbackStr2.includes("pong") && (ev.type === "pong" || fallbackStr2.includes('"type":"pong"'))) return;
           setChat((prev) => [...prev.slice(-299), event as unknown as ChatEvent]);
         },
         () => setStatus({ kind: "error", message: `WebSocket error on ${target.host}` }),
@@ -260,9 +295,10 @@ export function useGenioSocket(): UseGenioSocket {
       sseRef.current = controller;
       streamTelemetry(target, setTelemetry, controller.signal).catch(() => {});
 
+      // Clean user-friendly badge — no raw URL/port leakage
       setChat((prev) => [
         ...prev.slice(-299),
-        { type: "answer", text: `Connected to ${target.host}:${target.port}` },
+        { type: "answer", text: `متصل — Genio جاهز` },
       ]);
       return true;
     },
