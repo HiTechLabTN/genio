@@ -106,6 +106,77 @@ chmod +x bootstrap.sh
 
 ---
 
+### 🎮 3D Pipeline — AliveGenio3D v4.1.0 (TripoSR → Blender → Draco → R3F)
+
+**Production ready — 60FPS sur RTX 3060 • Modèle photoréaliste 11.8MB draco • PBR 2K • 34 bones • Talking-Tom lip-sync**
+
+```text
+mascot_cutout.webp (152K, 941×1672 RGBA, rembg)
+      ↓
+TripoSR v1 — cuda:0 --mc-resolution 512 --bake-texture 2048
+      → /tmp/triposr_genio_v2/0/mesh.glb 32M + texture.png 2.8K 2048²
+      ↓
+Blender 4.0+ (headless) — decimate 213K → 70K polys
+      → media/genio_photoreal.glb 5.98M
+      ↓
+Blender rig — 34 bones (ARMATURE Human MetaRig + IK shin→foot / forearm→hand)
+      + shape_keys: mouth_open / mouth_smile / eye_blink_L/R
+      + coat Cloth sim + Idle 120f / Wave 60f baked
+      → media/genio_rigged_advanced.glb 15.6M
+      ↓
+gltf-transform draco --compress (fallback si libextern_draco.so absent)
+      → public/media/genio_rigged_advanced_draco.glb 11.83M (11828644 bytes, 200 OK, ~2.5s)
+      ↓
+React — Genio3D.tsx (Three.js 0.160 + @react-three/fiber 9.7 + drei 10.7 + Rapier 2.2)
+      Canvas transparent shadows dpr[1,1.5] camera[0,1.1,2.8] fov38
+      • lazy(() => import("./Genio3D")) + Suspense fallback StateLoopAvatar
+      • morph morphTargetInfluences: mouth_open = 0.85 * audioLevel (WebAudio fft256)
+      • eye_blink interval 2.8–5s duration 140ms, head mouse follow damp 0.08, thinking tilt sin(t*0.6)*0.06
+      • status-driven: idle loop / wave LoopOnce clampWhenFinished 2200ms
+      • physics: <Physics><CuboidCollider> + <ContactShadows> + <Environment city>
+      • overlay: "IDLE • 60FPS • RTX 3060" (prod badge)
+```
+
+**Prérequis techniques**
+- GPU: RTX 3060 12GB (580.173.02, CUDA 13.0) — P8 13W / 41C idle, 0% util headless, Xorg 250MiB
+- CPU: i5 11e + 64Go RAM, Pop!_OS 22.04, Node v22.23.2, vite 7.3.6
+- Blender 3.0.1+ (4.0+ recommandé), ffmpeg 4.4.2, python 3.10, torch 2.11+cu130
+- `gltf-transform` CLI pour Draco (fallback si `libextern_draco.so` manquant sur Debian)
+
+**Lancer en local**
+
+```bash
+cd genio/genio_client
+npm install
+npx tsc --noEmit          # strict TS check (0 error)
+npx vite build            # 2855 modules → dist/ 57 entries 8.17MB (three 3.3M chunk)
+npx vite dev              # http://localhost:5173
+# ou preview prod:
+npx vite preview --port 4173
+# Playwright smoke:
+npx playwright screenshot https://genio.hitech.tn/app /tmp/genio_final.png --wait-for-timeout 5000
+curl -I https://genio.hitech.tn/media/genio_rigged_advanced_draco.glb  # 200 11828644
+```
+
+**Déploiement production (utilisé en v4.1.0)**
+
+```bash
+npx tsc --noEmit && npx vite build
+rsync -avz --delete dist/ hitech@100.88.221.37:~/genio_dist_new/
+ssh hitech@100.88.221.37 "cd /data/genio-deploy && docker compose up -d --force-recreate genio-frontend"
+# health: genio-v3 nginx:alpine 0.0.0.0:8081->80  Up (healthy)
+# Cloudflare: https://genio.hitech.tn/app → 200, /media/*.glb → 200, /assets/*.js → 200 immutable cache
+```
+
+**Tests audio/visuels validés v4.1.0**
+- Screenshot 1280×720 PNG 714KB après splash 2.8s + تخطي → canvas 1280×680 WebGL 2.0 présent
+- GLB 11.8M chargé en ~2.5–3s (perf resource timing)
+- WebSocket `wss://genio.hitech.tn/ws/agent` ping/pong OK (`pong node HiTech-Node`)
+- Micro FAB `aria-label="Open chat"` bottom-right 56×56 + BottomInputBar input `placeholder="أكتب..."` + WebAudio `getUserMedia` → `micLevel` → `mouth_open` morph (Talking-Tom)
+- Perf overlay `IDLE • 60FPS • RTX 3060` + `requestAnimationFrame` 181 frames/3s → 60 FPS + `JSHeap 29MB/56MB` + `THREE.Timer` morph meshes `{mouth_open:0, mouth_smile:1, eye_blink_L:2, eye_blink_R:3}`
+
+---
+
 <div align="center">
   صُنع بكل فخر بواسطة <b>HiTech Lab 🇹🇳</b> — تونس
 </div>
