@@ -14,6 +14,7 @@ import { decideEngine } from "./lib/adaptiveEngine";
 import { getGoogleToken, hasGoogleAuth } from "./lib/googleAuth";
 import type { Attachment, ServerNode } from "./lib/types";
 import { AndalusianBackground, MatrixTaskBoard, SystemMetricsLive, TaskMinimizer, ParticleBrain, AnimeMascot, ErrorBoundary } from "./components/v3";
+import MascotStage from "./components/mascot/MascotStage";
 import { useVoiceOutput } from "./components/v3/useVoiceOutput";
 
 export default function App() {
@@ -23,6 +24,12 @@ export default function App() {
   const engineDecision = decideEngine();
   const isGeminiCloud = hasGoogleAuth();
   const [chronosDismissed, setChronosDismissed] = useState(false);
+  const [interfaceMode, setInterfaceMode] = useState<"mascot" | "technique">(
+    () => (localStorage.getItem("genio.interfaceMode") as "mascot" | "technique") || "mascot",
+  );
+  useEffect(() => {
+    try { localStorage.setItem("genio.interfaceMode", interfaceMode); } catch { /* ignore */ }
+  }, [interfaceMode]);
 
   const {
     agentStatus: wsAgentStatus,
@@ -199,6 +206,22 @@ export default function App() {
 
   const showV3Portal = connected && target || isGeminiCloud;
 
+  // Primary interface: the living mascot, voice-first, for the general public.
+  // The full technical dashboard (chat, tools, metrics) stays one tap away —
+  // never removed, just no longer the default surface.
+  if (showV3Portal && interfaceMode === "mascot") {
+    return (
+      <ErrorBoundary name="MascotStage">
+        <MascotStage
+          chat={chat}
+          agentStatus={agentStatus}
+          sendPrompt={sendPrompt}
+          onSwitchToTechnicalMode={() => setInterfaceMode("technique")}
+        />
+      </ErrorBoundary>
+    );
+  }
+
   return (
     <div style={{ width: "100vw", height: "100vh", position: "relative", overflow: "hidden" }} className="bg-[#020B1E]">
       {/* z-index 0: AndalusianBackground — wrapped in ErrorBoundary so a Canvas crash never blacks out UI */}
@@ -212,6 +235,14 @@ export default function App() {
       )}
 
       {/* z-index 3: SystemMetricsLive fixed top-right, always visible when connected */}
+      {showV3Portal && (
+        <button
+          onClick={() => setInterfaceMode("mascot")}
+          className="absolute right-3 top-3 z-40 flex items-center gap-1.5 rounded-full border border-cyan-400/30 bg-black/40 px-3 py-1.5 text-[11px] text-cyan-200/80 backdrop-blur hover:bg-black/60"
+        >
+          ← Mode mascotte
+        </button>
+      )}
       {showV3Portal && (
         <div className="pointer-events-none absolute right-3 top-[58px] z-30 hidden md:block" style={{ zIndex: 3 }}>
           <ErrorBoundary name="SystemMetricsLive"><SystemMetricsLive className="pointer-events-auto w-[220px]" /></ErrorBoundary>
