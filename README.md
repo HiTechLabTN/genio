@@ -175,6 +175,28 @@ ssh hitech@100.88.221.37 "cd /data/genio-deploy && docker compose up -d --force-
 - Micro FAB `aria-label="Open chat"` bottom-right 56×56 + BottomInputBar input `placeholder="أكتب..."` + WebAudio `getUserMedia` → `micLevel` → `mouth_open` morph (Talking-Tom)
 - Perf overlay `IDLE • 60FPS • RTX 3060` + `requestAnimationFrame` 181 frames/3s → 60 FPS + `JSHeap 29MB/56MB` + `THREE.Timer` morph meshes `{mouth_open:0, mouth_smile:1, eye_blink_L:2, eye_blink_R:3}`
 
+### 🎭 v4.2.0 — Interface mascotte primaire + personnage riggé v3 (Claude upgrade)
+- **Partie A portée sur main** : `MascotStage.tsx` (physique Rapier réelle,
+  micro/voix, `Mode technique` ↔ `← Mode mascotte`, défaut `mascot`),
+  `lib/mascotAnimator.ts` + `lib/mascotMemory.ts` (gestes procéduraux persistés
+  par utilisateur), `orbitron-variable.ttf` (troika ne supporte pas woff2).
+- **Pipeline v3** : `assets-pipeline/reference-views/` (4 PNG 941×1672 + webp,
+  `front.png` neutre) → TripoSR cuda:0 512/2048 (332k verts, 50M OBJ-texte →
+  18M vrai GLB) → Blender decimate 40k tris 5.3M 1.7m + FBX Mixamo 1.9M →
+  rig 34 bones ENVELOPE (AUTO Bone Heat vide) + 4 morphs + 8 clips NLA
+  (`idle/greeting/listening/thinking/executing/success/error/speaking`) →
+  `public/models/genio-mascot.glb` 11M (skin 34 joints) + `-draco.glb` 5M.
+- **Intégration** : `RiggedMascot.tsx` (useGLTF/useAnimations fade 0.35s,
+  lip-sync morph, blink, look-at) branché sur `pose.contextKey`,
+  `CyberAvatar` gardé en fallback ErrorBoundary (jamais supprimé),
+  `mascotAnimator/Memory` intouchés.
+- **Vérifié** : `/app` 200, onboarding → mascotte plein écran (3 canvas,
+  `TOUCHEZ POUR PARLER`, `Mode technique` ↔ technique intacte),
+  GLB 11M ~30ms local, mémoire gestes 2→4 en 12s idle, FPS 26 headless
+  (60 prod GPU), console sans erreur bloquante. Limites : fez/lunettes
+  approximatifs (single-view), mains enveloppes adoucies — ComfyUI
+  multi-vues + Mixamo = upgrade futur (`docs/MIXAMO_GUIDE.md`).
+
 ---
 
 <div align="center">

@@ -37,6 +37,8 @@ audio/
 # these are small, versioned UI/branding sources, not generated media output.
 !genio_client/public/**/*.png
 !genio_client/public/*.ico
+!assets-pipeline/reference-views/*.png
+!assets-pipeline/reference-views/*.webp
 !genio_client/resources/**/*.png
 !genio_client/src/assets/**/*.png
 !genio_client/README-assets/**/*.png
@@ -65,6 +67,9 @@ docker-compose.override.yml
 client_secret*.json
 token*.json
 
+# 3D pipeline heavy intermediates (reconstructible via TripoSR run.py + Blender scripts in /tmp/*.py)
+assets-pipeline/mesh-raw/v3/
+*.blend1
 # Server attachments
 tmp/
 

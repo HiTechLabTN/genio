@@ -160,9 +160,9 @@ function CyborgHead({ target, mode, audioLevel, isGreeting }: HeadProps) {
         <boxGeometry args={[0.5, 0.35, 0.28]} />
         <primitive object={CYBER_MAT.crimson} attach="material" />
       </mesh>
-      {/* Golden G on chest — self-hosted font for offline support (was fonts.gstatic.com) */}
+      {/* Golden G on chest — variable TTF for troika-three-text (woff2 unsupported) + woff2 for CSS */}
       <mesh position={[0, -0.55, 0.15]}>
-        <Text fontSize={0.14} color="#FFD700" anchorX="center" anchorY="middle" outlineWidth={0.008} outlineColor="#7A5A00" font="/fonts/orbitron-900.woff2">
+        <Text fontSize={0.14} color="#FFD700" anchorX="center" anchorY="middle" outlineWidth={0.008} outlineColor="#7A5A00" font="/fonts/orbitron-variable.ttf">
           G
         </Text>
       </mesh>

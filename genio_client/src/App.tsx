@@ -14,6 +14,7 @@ import { useVoiceOutput } from "./components/v3/useVoiceOutput";
 import IslamicPatterns from "./components/background/IslamicPatterns";
 import IntroCinematic from "./components/intro/IntroCinematic";
 import StateLoopAvatar from "./components/mascot/StateLoopAvatar";
+import MascotStage from "./components/mascot/MascotStage";
 import CinematicPortalSplash from "./components/layout/CinematicPortalSplash";
 import { lazy } from "react";
 const Genio3D = lazy(() => import("./components/mascot/Genio3D"));
@@ -43,6 +44,20 @@ export default function App() {
     const id = window.setTimeout(() => setShowGoogleAuth(false), 1200);
     return () => clearTimeout(id);
   }, [showGoogleAuth]);
+
+  // Partie A — interface mascotte primaire par défaut, bascule technique ↔ mascotte
+  const [interfaceMode, setInterfaceMode] = useState<"mascot" | "technique">(() => {
+    try {
+      return (localStorage.getItem("genio.interfaceMode") as "mascot" | "technique") || "mascot";
+    } catch {
+      return "mascot";
+    }
+  });
+  useEffect(() => {
+    try {
+      localStorage.setItem("genio.interfaceMode", interfaceMode);
+    } catch { /* ignore */ }
+  }, [interfaceMode]);
 
   const [connected, setConnected] = useState(false);
   const [target, setTarget] = useState<ServerNode | null>(null);
@@ -480,8 +495,32 @@ export default function App() {
     );
   }
 
+  // Écran par défaut = mascotte plein écran (MascotStage, Partie A). Mode technique = UI v4.1 existante intacte.
+  if (interfaceMode === "mascot") {
+    return (
+      <ErrorBoundary name="MascotStage-root">
+        <MascotStage
+          chat={chat}
+          agentStatus={agentStatus}
+          sendPrompt={(text, attachments) => {
+            handleSendPrompt(text, attachments);
+          }}
+          onSwitchToTechnicalMode={() => setInterfaceMode("technique")}
+        />
+      </ErrorBoundary>
+    );
+  }
+
   return (
     <div className="fixed inset-0 h-[100dvh] w-full overflow-hidden bg-[#020B1E]">
+      {/* Bascule retour vers mascotte primaire (Partie A) — dashboard v4.1 intact */}
+      <button
+        onClick={() => setInterfaceMode("mascot")}
+        className="absolute left-4 top-4 z-[70] flex items-center gap-1.5 rounded-full border border-white/10 bg-black/30 px-3 py-1.5 text-[11px] text-white/60 backdrop-blur hover:bg-black/50 hover:text-white/90"
+        title="Retour à la mascotte plein écran"
+      >
+        ← Mode mascotte
+      </button>
       {/* z-0 IslamicPatterns — stays mounted for seamless handoff, CinematicPortalSplash reuses same void #020B1E */}
       <ErrorBoundary name="IslamicPatterns">
         <div className="absolute inset-0 z-0">
