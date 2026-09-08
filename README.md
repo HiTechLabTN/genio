@@ -197,6 +197,21 @@ ssh hitech@100.88.221.37 "cd /data/genio-deploy && docker compose up -d --force-
   approximatifs (single-view), mains enveloppes adoucies — ComfyUI
   multi-vues + Mixamo = upgrade futur (`docs/MIXAMO_GUIDE.md`).
 
+### 🏆 v4.3.0 — Genio Mascot Master (`genio_mascot_master.glb`)
+- **Asset réel** : 37M (draco 5.1M) — 1 mesh, 1 skin 41 joints (34 deform +
+  7 secondaires), 28 morphs (24 faciaux + 4 legacy), **52 clips**
+  (WAVE/LISTEN/THINK/SPEAK/HERO + idle + émotions + locomotion in-place),
+  nœuds `GENIO_Mascot`, `G_Emblem`, `Attach_*`, validateur 15/15
+  (`scripts/validate_mascot_glb.py`).
+- **Runtime** : `MascotScene` (draco→full→v3→CyberAvatar→2.5D),
+  `LayeredMixer` (BASE/UPPER/HEAD/SPECIAL + FACE/LIPS/SECONDARY),
+  22 visemes + adapter TTS, idle stochastique seedé, springs secondaires,
+  environnement procédural réactif, `MascotController` + `MascotEventBridge`,
+  mémoire pondérée (`GENIO_MOTION_WEIGHTS`) avec decay 30j.
+- **Vérifié** : 16/16 vitest + 2/2 pytest, prod `/app/` 200, draco 5.1M/1.4s,
+  debug `52 clips / 28 morphs`, 8 draws / 40k tris, triggers manuels OK.
+  Debug : `?mascot-debug=1`. Docs : `docs/mascot/`.
+
 ---
 
 <div align="center">

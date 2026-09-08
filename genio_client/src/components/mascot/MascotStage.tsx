@@ -1,10 +1,14 @@
-import { Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Canvas } from "@react-three/fiber";
 import { Physics, RigidBody, CuboidCollider, type RapierRigidBody } from "@react-three/rapier";
 import { Mic, MicOff, Settings2 } from "lucide-react";
 import CyberAvatar from "../avatar/CyberAvatar";
 import RiggedMascot from "./RiggedMascot";
+import MascotScene, { type MascotDebugInfo } from "./master/MascotScene";
+import MascotDebugPanel from "./master/MascotDebugPanel";
+import { planDirective, type BehaviorDirective, type BehaviorIntent } from "./master/MascotController";
+import { NEUTRAL_EMOTION6, type Emotion6 } from "../../services/mascotBehavior";
 import ErrorBoundary from "../v3/ErrorBoundary";
 import { AndalusianBackground } from "../v3";
 import { useVoiceOutput } from "../v3/useVoiceOutput";
@@ -121,9 +125,18 @@ export default function MascotStage({ chat, agentStatus, sendPrompt, onSwitchToT
     if (lastText?.text) {
       setSpeaking(true);
       (speak as (t: string, _lang?: string) => void)(lastText.text, "fr-FR");
+      // Server motion memory: user continued the conversation → positive outcome
+      // for the gesture that was showing (metadata only, never raw text — §17).
+      try {
+        const ctx = pose?.contextKey ?? "speaking";
+        void import("./master/MascotController").then((m) =>
+          m.recordMotionOutcome(ctx, "speaking", ctx === "speaking" ? "speak" : ctx, 0.75),
+        );
+      } catch { /* offline-safe */ }
       const estMs = Math.min(9000, Math.max(1200, lastText.text.length * 55));
       window.setTimeout(() => setSpeaking(false), estMs);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chat, speak]);
 
   const avatarMode: "idle" | "listening" | "speaking" | "greeting" =
@@ -155,6 +168,77 @@ export default function MascotStage({ chat, agentStatus, sendPrompt, onSwitchToT
 
   const stats = getStats();
 
+  // Master directive (intention → comportement), émotion persistée entre intents.
+  const emotionRef = useRef<Emotion6>({ ...NEUTRAL_EMOTION6 });
+  const intent = useMemo<BehaviorIntent>(() => {
+    const c = pose?.contextKey;
+    if (c === "greeting") return "greeting";
+    if (c === "listening") return "listening";
+    if (c === "thinking") return "thinking";
+    if (c === "executing") return "working";
+    if (c === "success") return "success";
+    if (c === "error") return "error";
+    if (c === "speaking") return "speaking";
+    if (speaking) return "speaking";
+    if (listening) return "listening";
+    if (agentStatus.kind === "thinking") return "thinking";
+    if (agentStatus.kind === "executing") return "working";
+    if (agentStatus.kind === "completed") return "success";
+    return "idle";
+  }, [pose, speaking, listening, agentStatus]);
+  const directive: BehaviorDirective = useMemo(() => {
+    const d = planDirective(intent, emotionRef.current);
+    emotionRef.current = d.emotion;
+    return d;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [intent]);
+  const [debugInfo, setDebugInfo] = useState<MascotDebugInfo | null>(null);
+  const [debugReady, setDebugReady] = useState<{ clips: number; morphs: number } | null>(null);
+  const [debugClip, setDebugClip] = useState<string | null>(null);
+  const [debugEnabled] = useState(() => {
+    try {
+      return (
+        localStorage.getItem("genio:mascot:debug") === "1" ||
+        (typeof window !== "undefined" && new URLSearchParams(window.location.search).has("mascot-debug"))
+      );
+    } catch {
+      return false;
+    }
+  });
+  const effectiveDirective: BehaviorDirective = debugClip
+    ? { ...directive, body: debugClip, intent: "idle" }
+    : directive;
+
+  // Hiérarchie de fallback (§30) : master GLB → RiggedMascot v3 → CyberAvatar.
+  const legacyAvatar = (
+    <ErrorBoundary name="RiggedMascot-stage">
+      <Suspense
+        fallback={
+          <ErrorBoundary name="CyberAvatar-mascotStage-fallback">
+            <CyberAvatar mode={avatarMode} size={420} interactive={false} faceTrack={false} audioLevel={speaking ? 0.5 : 0} />
+          </ErrorBoundary>
+        }
+      >
+        <div style={{ width: 520, height: 520 }}>
+          <Canvas camera={{ position: [0, 0.85, 3.9], fov: 36 }} dpr={[1, 1.5]} gl={{ antialias: true, toneMappingExposure: 1.25 }}>
+            <ambientLight intensity={1.15} />
+            <directionalLight position={[2.5, 4, 3]} intensity={2.0} />
+            <directionalLight position={[-2.5, 2, 2.5]} intensity={0.9} color="#67e8f9" />
+            <hemisphereLight args={["#a5f3fc", "#020B1E", 0.85]} />
+            <Suspense fallback={null}>
+              <RiggedMascot
+                activeClip={activeClip}
+                audioLevel={speaking ? 0.5 : 0}
+                headYaw={pose?.headYaw ?? 0}
+                headTilt={pose?.headTilt ?? 0}
+              />
+            </Suspense>
+          </Canvas>
+        </div>
+      </Suspense>
+    </ErrorBoundary>
+  );
+
   return (
     <div className="relative h-screen w-screen overflow-hidden bg-[#020B1E]">
       <AndalusianBackground />
@@ -169,38 +253,37 @@ export default function MascotStage({ chat, agentStatus, sendPrompt, onSwitchToT
       </div>
 
       {/* The actual character, positioned by the real physics output above.
-          RiggedMascot (v3 riggé fidèle) en premier, CyberAvatar en filet de sécurité. */}
+          Master GLB d'abord, RiggedMascot v3 puis CyberAvatar en filets (§30). */}
       <motion.div
         className="absolute left-1/2 top-[38%] -translate-x-1/2 -translate-y-1/2"
         animate={{ x: pos.x * 140, y: -pos.y * 140 }}
         transition={{ type: "spring", stiffness: 60, damping: 18 }}
       >
-        <ErrorBoundary name="RiggedMascot-stage">
-          <Suspense
-            fallback={
-              <ErrorBoundary name="CyberAvatar-mascotStage-fallback">
-                <CyberAvatar mode={avatarMode} size={420} interactive={false} faceTrack={false} audioLevel={speaking ? 0.5 : 0} />
-              </ErrorBoundary>
-            }
-          >
+        <ErrorBoundary name="MasterMascot" fallback={legacyAvatar}>
+          <Suspense fallback={legacyAvatar}>
             <div style={{ width: 520, height: 520 }}>
-              <Canvas camera={{ position: [0, 0.85, 3.9], fov: 36 }} dpr={[1, 1.5]} gl={{ antialias: true, toneMappingExposure: 1.25 }}>
-                <ambientLight intensity={1.15} />
-                <directionalLight position={[2.5, 4, 3]} intensity={2.0} />
-                <directionalLight position={[-2.5, 2, 2.5]} intensity={0.9} color="#67e8f9" />
-                <hemisphereLight args={["#a5f3fc", "#020B1E", 0.85]} />
-                <Suspense fallback={null}>
-                  <RiggedMascot
-                    activeClip={activeClip}
-                    audioLevel={speaking ? 0.5 : 0}
-                    headYaw={pose?.headYaw ?? 0}
-                    headTilt={pose?.headTilt ?? 0}
-                  />
-                </Suspense>
-              </Canvas>
+              <MascotScene
+                directive={effectiveDirective}
+                audioLevel={speaking ? 0.5 : 0}
+                voiceEnabled
+                overlay
+                onDebug={debugEnabled ? setDebugInfo : () => {}}
+                onReady={setDebugReady}
+              />
             </div>
           </Suspense>
         </ErrorBoundary>
+        {debugEnabled && (
+          <MascotDebugPanel
+            info={debugInfo}
+            ready={debugReady}
+            onTrigger={(clip) => setDebugClip(clip)}
+            onReset={() => {
+              setDebugClip(null);
+              setDebugInfo(null);
+            }}
+          />
+        )}
       </motion.div>
 
       {/* Live caption while listening */}

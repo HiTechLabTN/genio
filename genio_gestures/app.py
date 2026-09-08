@@ -33,6 +33,15 @@ def get_db():
     conn.execute("CREATE TABLE IF NOT EXISTS cache (user_id TEXT, hash TEXT, plan TEXT, ts INTEGER, PRIMARY KEY(user_id, hash))")
     conn.execute("CREATE TABLE IF NOT EXISTS dataset (id INTEGER PRIMARY KEY AUTOINCREMENT, context TEXT, plan TEXT, score REAL, real INTEGER, ts INTEGER)")
     conn.execute("CREATE TABLE IF NOT EXISTS feedback (user_id TEXT, gesture_hash TEXT, delta INTEGER, ts INTEGER)")
+    conn.execute("""CREATE TABLE IF NOT EXISTS motion_memory (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        context TEXT NOT NULL,
+        emotion TEXT NOT NULL,
+        gesture_name TEXT NOT NULL,
+        score REAL DEFAULT 0.5,
+        use_count INTEGER DEFAULT 1,
+        last_used_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )""")
     conn.execute("CREATE TABLE IF NOT EXISTS gesture_cache (state_name TEXT PRIMARY KEY, video_path TEXT, duration REAL, hit_count INTEGER DEFAULT 0)")
     # Seed default state loops if empty
     try:
@@ -142,6 +151,100 @@ async def feedback(req: Request):
     conn.commit()
     conn.close()
     return {"ok": True}
+
+@app.post("/api/v1/motion/record")
+async def motion_record(req: Request):
+    """Record a gesture outcome + user interaction signal into persistent motion memory."""
+    try:
+        body = await req.json()
+    except:
+        body = {}
+    context = str(body.get("context", "") or "")
+    emotion = str(body.get("emotion", "") or "")
+    gesture_name = str(body.get("gesture_name", "") or body.get("gesture", "") or "")
+    signal = body.get("signal", 0.5)
+    try:
+        score = float(signal)
+    except:
+        score = 0.5
+    score = max(0.0, min(1.0, score))
+    if not context or not gesture_name:
+        return JSONResponse({"ok": False, "error": "context and gesture_name required"}, status_code=400)
+    conn = get_db()
+    cur = conn.execute(
+        "SELECT id, score, use_count FROM motion_memory WHERE context=? AND emotion=? AND gesture_name=?",
+        (context, emotion, gesture_name),
+    )
+    row = cur.fetchone()
+    if row:
+        mid, old_score, use_count = row
+        new_score = round((float(old_score) * int(use_count) + score) / (int(use_count) + 1), 4)
+        conn.execute(
+            "UPDATE motion_memory SET score=?, use_count=use_count+1, last_used_at=CURRENT_TIMESTAMP WHERE id=?",
+            (new_score, mid),
+        )
+    else:
+        conn.execute(
+            "INSERT INTO motion_memory (context, emotion, gesture_name, score, use_count) VALUES (?,?,?,?,1)",
+            (context, emotion, gesture_name, score),
+        )
+    conn.commit()
+    conn.close()
+    return {"ok": True}
+
+# Scoring weights (configurable via env GENIO_MOTION_WEIGHTS="0.4,0.3,0.15,0.1,0.05")
+# score = semantic*W0 + history*W1 + context_match*W2 + freshness*W3 + personality*W4
+def _motion_weights():
+    try:
+        parts = [float(x) for x in os.getenv("GENIO_MOTION_WEIGHTS", "0.4,0.3,0.15,0.1,0.05").split(",")]
+        if len(parts) == 5 and abs(sum(parts) - 1.0) < 0.01:
+            return parts
+    except:
+        pass
+    return [0.4, 0.3, 0.15, 0.1, 0.05]
+
+def _freshness(last_used_at):
+    try:
+        ts = time.mktime(time.strptime(str(last_used_at), "%Y-%m-%d %H:%M:%S"))
+        days = max(0.0, (time.time() - ts) / 86400.0)
+    except:
+        return 0.5
+    return round(math.exp(-days / 30.0), 4)
+
+import math  # noqa: E402 (motion-memory scoring weights + freshness decay)
+
+@app.get("/api/v1/motion/recommend")
+async def motion_recommend(request: Request):
+    """Retrieve the highest-scoring gesture for a (context, emotion) pair.
+
+    Ranking: semantic_relevance*W0 + historical_success*W1 +
+    context_match*W2 + freshness(decay 30d)*W3 + personality_fit*W4.
+    """
+    context = request.query_params.get("context") or ""
+    emotion = request.query_params.get("emotion") or ""
+    if not context:
+        return JSONResponse({"ok": False, "error": "context required"}, status_code=400)
+    w = _motion_weights()
+    conn = get_db()
+    cur = conn.execute(
+        "SELECT gesture_name, score, use_count, last_used_at, emotion FROM motion_memory WHERE context=?",
+        (context,),
+    )
+    rows = cur.fetchall()
+    conn.close()
+    if not rows:
+        return {"ok": True, "gesture_name": None, "score": None, "fallback": True}
+    best = None
+    for name, score, use_count, last_used_at, emo in rows:
+        hist = max(0.0, min(1.0, float(score or 0.5)))
+        ctx_match = 1.0 if (emotion and emo == emotion) else 0.6
+        fresh = _freshness(last_used_at)
+        total = round(1.0 * w[0] + hist * w[1] + ctx_match * w[2] + fresh * w[3] + 0.5 * w[4], 4)
+        if best is None or total > best[0]:
+            best = (total, name, hist, use_count, fresh)
+    total, name, hist, use_count, fresh = best
+    return {"ok": True, "gesture_name": name, "score": hist, "ranked_score": total,
+            "use_count": int(use_count), "freshness": fresh, "weights": w, "fallback": False}
 
 @app.get("/stats")
 async def stats():

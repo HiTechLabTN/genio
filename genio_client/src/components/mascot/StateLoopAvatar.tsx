@@ -285,8 +285,8 @@ const StateLoopAvatar = memo(function StateLoopAvatar({ status = "idle", audioLe
                 >
                   <div className="absolute inset-0 flex items-center justify-center">
                     <div className="relative">
-                      <div className="h-14 w-10 rounded-[14px] border border-white/20 bg-gradient-to-b from-[#E8D5C0] to-[#D4B89A] shadow-[0_6px_16px_rgba(0,0,0,0.35)]" style={{ transform: "rotate(-14deg)" }} />
-                      <div className="absolute -bottom-1 left-1/2 h-3 w-11 -translate-x-1/2 rounded-full bg-white shadow-[0_2px_8px_rgba(0,0,0,0.25)]" />
+                      <div className="h-14 w-10 rounded-[14px] bg-gradient-to-b from-[#E8D5C0] to-[#D4B89A]" style={{ transform: "rotate(-14deg)", boxShadow: "0 0 18px rgba(34,211,238,0.25)" }} />
+                      <div className="absolute -bottom-1 left-1/2 h-3 w-11 -translate-x-1/2 rounded-full bg-white/90" style={{ boxShadow: "0 0 12px rgba(34,211,238,0.3)" }} />
                     </div>
                   </div>
                   <motion.div className="absolute -inset-2 rounded-full border border-cyan-300/30" animate={{ scale: [0.9, 1.15, 0.9], opacity: [0.25, 0.55, 0.25] }} transition={{ duration: 1.4, repeat: Infinity }} />

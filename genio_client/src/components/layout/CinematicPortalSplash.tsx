@@ -26,11 +26,11 @@ export default function CinematicPortalSplash({ onComplete }: Props) {
       setVisible(false);
       window.setTimeout(() => onComplete(), 500);
     }, 2200);
-    // Hard failsafe 2.8s never hangs — أسرع
+    // Strict 3.8s hard fallback timeout — never freezes
     const tFailsafe = window.setTimeout(() => {
       setVisible(false);
       onComplete();
-    }, 2800);
+    }, 3800);
     // Progress bar 0→100% over 2200ms — أسرع
     const start = performance.now();
     const duration = 2200;
@@ -166,8 +166,8 @@ export default function CinematicPortalSplash({ onComplete }: Props) {
                   className="relative z-10 h-[72vh] max-h-[700px] w-auto object-contain pointer-events-none select-none bg-transparent border-0 shadow-none"
                   draggable={false}
                   style={{
-                    WebkitMaskImage: "linear-gradient(to bottom, black 78%, transparent 100%)",
-                    maskImage: "linear-gradient(to bottom, black 78%, transparent 100%)",
+                    WebkitMaskImage: "linear-gradient(to bottom, black 75%, transparent 100%)",
+                    maskImage: "linear-gradient(to bottom, black 75%, transparent 100%)",
                   } as React.CSSProperties}
                   onError={(e) => {
                     const t = e.currentTarget as HTMLImageElement;
@@ -178,32 +178,22 @@ export default function CinematicPortalSplash({ onComplete }: Props) {
             </motion.div>
           </div>
 
-          {/* GENIO v4.0 Card — تحت الماسكوت مباشرة + شريط تحميل متدرج */}
+          {/* GENIO title — no card, no box, pure glowing text + progress */}
           <motion.div
             initial={{ opacity: 0, y: 18 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.55, ease: "easeOut", delay: 1.95 }}
-            className="absolute bottom-[4%] left-1/2 z-20 flex -translate-x-1/2 flex-col items-center"
+            className="absolute bottom-[4%] left-1/2 z-20 flex -translate-x-1/2 flex-col items-center bg-transparent border-0"
           >
             <motion.div
               animate={
                 cardLoaded
-                  ? {
-                      filter: "blur(0px) contrast(1.3) brightness(1.15)",
-                      backgroundColor: "rgba(255,255,255,0.08)",
-                      borderColor: "rgba(34,211,238,0.45)",
-                      boxShadow: "0 0 25px rgba(34,211,238,0.8), 0 8px 32px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.18)",
-                    }
-                  : {
-                      filter: ["blur(8px)", "blur(4px)", "blur(10px)", "blur(6px)"],
-                      backgroundColor: "rgba(255,255,255,0.05)",
-                      borderColor: "rgba(255,255,255,0.10)",
-                      boxShadow: "0 8px 32px rgba(0,0,0,0.28), inset 0 1px 0 rgba(255,255,255,0.08)",
-                    }
+                  ? { filter: "blur(0px) contrast(1.3) brightness(1.15)", opacity: 1 }
+                  : { filter: ["blur(8px)", "blur(4px)", "blur(10px)", "blur(6px)"], opacity: 0.9 }
               }
               transition={cardLoaded ? { duration: 0.22, ease: "easeOut" } : { duration: 1.8, repeat: Infinity, ease: "easeInOut", times: [0, 0.35, 0.7, 1] as never }}
-              className="flex flex-col items-center rounded-[1.1rem] border px-7 py-4 backdrop-blur-md"
-              style={cardLoaded ? { willChange: "filter, box-shadow" } : { willChange: "filter" }}
+              className="flex flex-col items-center bg-transparent border-0"
+              style={cardLoaded ? { willChange: "filter" } : { willChange: "filter" }}
             >
               <div className="font-mono text-[22px] font-black tracking-[0.32em] text-white" style={{ textShadow: "0 0 18px rgba(255,255,255,0.45), 0 0 32px rgba(0,229,255,0.35)" }}>
                 GENIO <span className="font-light tracking-[0.22em] text-cyan-200">v4.0</span>
@@ -219,8 +209,8 @@ export default function CinematicPortalSplash({ onComplete }: Props) {
               />
               <p className="mt-2 font-mono text-[9px] tracking-[0.16em] text-white/45">ISLAMIC CYBERPUNK • TUNISIA</p>
             </motion.div>
-            {/* شريط التحميل — يقدم بشوية بشوية تحت الكارت */}
-            <div className="mt-4 w-56 h-[3px] rounded-full bg-white/10 overflow-hidden backdrop-blur-sm border border-white/5">
+            {/* شريط التحميل — خط رفيع بلا صندوق */}
+            <div className="mt-4 w-56 h-[3px] overflow-hidden bg-transparent">
               <motion.div
                 className="h-full rounded-full"
                 style={{
