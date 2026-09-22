@@ -1,0 +1,1 @@
+Generez l'APK via Capacitor ou PWA2APK. Le build Web est compatible PWA.

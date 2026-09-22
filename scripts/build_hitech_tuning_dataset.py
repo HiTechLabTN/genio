@@ -1,0 +1,156 @@
+"""
+Genio — HiTech Lab QLoRA tuning dataset builder.
+
+Deterministically emits `data/genio_hitech_tuning_dataset.jsonl` (52 curated,
+high-density instruction/output pairs) in the same {instruction, input, output}
+format used by training/genio_dataset.jsonl.
+
+Domain: Linux system administration, Docker/DevOps debugging, kernel/disk
+crashes, network diagnostics. Language: technical English command/term fusion
+with precise Tunisian Arabic explanations (HiTech Lab / Genio persona).
+
+Run: python3 scripts/build_hitech_tuning_dataset.py
+"""
+from __future__ import annotations
+
+import json
+from pathlib import Path
+
+DATA_DIR = Path(__file__).resolve().parent.parent / "data"
+OUT = DATA_DIR / "genio_hitech_tuning_dataset.jsonl"
+
+# (instruction, output) — 52 curated pairs, appended in batches below
+PAIRS: list[tuple[str, str]] = [
+    # ============================================================= SYSTEMD
+    ("الخدمة genio.service تتحول failed بعد reboot مباشرة و systemctl status يقول 'Failed to start: ordering problem'. شنو السبب وكيفاش نصلحو؟",
+     "هذا dependency cycle بين units — unit الكاينة تستنا وحدة اللي تستنا فيها بدورها. تحقق من الـ dependencies: `systemctl list-dependencies genio.service` و لاحظ 'Found ordering cycle'. باش تكسر الحلقة: نقّي `After=` / `Requires=` الغير ضرورية من فايل الخدمة فـ /etc/systemd/system/genio.service، واستعمل `Wants=` بدل `Requires=` للتوصيات، ثم `systemctl daemon-reload && systemctl restart genio`. التأكيد: `systemctl is-active genio` و `systemd-analyze verify /etc/systemd/system/genio.service`."),
+    ("كيفاش نفعّل auto-restart لخدمة متبدلة مع منع infinite restart loop؟",
+     "في وحدة الخدمة أضف: `Restart=on-failure`، `RestartSec=3s`، `StartLimitIntervalSec=30s`، `StartLimitBurst=5`. يعني فشل 5 مرات في 30 ثانية يقفل المحاولات الآلية وتحتاج `systemctl reset-failed genio`. تحقق من القيم الفعلية: `systemctl show genio -p Restart -p StartLimitBurst`. اتبع logs باش تعرف علاش تفشل: `journalctl -u genio --since '10 min ago' -p err`."),
+    ("systemd timer بدل cron: عمل backup يومي مع notification على الفشل. شنو السكريبت؟",
+     "تحتاج zygote unites: genio-backup.service بسلام هـ ExecStart و genio-backup.timer بالتوقيت `OnCalendar=*-*-* 02:30:00` مع `Persistent=true` (يشغّل الـ missed runs بعد reboot). علّق: `systemctl enable --now genio-backup.timer`، تحقق: `systemctl list-timers genio-backup`. على الفشل: OnFailure= نهائي للأمانة. وأصل bak evolution: `systemctl status genio-backup` يبيّن نتيجة command."),
+    ("كيف نقرا logs لتطبيق خارج systemd ونتتبع خطأ خاص به؟",
+     "headา zastosowanie من داخل systemd: `journalctl -t myapp --since '1 hour ago'` (حيث syslog identifier 'myapp'). للتطبيقات الخاصة استعمل `systemd-cat`: `/opt/myapp | systemd-cat -p notice -t myapp`. تأكد الـ retention مريح في /etc/systemd/journald.conf: `SystemMaxUse=500M`، وتنظيف يدوي: `journalctl --vacuum-size=200M`."),
+    ("unit يخرج exit 0 (نجاح) لكن الفعل خود بلايم. كيف نتأكد من الحقيقة؟",
+     "غالباً ExecStart يغلف بـ wrapper يخفي الحالة. تحقق: `systemctl show genio -p Result -p ExecMainStatus`، ثم انظر `systemd-analyze verify` فـ systemd يدلك على خطر. أضف في service: `Type=notify` إن كان البرنامج يدعم sd_notify، أو exec مباشرة مع `KillMode=mixed`: `ExecStart=/bin/bash -c 'exec /usr/local/bin/genio'`. راقب: `journalctl -u genio -o short-monotonic` فيritime الفعلي للحالة."),
+    ("service connection refused لكن is-active يقول active. شنو الفرق بين حالة unit و health الـ app؟",
+     "active تعني أن النظام شغّل ExecStart بنجاح — ما تعنيش أن العملية تستمع على المنفذ. تحقق الـ socket: `ss -tlnp | grep <port>`، والـ logs app: `journalctl -u genio --since '5 min ago'`. عناگر app يحتاج وقت loading ازاح executives: أضف `ExecStartPre=/bin/sh -c 'until ss -ltn | grep -q :3000; do sleep 1; done'` أو HealthCheck خارجي منفصل. الـ is-active تنبه المعنى الإداري فحسب."),
+    ("ما دور `systemd-analyze blame` و كيف يخدم تحسين boot time؟",
+     "يبيع لك الوقت الذي استغرقه كل unit في الـ boot — الأكبر أولاً: `systemd-analyze blame | head -20`. لأعمق: `systemd-analyze critical-chain` يرجع مسار الأبطأ. تحسين: `systemd-analyze plot > boot.svg` لعرض بصري. المعالجة المعتادة: Units مع `After=network.target` بدل `network-online.target`, وأضف `TimeoutStartSec=30s` على الخدمات المتأونة — و بلس `systemd-analyze security <unit>` يبيّن مخاطر residence)."),
+    ("systemd sleep/shutdown متأخر وانتظار. من أين نبدأ البحث؟",
+     "الفري ترتيب reverse: `journalctl --since '-15 min' -p info..emerg` عند shutdown, وتعالج argon flag: `systemctl poweroff --force` نعماه. السبب المعروف: للأجهزة `NetworkManager-wait-online.service` — معطله via `systemctl disable NetworkManager-wait-online`. افحص ما يعلق: `systemctl --failed` بعد boot، و عطّل الـ units المانعة للـ stop عبر `TimeoutStopSec=5`."),
+    # ============================================================== DOCKER
+    ("كونتينر يموت مباشرة والـ docker inspect يظهر: exit code 1، 'exec: gunicorn: not found'. شنو الجذر؟",
+     "هذه مشكلة PATH أو بدء غير موجود في الصورة. تحقق من entrypoint: `docker inspect <image> --format '{{json .Config.Entrypoint}}'` و جرّب يدوياً: `docker run --rm --entrypoint which <image> gunicorn`. السبب الشائع: requirement غير مثبتة في layer النهائي. الإصلاح: في الـ Dockerfile استعمل `python3 -m pip install --no-cache-dir -r requirements.txt` وأكد عند البناء، وتحقق بالملفات: `docker run --rm <image> sh -c 'ls -la /usr/local/bin/gunicorn*'`."),
+    ("docker compose service يخرج code 137 عند الحاجة الكبيرة (OOM). كيف نتأكد ونترياق؟",
+     "Exit 137 = SIGKILL بواسطة OOM-killer. التأكيد: `docker inspect <c> --format '{{.State.OOMKilled}}'` يعطي true، و kernel يوثق: `dmesg -T | grep -i -B5 'killed process'`. الجهة الحمية: اعطي limits: compose `mem_limit: 2g` مع `memswap_limit: 2g`، وأعط إيقاف مقبول `stop_grace_period: 15s`، وإن كان التطبيق JVM/Node اضبط heap: `JAVA_OPTS=-Xmx1536m` أو `NODE_OPTIONS=--max-old-space-size=1536`. لاحقاً افحص sizing: `docker stats --no-stream`."),
+    ("volume مشترك بين container و host: الملفات synthes بـ uid 999:999. root cause و الحل؟",
+     "هذا uid/gid mismatch — المستخدم الداخلي في الصورة (غالباً nginx: 101) مختلف عن host. الحلول: شغّل بـ `--user $(id -u):$(id -g)`، أو بلو more controllable: compose `user: '1000:1000'`, وأضف `chown` عند init فـ entrypoint: `entrypoint: /bin/sh -c 'chown -R 1000:1000 /data && exec app'`. تحقق: `stat -c %u/%g /data` و `id`. SELinux يكون أضاف: mount مع `:Z`."),
+    ("push صورة إلى registry خاص يعطي: received unexpected HTTP status: 502. شنو متوقع؟",
+     "502 قادم من proxy أمام registry (nginx/traefik) لا من registry نفسها. تحقق: `curl -i https://registry.lab/ --max-time 10`، و pythonيض: `journalctl -u nginx -u registry --since '5 min ago'`. أشهر سببين: `client_max_body_size` يمنع الـ blob الكبير، أو TLS buffer. الحل: أضف في nginx location /v2/: `client_max_body_size 2g; proxy_buffering off; chunked_transfer_encoding on;` ثم `nginx -t && systemctl reload nginx` و أخد push بمقياس small ثم كبير."),
+    ("Postgres container: 'FATAL: no pg_hba.conf entry for host 172.18.0.5'. شنو النية و شنو الحل؟",
+     "هذا قيد pg_hba — الـ host غير موثوق للـ network، لا مشكلة password. أضف سطر: `host all all 172.16.0.0/12 scram-sha-256` فـ /etc/postgresql/<v>/main/pg_hba.conf ثم `pg_ctl reload`. تحقق: `docker compose exec db psql -U genio -h db -c 'SELECT 1'`. الأمن: لا تستعمل `trust` أبداً خارج local socket — استعمل scram-sha-256 دائماً."),
+    ("docker daemon عنده 'no space left' رغم df -h يبين وحد free. شنو السر؟",
+     "df -h يعرض ما يراه الملفات الظاهرة — الـ deleted files المفتوحة labor معمرة بالـ disk ولا تخلي المساحة. افحص: `lsof +L1 | head`, ثم نظّف الـ docker: `docker system prune -af && docker builder prune -af`. للأهداف الدقيقة: `du -sh /var/lib/docker/*` يكشف volumes/image. الكراع: اضبط `log-opts max-size=10m` لـ log driver بمنع العودة للأزمة."),
+    ("composition شغالة لكن الحاويات ما تقدرش توصل لبعضها باسمدها الشبكة الداخلية. تشخيص؟",
+     "أولاً تأكد الـ network موجود: `docker network ls` و أن الحاويات بفي نفس الـ net: `docker inspect <c> --format '{{.NetworkSettings.Networks}}'`. السبب الشائع: default bridge عوضا عن user-defined — في user-defined network كاين DNS داخلي بالاسم. الإصلاح: أعد compose بـ `docker compose down && docker compose up -d` مع تعريف الشبكة صراحة، وتأكيد: `docker compose exec app ping db`."),
+    # ============================================================ KERNEL / DISK
+    ("السيرفر يلخبط (freeze) خصيصاً تحت load heavy. من أين نبدأ التشخيص؟",
+     "تحقق أولاً من OOM: `dmesg -T | tail -50` و `journalctl -k -b | grep -i oom`. ثم add swap: `swapon --show`, وإن كانت swap صغيرة أضف فايل: `fallocate -l 8G /swapfile && mkswap /swapfile && swapon /swapfile` و ثبته فـ /etc/fstab. لأسباب أعمق: `top -b -n1 | head -20` و افحص I/O stuck: `iostat -x 2`. الـ freeze المتكرر قد يعطي علامة hardware — اقرأ: `journalctl -k --since '-1h' | grep -iE 'mce|thermal|hardware'`."),
+    ("RAID1 md0 collapsed ويظهر degraded. الخطوة الأولى قبل أي repair؟",
+     "لا تشغّل أي format أو ما يعم ACA على القرص — فقط snapshot للميتاداتا: `mdadm --detail /dev/md0` و `mdadm --examine /dev/sdb1 /dev/sdc1` يقارن events. إذا member واحد healthy: `mdadm --add /dev/md0 /dev/sdc1` يبدأ rebuild، راقب: `watch -n1 cat /proc/mdstat`. بعد الإنجاز ثبّت config: أضف ARRAY في /etc/mdadm/mdadm.conf مع `mdadm --detail --scan >> /etc/mdadm/mdadm.conf` ثم mount و set `nofail` في fstab."),
+    ("disk full: df يبين 100% بينما du في المجلدات صغير. وين رايح الفضاء؟",
+     "هذا يتكرر مع deleted-open files أو ملفات خارجة عن scan العميق. القراءة الموثوقة: `lsof +L1 | grep deleted` و `du -xhd1 / | sort -h | tail` يوزع على الـ mount پو الصنوبر قد يكتب من الداخل: `find /var/log -name '*.gz' -mtime +30 -delete`, و journal retention: `journalctl --vacuum-size=100M`. قرّر من المنبع: أضف logrotate `maxsize 100M` مع `compress` و `maxage 30`."),
+    ("ext4 يرفض mount بـ error: deleted inode referenced. rescue؟",
+     "هذا corruption في directory entries — اطوي rescue: قبل أي كتابة، خذ صورة: `dd if=/dev/sdb1 of=/mnt/rescue/sdb1.img bs=4M conv=noerror,sync status=progress`. ثُم افحص read-only: `mount -o ro,noload /dev/sdb1 /mnt`. للاسترجاع الكامل: `e2fsck -fy /dev/sdb1` (نفس نسبة الملفات اللي ترجع). للانتقاء الفردي لملفات حساسة قبلها: `debugfs -R 'ls -l /lost+found' /dev/sdb1`. لا تنس tarball للنظام."),
+    ("ZFS pool يعطي checksum errors متفرقة. كيف نتأكد أنها transient ولا جهة صلبة تفتيت؟",
+     "افحص حدي الجهاز first: `smartctl -a /dev/sdb | grep -E 'Reallocated|Pending|UDMA'`، ثم zpool status: `zpool status -v` يبيّن blkptr و scan: `zpool scrub <pool>` وتابع `zpool status -v` للـ reads. إذا reboot/الجهاز فرنسي safe: أعد توصيل وتأكد الـ cable/temperature. المؤسسات: `zpool events -v` لتتبع الـ vdev الخطأ، ولل replace: `zpool replace <pool> <old> <new>`."),
+    ("لسلسلة أّاني بمغزل يتفشال كل يوم عند نفس الساعة. شنو يخبّرنا؟",
+     "التوقيت نفسه دليل cron/timer أو backup جارية: `journalctl --since '14:00:00' --until '14:05:00' -p warn..emerg` و قارن مع `cp /proc/mdstat` — أو افحص cron: `ls /etc/cron.d /var/spool/cron/crontabs` و systemd timers: `systemctl list-timers`. القياسي يقارن I/O: `iostat -x 5 12` وقت الأزمة — التهافت قد يكون من smartd أو fsck المتجردة. قارن النمط مع دالة الـ backup scripts."),
+    ("kernel panic عند insert USB drive؟ ممكن rescue من الخادم؟",
+     "يبدأ بـ logs الفيزيائية: `journalctl -kb -p 4..emerg --since today | grep -iE 'usb|scsi|panic|oops'`. إن كان ساعة panic فـ USB stack: blacklist الـ module المشكوك فيه من /etc/modprobe.d بـ `blacklist uas` (واستعمل usb-storage)، أو أضف `quirks=` للجهاز. rescue منخفض: قم بـ fsck من live env آخرنا بعد boot أو عبر initramfs console: أضف `rd.shell` للـ kernel cmdline ومHiernaxBox `systemctl rescue`."),
+    ("how نفحص smart الصحية ونبرمج alert قبل الفشل؟",
+     "التفحص aktiv: `smartctl -a -f brief /dev/sda` تفحص attrs: Reallocated_Sector_Ct, Current_Pending_Sector, UDMA_CRC_Error_Count — ابحث عن انصف positive أو صرام rates. لو الدعم: enable `smartctl -s on -o on -S on /dev/sda`. أتمتة مع smartd: `/etc/smartd.conf` سطر `DEVICESCAN -m admin@lab -M exec /usr/local/bin/disk_alert.sh`. اختبار: `smartctl -t short /dev/sda` كاستمارة للتأكيد."),
+    # =========================================================== NETWORKING
+    ("nginx يعطي 502 فقط على POST /upload بينما GET شغال 200. أشهر سبب؟",
+     "لأغلب uploads كبيرة → `client_max_body_size` الافتراضي 1m يرفض الـ body ويرجع 413/502. تحقق بجوج: `curl -i -X POST --data-binary @big.bin http://lab/upload` و قيس الـ size بالملف. الحل في server block: `client_max_body_size 200M;` و إن كانت الملفات تخلى الصداقة المؤسسة: `proxy_request_buffering off;`. التأكيد: `nginx -t && systemctl reload nginx` ثم ابعث الملفل و تحصل 200."),
+    ("server يعطي ping سليم لكن TCP يبني connressions عال graph. distribution؟",
+     "هذه مشكلة MTU/TCP offload غالباً: افحص `ip link show eth0 | grep mtu`, ثم أعد الوضع: `ip link set dev eth0 mtu 1400` وجرب. تحقق التجزئة: `ping -M do -s 1472 1.1.1.1`، وللdown: lower -= 4. ابعد checksum: `ethtool -K eth0 tx off rx off`, والـ queue: `ethtool -S eth0 | grep -i drop`. الحل النفيع: إن كان خلف VPN/tunnel اضبط MTU في الـ interface: /etc/network/interfaces مع `mtu 1400`."),
+    ("WireGuard handshake ينقطع كل 90 ثانية. 'handshake did not complete' يظهر. علاش؟",
+     "هذا UDP conntrack timeout في NAT أو جدول flow بـ 60-90s. أولا تأكد peers: `wg show wg0 dump` و `wg show wg0 latest-handshakes`. الإصلاح المباشر من عند client: `PersistentKeepalive = 25` في الـ peer config — يبعت keepalive كل 25s ويمنع الـ gap. على الخادم: `sysctl net.netfilter.nf_conntrack_udp_timeout=180`. وللـ ND behind NAT لا ننسى MTU: `MTU = 1360` في الملف."),
+    ("speedtest يقول 900 Mbit لكن VoIP يعطي jitter 40ms و packet loss 2%. وين المشكلة؟",
+     "جودة الصوت تحكم الـ latency/jitter مش الـ bandwidth. قسّم aviation: `ping -c 100 -i 0.2 gw | tail -3` و `mtr -rwzb 8.8.8.8` (راقب الـ hop اللي يبدأ فيه loss). جنت bufferbloat: `tc qdisc show dev eth0` و switch لـ fq_codel/bbr: `sysctl net.ipv4.tcp_congestion_control=bbr`. welfa لـ RTP: `tc filter` على dscp ef يفضل media قبل bulk."),
+    ("نريد فصل network عبر VLAN على نفس الـ interface الفيزيائي. السكريبت؟",
+     "استعمل vlan sub-interface: `ip link add link eth0 name eth0.10 type vlan id 10` ثم حمّل bridge: `ip addr add 10.0.10.2/24 dev eth0.10 && ip link set eth0.10 up`. للـ persistent أضف في netplan: `vlans: eth0.10: {id: 10, link: eth0, addresses: [10.0.10.2/24]}` ثم `netplan apply`. تحقق: `ip -d link show eth0.10` و `ping 10.0.10.1`. تأكد أن switch port trunking يدعم الـ tag."),
+    ("BGP peering داخلي down و neighbor في Established سابقاً. sequence diagnosis؟",
+     "الـ BGP: ابدأ `birdc show protocols all bgp1` (أو `vtysh` في FRR) — السبب path مقطوع. بعدها ping الـ peer: `fping -q <peer_ip>`, path: `mtr -rwzb <peer_ip>`, ACL: `iptables -L INPUT -n | grep 179`. أعد الـ session نظيفة: `birdc disable bgp1 && birdc enable bgp1`. أرشيف Overview floods: `ip route get <peer_ip>` يسلم المنفذ الصحيح."),
+    ("DHCP lease panel يقرر IP لكن الحاوية static لا تصل — ARP سؤال؟",
+     "قارن الـ actual: `ip -br addr`, `ip neigh` (هو هل يظهر REACHABLE؟). المشكلة نموذجية مع duplicate IP (خارج الـ pool) أو VLAN mismatch. جرّب: `ip neigh flush all` و `ping <gw>`, و إن بقيت NUL/FAILED — قيس الـ vlan: `arping -I eth0 <gw>`. علة البعد الثاني: IPv6 duplicate: تحقق `ip -6 addr`. حل provisoire: اجعل الـ IP reservations تلقائية في الـ DHCP: `host server { fixed-address 10.0.1.50; }`."),
+    # ========================================================= FILESYSTEM / PERMS
+    ("hidden files تختفي من ls حتى بـ -la و فـ /proc permissions غريبة. عين المشكلة؟",
+     "هذه مواقعة mount restricted يُظهر أذونات غير عادية: تأكد `mount | grep -E 'proc|sysfs'` وإلقاء نظرة على attributes: `lsattr /etc`, `getfacl -p /etc /var`. الفحص الْبر lobص: `find / -xdev -type f -perm -4000 -ls` يبحث setuid الجريمة. الحل النفيع الشائع: الـ ls الافتراضي يتجاهل `+` في ACL — اقرأ الحبيب بـ `getfattr -n system.posix_acl_access /etc` لتفصيل كامل."),
+    ("رغم chmod 777 تبقى ملفات في الدليل تظهر permissions قديمة وبدون update. لماذا؟",
+     "777 لـ dir لا يغير الـ mount العوامل — loop أو NFS أنكرها: تحقق `mount | grep $PWD` و `lsattr -d $PWD` (قناة immutable: `chattr -i`). مع ACL: `setfacl -R -m u::rwx,g::rwx,o::rx .` يتجاوز القنوات. لأسباب systemd/cron user namespaces: افحص الـ True mount.args. والأشهر: الـ case-sensitive في فؤصولين erased. الحل الأعمق: أعد mount بـ `remount,rw` في fstab بدل التلميح."),
+    ("dpkg يعطي 'E: Sub-process /usr/bin/dpkg returned an error code (1)' بحال broken package. rescue؟",
+     "الـ broken state في /var/lib/dpkg: ابدأ بـ `dpkg --audit` و `dpkg -l | grep -v '^ii'`. بعدها `apt --fix-broken install -y`, وإن باقي: `dpkg --force-confnew --configure -a`. للـ stubborn: انقل الـ config الكائد: `mv /var/lib/dpkg/info/<pkg>.* /root/broken-dpkg/` ثم `dpkg --configure -a`, وأخيراً أعيد install: `apt install --reinstall <pkg>`. تتبع محترفة: `dpkg -s <pkg>` يكشف TouchOff."),
+    ("'sudo -u deploy /opt/app/run.sh' يرفض: error 126 إضافة إلى exec format error (8). شنو الفرق؟",
+     "Error 126 = الملف غير قابل للتنفيذ (بدون shebang أو x-bit): أصل `head -1 /opt/app/run.sh` و `file run.sh`. Error 8 = exec format: الملف مكتوب لمعماري آخر أأو skip shebang. الحل: أضف `#!/bin/bash` السطر الأول و `chmod +x run.sh`، لو تبقى: افحص الـ eol (CRLF): `file run.sh` يبين 'with CRLF line terminators' → `sed -i 's/\\r$//' run.sh`."),
+    ("قطار عملية في systemd يموتو يكسر شوجه حسب عتبة الـ ulimit. كيف نرفعو بـ unit دون reboot؟",
+     "عوض عن تغيير system-wide: استعمل unit properties: في systemd unit أضف `LimitNOFILE=65535`, `LimitNPROC=infinity`, `LimitAS=infinity`, ثم `systemctl daemon-reload && systemctl restart <svc>`. تحقق من القيم: `systemctl show <svc> -p LimitNOFILE` و من داخل: `cat /proc/<pid>/limits`. للـ session interactive: `ulimit -n 65535` فـ .bashrc — لكن كقاعدة، النظام المفضل هو الـ unit management."),
+    ("mv إلى tmpfs يفقد ACLs أو exec bit تلقائياً. ماذا نتأكد فيه من تمييز؟",
+     "tmpfs لا يدعم بعض xattrs الكبيرة (trusted.*), فتنتهي الحمولة الموثوقة. تحقق من بعد: `getfattr -d -m- <file> | grep -E 'acl|selinux'`. الحل: استعمل `cp -a` (يحفظ mode/xattrs/ACL) بدل mv: `cp -a /data/file /run/tmp/ && diff -q /data/file /run/tmp/`. والأخطر: لكل أString الصلاحيات جرْب storage بـ EFS: أضف `x-mount.mkdir=0755` لـ tmpfs في fstab."),
+    # ======================================================= PROCESS / PERF
+    ("top يعرض load average 40 على خادم يبدو idle. شنو معنى هذا وكيف نفحص؟",
+     "Load ≠ CPU usage — load يحسب الـ runnable + الـ D-state (uninterruptible). يمشي فحص مجزء: `uptime`, `vmstat 2 10` (انظر `r` vs `b`)، و I/O hung: `iostat -x 2` يعطي `%util`, و `pidstat -d 1` يكشف عملية بلوك. المتكرر في الخوادم: nfs hang أو disk درائي: `mount | grep nfs`, `nfsiostat`. القراءة deep: `ps aux --sort=-%cpu`. الحل المرتب: اجعل الـ services تنام بحدود iowait."),
+    ("عملية application تبدو منجملة لكنها تعلق (stuck) بانتظار قفل داخلي (futex). كيف نستخرج حالة threads؟",
+     "dump كل الـ threads: `ps -L -p <pid> -o tid,psr,pcpu` ثم تعقّب الـ locks: `cat /proc/<pid>/task/*/stack` (عن root) أو عبر `py-spy dump --pid <pid>` للـ Python. بـ strace نعزّل الـ futex: `strace -f -p <pid> -e futex -k`. أو gdb: `gdb -p <pid> -batch -ex 'thread apply all bt'`. الجواب النفيع: pool size لا يكفي الـ tasks — أعد sizing إلى workers = CPU*2 أو أضف timeout للـ lock."),
+    ("SYN flood يضرب ingress والـ backlog ممتلئ: 'netstat' يظهِر SYN_RECV كثير. كيف نصد او نحد؟",
+     "kernel tuning أولاً: `sysctl net.ipv4.tcp_max_syn_backlog=65536`, `net.ipv4.tcp_syncookies=1`, `net.ipv4.tcp_synack_retries=2`، وضع في sysctl.conf الـ persistent. بعدها layers: nftables يحد معدل: `nft add rule ip filter input tcp flags syn limit rate 100/second burst 200 accept`. وإن كان الخادم خلف proxy: هكذا FULL. الملاحظة المهمة: syncookies يؤثر على الـ latency لكن يمنع الـ overflow."),
+    ("MEMLOCK error من تطبيق يستخدم hugepages على الخادم. العلاقة والقيمة؟",
+     "hugepages يتم قفلها في RAM لذا تحتاج rlimit memlock كافي. تحقق من النظام: `ulimit -l`, والحالة: `cat /sys/kernel/mm/hugepages/hugepages-2048kB/nr_hugepages`. يرفع الـ limit للـ unit/system: في systemd service أضف `LimitMEMLOCK=infinity`, وللـ session: `ulimit -l unlimited` فـ /etc/security/limits.conf: `<user> hard memlock unlimited`. المتابعة: `ipcs -m | grep <key>` و `grep -w Huge /proc/meminfo`."),
+    ("زومبي (defunct) يتجمعون وتأكل pid. كيف نقيض من تجمعهم؟",
+     "الـ zombies خلفية من process اللي أبناؤها لم ت reap — هم لا يستهلكون لكن يستنزفون pid: `ps -e -o stat,pid,ppid,cmd | awk '$1==\"Z\"'`. الـ parent هو المسؤول: `ps -o ppid= -p <zombie_pid>`، وإذا لا يمكن للأب القيام بذلك قدمه restart: `systemctl restart <service>`. على المدى البعيد: اضبط الـ application لإعادة الـ children: عيد مع `Install fd`/replace with supervisor هي بحد ذاتها لوحدة."),
+    ("application بقاعدة بيانات يرفع CPU بشكل مفاجئ على نفس الـ query التي كانت سريعة أمس. ماذا تغيّر؟",
+     "الـ query plan تغيّر غالباً بعد update stats أو bin جديد. فحص الإظهار: `EXPLAIN (ANALYZE, BUFFERS) <query>`، ولاحظ seq scan الجديد بدون index: أخشع الكشف: `pg_stat_statements` يحسب الـ mean_exec_time عند pg: `SELECT query, mean_exec_time FROM pg_stat_statements ORDER BY mean_exec_time DESC LIMIT 10`. الحل: `ANALYZE table;` تحديث stats، أو أضف index المناسب `CREATE INDEX ...`, وثبت plan عبر pg_hint_plan أو scale حجز shared_buffers."),
+    # ============================================================= SECURITY
+    ("sudoers ملف تفسد أثناء تعديله و sudo يخرج error على كل أمر. rescue بدون خطر؟",
+     "أوقف أي تحُرّك فوري، أبقى session root مفتوحاً. الطريق الأول: `visudo` يعمل backup تلقائي — كما ندمن نستعمل من بعكد: /etc/sudoers.d/. إن كنت مع root: `pkexec visudo` يفتح لأصلاح. لو عد root مباشرة: reboot في recovery / initrd، mount rw، و `visudo -cf /etc/sudoers` يتحقق من syntax قبل أن يُغلق. العلّة السلوكية: غيّر خطأ وتجاوز: عدل القسم الأدنى واختبر بـ `sudo -l`."),
+    ("ssh يظهر محاولات brute-force كثيرة في journald. كيف نقسّي الحماية؟",
+     "ثلاثة طبقات: 1) عدل sshd: `PermitRootLogin no`, `PasswordAuthentication no`, `MaxAuthTries 3`, ووضع pubkey فقط — reload بـ `sshd -t && systemctl reload ssh`. 2) fail2ban لـ fingerprint: `/etc/fail2ban/jail.local` مع `[sshd] enabled = true` و `bantime 1h`. 3) المراقبة: `journalctl -u ssh --since '1h' | grep -c 'Failed password'` و nft rate limit على port 22."),
+    ("بدّلت الـ default SSH port وأغلقو الاتصال. هل هذا خطوة آمنة فعلًا؟",
+     "تغيير port يقلل الضجيج لكنه يُدير بمنح false security. المعيار الصحيح: أبقَ 22 مع fail2ban + key-only، أو استعمل طريقة أصعب: `Match Address 10.0.0.0/8: PermitRootLogin yes` والفعالية عن root limited. الأمر المؤلم الحالي: راجع فاييروول: `ufw allow 22022/tcp`, ثم الاتصال: `ssh -p 22022 user@host`, والـ selins: `semanage port -a -t ssh_port_t -p tcp 22022` إن SELinux فعّال."),
+    ("نخشى أنّ secret تم انكشافه في الـ git history. الإجراء كامل؟",
+     "أولاً rotate السر فوراً (لا يمكن إلغاء الرحلة الشائعة من history). بعدها نظّف: `git filter-repo --replace-text <(echo 'SECRET==>REDACTED')` أفضل من `filter-branch`. إن كان قد بُشّر للـ remote: `git push --force --all && git push --force --tags`, ونقل الـ collaborators التعاون. الحماية: `.gitignore` يمنع `.env*` + pre-commit hook (gitleaks أو `git-secrets`) يرصد secrets قبل commit."),
+    ("نسمع صلاحيات مفتوحة أوسع مما تحتاج (0777) عبر المجموعة. القاعدة الموحدة؟",
+     "الأصل: أصغر صلاحية وسيلة للعمل. قاعدة HiTech: user 0700 للملفات الخاصة، group 0750 للتعاون، وأبداً 0777 على dir العام شغّال. التقويم التلقائي: `find /srv -type d ! -perm 755 -exec chmod 755 {} +` و `chmod 644` للملفات. ترفع الـ umask النظامي: `umask 0027` في /etc/profile + systemd default. لأجهزة الخدمة: OWASP e.g. tmpdir tmpfs. تحقق: `find / -type d -perm -0002 -ls` لقوائمة world-writable غير مقصودة."),
+    ("نريد تتبع من حرّك موقع post فينا و فحص till تمنع الـ log tampering؟",
+     "اجعل logs ساحقة للتعديل: journald persistent (`Storage=persistent` في journald.conf) + rsyslog fallback، وأبعد الـ cryptography receipt: أرسل النسخ لجهاز لو مسجل: تسجيل remote في /etc/rsyslog.conf: `*.* @10.0.0.9:514`. للمراقبة: auditd: `auditctl -w /etc/shadow -p wa`, وقارن الـ logs: `logrotate` بشهر + `sha256sum` baseline: قائمة من بس: أُعيد مع `osquery` يحيي الـ events في جدول."),
+    ("docker container يدير root وينكسر isolation. الحماية المعيارية للمستضيف؟",
+     "لا تشغّل containers root كأسلوب دائم — أضف في compose `user: '1000:1000'`، وأضبط mounts بـ `:ro,nosuid,nodev`. فعّل الحماية الافتراضية: seccomp و apparmor شغّالين في Docker بوضع default. للخدمات الحساسة: `--security-opt no-new-privileges`، `read_only=true` لـ rootfs، و `--cap-drop ALL --cap-add NET_BIND_SERVICE` بدل سماح شامل. الفحص قبل النشر: `trivy image <image>`. وبالنسبة للـ daemon العام: شغّل Docker rootless عبر `dockerd-rootless-setuptool.sh install` لما يسمح التحميل."),
+("rsync يعطي 'failed to set times' و 'permissions denied' على ملفات معينة رغم uid متطابق. السبب؟",
+     "ينشأ الهدف عن xattrs أو ACL ينفي الحبال: أضف `--no-owner --no-group --no-perms` إن كانت الصلاحيات غير أولوية، أو افحص ماذا يمنع: `rsync -avP --copy-links SRC DST 2>&1 | grep denied`. القضية المعروفة: السطحة الشديدة `--numeric-ids` مع uid خاطئ على الهدف. والحل الكامل: أعد mount الهدف بـ `acl` في fstab (ext4 يفعلها default) وتحقق: `getfacl DST/file`."),
+    ("نريد تقييد الشبكة الداخلية بالفيروال (nftables) دون تعطيل docker bridge. السكريبت؟",
+     "nftables مع جداول منفصلة يبقي docker bridge حياً: `table inet filter { chain forward { policy drop; ip saddr 172.16.0.0/12 oifname eth0 accept; ct state established,related accept } }`. ركّز على chain forward فقط. ولا كسر NAT: احتفظ بقاعدة docker masquerade في iptables: `iptables -t nat -A POSTROUTING -s 172.17.0.0/16 -o eth0 -j MASQUERADE`. التأكيد: `nft list ruleset` واختبر الاتصال من داخل container إلى الخارج."),
+    ("الـ systemd service يبدأ قبل mounting disk خارجي فتفشل ExecStartPre. كيف نضبط order؟",
+     "قيّد الـ dependency على mount point الفعلي لا على fstab الاسم: أنشئ `.mount` unit تلقائياً عبر `systemctl daemon-reload` من إدخال fstab، ثم أضف في الخدمة `Requires=var-lib-storage.mount` و `After=var-lib-storage.mount`. تحقق من الأسماء: `systemctl list-units --type=mount`. تجربة: `systemd-analyze verify <svc>` يبيّن order broken قبل إعادة التشغيل."),
+    ("docker log يتسابق ويكتب TB يومياً ويفرض دفع الـ disk full. من أين التحكم؟",
+     "من الـ daemon نفسه: في /etc/docker/daemon.json أضف: `\"log-driver\": \"json-file\", \"log-opts\": {\"max-size\": \"10m\", \"max-file\": \"3\"}` ثم `systemctl restart docker` (يطبق على الحاويات الجديدة فحسب). للموجودين: قص الـ log الحالي: `truncate -s 0 /var/lib/docker/containers/<id>/*-json.log`. وأتمتة التنظيف: `docker system prune -af` مع cron أسبوعي."),
+]
+
+def main() -> None:
+    DATA_DIR.mkdir(parents=True, exist_ok=True)
+    rows = []
+    for instruction, output in PAIRS:
+        rows.append({
+            "instruction": instruction,
+            "input": "",
+            "output": output,
+        })
+    OUT.write_text("\n".join(json.dumps(r, ensure_ascii=False) for r in rows) + "\n",
+                   encoding="utf-8")
+    total_tokens = sum(len(r["instruction"]) + len(r["output"]) for r in rows)
+    print(f"wrote {OUT}")
+    print(f"pairs={len(rows)} chars={total_tokens} (approx {total_tokens // 4} tokens)")
+
+
+if __name__ == "__main__":
+    main()

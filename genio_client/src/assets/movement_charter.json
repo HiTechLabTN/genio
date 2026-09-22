@@ -1,0 +1,35 @@
+{
+  "version": "1.0.0",
+  "states": ["idle", "listening", "thinking", "answering", "executing", "walking", "waving", "completed"],
+  "clipsOrProcedural": "procedural",
+  "blends": {
+    "idle->listening": 0.25,
+    "listening->thinking": 0.3,
+    "thinking->answering": 0.35,
+    "answering->idle": 0.4,
+    "idle->walking": 0.2,
+    "walking->idle": 0.3,
+    "idle->waving": 0.2
+  },
+  "physics": {
+    "gravity": -9.81,
+    "walkSpeed": 1.4,
+    "maxWalkDistance": 6.0,
+    "friction": 0.8,
+    "restitution": 0.1
+  },
+  "creativity": {
+    "ikRanges": {
+      "headTilt": [-12, 12],
+      "headNod": [-8, 8],
+      "shoulder": [-45, 45],
+      "elbow": [0, 120],
+      "hipBob": 0.04,
+      "legSwing": 0.35
+    },
+    "noveltyDecay": 0.85,
+    "gestureNoveltyWeight": 0.3,
+    "maxSameGestureStreak": 1
+  },
+  "documentation": "GenioBody procedural creativity engine: walk hip bob+leg swing, idle breath 4.5s, wave shoulder/elbow IK, talk jaw audioLevel, blink 3-6s. Mixamo clips auto-preferred when media/mixamo/*.fbx present (see docs/MIXAMO_GUIDE.md). Charter versioned, blends 0.2-0.4s."
+}

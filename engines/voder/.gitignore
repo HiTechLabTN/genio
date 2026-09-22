@@ -1,0 +1,19 @@
+# Environnements virtuels et caches
+venv/
+__pycache__/
+*.pyc
+
+# Poids des modeles IA (Taille volumineuse)
+*.pt
+*.pth
+*.bin
+*.safetensors
+*.onnx
+models/
+checkpoints/
+weights/
+
+# Fichiers audio generes
+*.wav
+*.mp3
+*.flac

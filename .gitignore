@@ -1,0 +1,45 @@
+# ==========================================
+# GENIO STRICT IGNORE (Minimalism Mode)
+# ==========================================
+
+# 1. Librairies & Environnements (RECURSIF)
+**/venv/
+**/.venv/
+**/env/
+**/__pycache__/
+**/*.pyc
+**/node_modules/
+**/.env
+
+# 2. Modeles IA & Poids lourds
+**/*.pt
+**/*.pth
+**/*.bin
+**/*.safetensors
+**/*.gguf
+**/*.onnx
+**/models/
+**/weights/
+**/checkpoints/
+
+# 3. Fichiers Medias, 3D & Datasets
+**/*.wav
+**/*.mp3
+**/*.flac
+**/*.mp4
+**/*.glb
+**/*.fbx
+**/*.jsonl
+**/*.csv
+**/*.png
+**/*.jpg
+
+# 4. Caches, Logs & Workspace Local
+**/.cache/
+**/.pytest_cache/
+**/*.log
+**/.DS_Store
+local_workspace/
+tmp/
+**/venv_voder/
+venv_voder/

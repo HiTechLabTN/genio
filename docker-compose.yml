@@ -1,0 +1,58 @@
+version: "3.9"
+
+services:
+  genio-core:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: genio-core
+    environment:
+      - OLLAMA_BASE_URL=http://ollama:11434
+      - GHOST_URL=https://lab.hitech.tn
+    volumes:
+      - ./reports:/app/reports
+      - ./state:/app/state
+    depends_on:
+      - ollama
+    networks:
+      - genio-net
+    restart: unless-stopped
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: genio-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama-data:/root/.ollama
+    networks:
+      - genio-net
+    restart: unless-stopped
+
+  web-ui:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+    container_name: genio-web
+    ports:
+      - "3000:8080"
+    environment:
+      - GENIO_API_URL=http://genio-core:8080
+    depends_on:
+      - genio-core
+    networks:
+      - genio-net
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.genio.rule=Host(`genio.hitech.tn`)"
+      - "traefik.http.routers.genio.entrypoints=websecure"
+      - "traefik.http.routers.genio.tls.certresolver=letsencrypt"
+      - "traefik.http.services.genio.loadbalancer.server.port=8080"
+
+volumes:
+  ollama-data:
+
+networks:
+  genio-net:
+    driver: bridge

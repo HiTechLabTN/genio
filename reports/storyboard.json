@@ -1,0 +1,257 @@
+{
+  "schema": "genio.motion_storyboard.v1",
+  "project": "HiTech Lab — Genio Motion",
+  "topic": "Choosing CPU / RAM for Home Server",
+  "title": "Choosing CPU / RAM for Home Server",
+  "slug": "choosing-cpu-ram-for-home-server",
+  "article_url": "https://lab.hitech.tn/choosing-cpu-ram-for-home-server/",
+  "lang": "ar-TN",
+  "total_duration_s": 56,
+  "created_variant": "ram",
+  "resolution": "1920x1080",
+  "fps": 30,
+  "palette": {
+    "background": "#030712",
+    "surface": "#0f172a",
+    "primary": "#00f0ff",
+    "accent": "#00ff87",
+    "warn": "#f43f5e",
+    "text": "#f8fafc"
+  },
+  "motion": {
+    "transitions": [
+      {
+        "from": "hook",
+        "to": "metaphor",
+        "style": "glitch_split_wipe"
+      },
+      {
+        "from": "metaphor",
+        "to": "spec_breakdown",
+        "style": "cards_explode"
+      },
+      {
+        "from": "spec_breakdown",
+        "to": "cta",
+        "style": "zoom_punch_white_flash"
+      }
+    ],
+    "sfx_library": {
+      "whoosh": "soft whoosh sweep (150ms)",
+      "glitch": "digital glitch stutter x2",
+      "pop": "soft pop reveal",
+      "tap": "typewriter tick per card",
+      "count_up": "number count-up ticks",
+      "impact": "bass impact hit",
+      "chime": "bright confirmation chime",
+      "scan": "radar scan sweep",
+      "slide": "card slide-in swish",
+      "heartbeat": "low heartbeat thump",
+      "zap": "electric zap burst"
+    },
+    "typography": {
+      "font": "Cairo",
+      "mono": "JetBrains Mono",
+      "direction": "rtl"
+    }
+  },
+  "acts": {
+    "hook": {
+      "act": "hook",
+      "dialogue_text": "⚠️ غلطة شائعة",
+      "voiceover": "هذي الغلطة اللي قتلت أجهزة التجميع: تزيد في قوة المعالج وتنسى الـ RAM. وغيرة: التركيب المغلوط وخلط السعات يعطّي النظام كامل.",
+      "scene": "تحذير Glitch: نص أحمر قشّاش يرتجّ ثم يستقر",
+      "visual_cue": "glitch_in on surface; on-screen Arabic RTL text",
+      "animation": "glitch_in",
+      "sfx": [
+        {
+          "trigger": "glitch",
+          "desc": "digital glitch stutter x2"
+        },
+        {
+          "trigger": "whoosh",
+          "desc": "soft whoosh sweep (150ms)"
+        }
+      ],
+      "color": "#f43f5e",
+      "timing_s": {
+        "start": 0,
+        "end": 5
+      },
+      "time_code": "00:00 - 00:05",
+      "warning": true
+    },
+    "metaphor": {
+      "act": "metaphor",
+      "dialogue_text": "تشبيه ram",
+      "voiceover": "الـ RAM كيف طاولة العمل في المكتب: إذا كانت صغيرة، حتى ولو عندك أكثر صناديق (برامج)، ما تنجمش تخدم فيهم كاملين في نفس الوقت وكولشي يتوقّف.",
+      "scene": "مكتب متحرك، طاولة تكبر وتصغر مع عدد الصناديق اللي عليها",
+      "visual_cue": "scale_in on surface; on-screen Arabic RTL text",
+      "animation": "scale_in",
+      "sfx": [
+        {
+          "trigger": "pop",
+          "desc": "soft pop reveal"
+        },
+        {
+          "trigger": "slide",
+          "desc": "card slide-in swish"
+        }
+      ],
+      "color": "#00f0ff",
+      "timing_s": {
+        "start": 5,
+        "end": 18
+      },
+      "time_code": "00:05 - 00:18"
+    },
+    "spec_breakdown": {
+      "act": "spec_breakdown",
+      "dialogue_text": "تفاصيل المواصفات",
+      "voiceover": "هذي الأرقام المغيّرة للقرار — كل كارت يشرح مغزاه بعينه، ونشيرو للمعلومة الحاسمة بالأخضر.",
+      "scene": "بطاقات مواصفات تنفجر من المركز وترتب في شبكة، الأهم تقزّز ويلوّن",
+      "visual_cue": "cards_explode on surface; on-screen Arabic RTL text",
+      "animation": "cards_explode",
+      "sfx": [
+        {
+          "trigger": "count_up",
+          "desc": "number count-up ticks"
+        },
+        {
+          "trigger": "tap",
+          "desc": "typewriter tick per card"
+        }
+      ],
+      "color": "#00ff87",
+      "timing_s": {
+        "start": 18,
+        "end": 42
+      },
+      "time_code": "00:18 - 00:42",
+      "specs": [
+        {
+          "label": "الأنوية Cores",
+          "value": "8",
+          "unit": "Cores",
+          "color": "#22d3ee",
+          "highlight": true
+        },
+        {
+          "label": "الخيوط Threads",
+          "value": "16",
+          "unit": "Threads",
+          "color": "#22d3ee",
+          "highlight": false
+        },
+        {
+          "label": "التردد الأساسي",
+          "value": "3.8",
+          "unit": "GHz",
+          "color": "#38bdf8",
+          "highlight": false
+        },
+        {
+          "label": "التردد الأقصى",
+          "value": "5.1",
+          "unit": "GHz",
+          "color": "#38bdf8",
+          "highlight": false
+        },
+        {
+          "label": "الذاكرة المخبئية",
+          "value": "32",
+          "unit": "MB",
+          "color": "#818cf8",
+          "highlight": false
+        },
+        {
+          "label": "الاستهلاك TDP",
+          "value": "65",
+          "unit": "W",
+          "color": "#f59e0b",
+          "highlight": false
+        },
+        {
+          "label": "السعة Capacity",
+          "value": "32",
+          "unit": "GB",
+          "color": "#00ff87",
+          "highlight": true
+        },
+        {
+          "label": "السرعة",
+          "value": "6000",
+          "unit": "MHz",
+          "color": "#4ade80",
+          "highlight": false
+        },
+        {
+          "label": "النمط Channels",
+          "value": "DUAL",
+          "unit": "Channel",
+          "color": "#22d3ee",
+          "highlight": false
+        },
+        {
+          "label": "الجيل Type",
+          "value": "DDR5",
+          "unit": "",
+          "color": "#38bdf8",
+          "highlight": false
+        },
+        {
+          "label": "زمن التقليل",
+          "value": "CL",
+          "unit": "30",
+          "color": "#818cf8",
+          "highlight": false
+        },
+        {
+          "label": "تصحيح الأخطاء",
+          "value": "Non",
+          "unit": "ECC",
+          "color": "#f59e0b",
+          "highlight": false
+        }
+      ],
+      "cards_animation": {
+        "style": "explode_grid",
+        "stagger_ms": 180
+      },
+      "highlight": [
+        0,
+        6
+      ]
+    },
+    "cta": {
+      "act": "cta",
+      "dialogue_text": "للمقال الكامل زور الموقع",
+      "voiceover": "تحب توصل للمقال الكامل بالتفسير والأوامر الجاهزة؟ زور https://lab.hitech.tn/choosing-cpu-ram-for-home-server/ و طبّق الخطوة بخطوة في لابك.",
+      "scene": "تسلسل Zoom Punch إلى شاشة بيضاء ثم ظهور رابط الموقع بألوان النيون",
+      "visual_cue": "zoom_punch on surface; on-screen Arabic RTL text",
+      "animation": "zoom_punch",
+      "sfx": [
+        {
+          "trigger": "impact",
+          "desc": "bass impact hit"
+        },
+        {
+          "trigger": "chime",
+          "desc": "bright confirmation chime"
+        }
+      ],
+      "color": "#00f0ff",
+      "timing_s": {
+        "start": 42,
+        "end": 56
+      },
+      "time_code": "00:42 - 00:56",
+      "target": {
+        "platform": "website",
+        "url": "https://lab.hitech.tn/choosing-cpu-ram-for-home-server/",
+        "button_text": "📖 اقرأ المقال الكامل",
+        "article_hint": "https://lab.hitech.tn/choosing-cpu-ram-for-home-server/"
+      }
+    }
+  }
+}

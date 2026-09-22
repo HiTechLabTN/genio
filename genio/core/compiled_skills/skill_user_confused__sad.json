@@ -1,0 +1,26 @@
+{
+  "context": "user confused",
+  "emotion": "sad",
+  "plan": {
+    "head": {
+      "tilt": 2,
+      "nod": 0,
+      "blink": false
+    },
+    "hands": [
+      {
+        "joint": "shoulder",
+        "angle": -22
+      }
+    ],
+    "mouth": 0.18,
+    "body": "waving"
+  },
+  "score": 7.083,
+  "weights": {
+    "exec": 0.5,
+    "lat": 0.3,
+    "tok": 0.2
+  },
+  "ts": 1790042438
+}

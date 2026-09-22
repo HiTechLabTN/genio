@@ -1,0 +1,26 @@
+{
+  "context": "user asks help",
+  "emotion": "neutral",
+  "plan": {
+    "head": {
+      "tilt": 5,
+      "nod": 3,
+      "blink": true
+    },
+    "hands": [
+      {
+        "joint": "shoulder",
+        "angle": -7
+      }
+    ],
+    "mouth": 0.23,
+    "body": "waving"
+  },
+  "score": 7.083,
+  "weights": {
+    "exec": 0.5,
+    "lat": 0.3,
+    "tok": 0.2
+  },
+  "ts": 1790042438
+}

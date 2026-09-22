@@ -1,0 +1,26 @@
+{
+  "context": "user is sad",
+  "emotion": "neutral",
+  "plan": {
+    "head": {
+      "tilt": 3,
+      "nod": -3,
+      "blink": true
+    },
+    "hands": [
+      {
+        "joint": "shoulder",
+        "angle": 27
+      }
+    ],
+    "mouth": 0.07,
+    "body": "idle"
+  },
+  "score": 7.083,
+  "weights": {
+    "exec": 0.5,
+    "lat": 0.3,
+    "tok": 0.2
+  },
+  "ts": 1790042438
+}

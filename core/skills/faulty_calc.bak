@@ -1,0 +1,20 @@
+"""
+Broken Skill intentionally designed for Self-Healing Benchmark
+"""
+from dataclasses import dataclass
+
+@dataclass
+class SkillMeta:
+    name: str = "faulty_calc"
+    version: str = "1.0.0"
+    description: str = "Calculates payload metrics with intentional bug."
+
+meta = SkillMeta()
+
+def execute(a: int, b: int) -> dict:
+    # BUG: Type mismatch and undefined variable
+    result = a + str(b) + undefined_variable
+    return {"calculated": result}
+
+def self_test() -> bool:
+    return True

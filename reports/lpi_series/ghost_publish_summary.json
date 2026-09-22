@@ -1,0 +1,63 @@
+{
+  "published_at": "2026-08-29T05:39:09",
+  "total": 8,
+  "created": 8,
+  "drafts": [
+    {
+      "title": "Linux Filesystem Hierarchy & Navigation",
+      "id": "6a926268750c7e0001c95a21",
+      "slug": "linux-filesystem-hierarchy-navigation",
+      "editor_url": "https://lab.hitech.tn/ghost/#/editor/post/6a926268750c7e0001c95a21",
+      "preview_url": "https://lab.hitech.tn/linux-filesystem-hierarchy-navigation/"
+    },
+    {
+      "title": "Permissions, Ownership & Security",
+      "id": "6a92626a750c7e0001c95a31",
+      "slug": "permissions-ownership-security",
+      "editor_url": "https://lab.hitech.tn/ghost/#/editor/post/6a92626a750c7e0001c95a31",
+      "preview_url": "https://lab.hitech.tn/permissions-ownership-security/"
+    },
+    {
+      "title": "Service Management with Systemd & Journalctl",
+      "id": "6a92626a750c7e0001c95a39",
+      "slug": "service-management-with-systemd-journalctl",
+      "editor_url": "https://lab.hitech.tn/ghost/#/editor/post/6a92626a750c7e0001c95a39",
+      "preview_url": "https://lab.hitech.tn/service-management-with-systemd-journalctl/"
+    },
+    {
+      "title": "Process Monitoring & Troubleshooting",
+      "id": "6a92626b750c7e0001c95a41",
+      "slug": "process-monitoring-troubleshooting",
+      "editor_url": "https://lab.hitech.tn/ghost/#/editor/post/6a92626b750c7e0001c95a41",
+      "preview_url": "https://lab.hitech.tn/process-monitoring-troubleshooting/"
+    },
+    {
+      "title": "Storage & Disk Management",
+      "id": "6a92626b750c7e0001c95a49",
+      "slug": "storage-disk-management",
+      "editor_url": "https://lab.hitech.tn/ghost/#/editor/post/6a92626b750c7e0001c95a49",
+      "preview_url": "https://lab.hitech.tn/storage-disk-management/"
+    },
+    {
+      "title": "Network Diagnostics & Socket Inspection",
+      "id": "6a92626c750c7e0001c95a51",
+      "slug": "network-diagnostics-socket-inspection",
+      "editor_url": "https://lab.hitech.tn/ghost/#/editor/post/6a92626c750c7e0001c95a51",
+      "preview_url": "https://lab.hitech.tn/network-diagnostics-socket-inspection/"
+    },
+    {
+      "title": "Package Management & Repositories",
+      "id": "6a92626c750c7e0001c95a59",
+      "slug": "package-management-repositories",
+      "editor_url": "https://lab.hitech.tn/ghost/#/editor/post/6a92626c750c7e0001c95a59",
+      "preview_url": "https://lab.hitech.tn/package-management-repositories/"
+    },
+    {
+      "title": "Docker Containers from Scratch",
+      "id": "6a92626c750c7e0001c95a61",
+      "slug": "docker-containers-from-scratch",
+      "editor_url": "https://lab.hitech.tn/ghost/#/editor/post/6a92626c750c7e0001c95a61",
+      "preview_url": "https://lab.hitech.tn/docker-containers-from-scratch/"
+    }
+  ]
+}

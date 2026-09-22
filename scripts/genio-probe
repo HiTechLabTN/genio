@@ -1,0 +1,53 @@
+#!/usr/bin/env bash
+set -u
+
+# Verification HTTP local & public
+STORE_LOCAL=$(curl -s -o /dev/null -w "%{http_code}" --max-time 2 http://127.0.0.1:8095/store || echo "000")
+STORE_PUBLIC=$(curl -s -o /dev/null -w "%{http_code}" --max-time 3 https://store.hitech.tn/store || echo "000")
+VODER_STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 2 http://127.0.0.1:5050/docs || echo "000")
+
+# Telemetrie Processus & Docker
+CLOUDFLARED_PID=$(pgrep -f "cloudflared tunnel" | head -n 1 || echo "0")
+TRAEFIK_UP=$(docker ps --filter name=traefik --format "{{.Status}}" 2>/dev/null | grep -q "Up" && echo "true" || echo "false")
+
+# Telemetrie GPU RTX 3060 (VRAM & Temp)
+GPU_INFO=$(nvidia-smi --query-gpu=memory.used,memory.total,temperature.gpu --format=csv,noheader,nounits 2>/dev/null || echo "0, 12288, 0")
+VRAM_USED=$(echo "$GPU_INFO" | awk -F',' '{print $1}' | tr -d ' ')
+VRAM_TOTAL=$(echo "$GPU_INFO" | awk -F',' '{print $2}' | tr -d ' ')
+GPU_TEMP=$(echo "$GPU_INFO" | awk -F',' '{print $3}' | tr -d ' ')
+
+# Reseau Mesh Tailscale vers VPS (100.88.221.37)
+TAILSCALE_VPS_PING=$(ping -c 1 -W 1 100.88.221.37 > /dev/null 2>&1 && echo "CONNECTED" || echo "UNREACHABLE")
+
+# Generation du payload JSON standardise
+cat << JSON
+{
+  "timestamp": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")",
+  "node": "pop-os-workstation",
+  "agent_target": "Genio-Core",
+  "hardware": {
+    "gpu": "RTX 3060 12GB",
+    "vram_used_mb": ${VRAM_USED:-0},
+    "vram_total_mb": ${VRAM_TOTAL:-12288},
+    "temp_celsius": ${GPU_TEMP:-0}
+  },
+  "services": {
+    "hitech_store_8095": {
+      "local_code": "$STORE_LOCAL",
+      "public_code": "$STORE_PUBLIC",
+      "healthy": $([ "$STORE_LOCAL" = "200" ] && [ "$STORE_PUBLIC" = "200" ] && echo "true" || echo "false")
+    },
+    "voder_audio_5050": {
+      "local_code": "$VODER_STATUS",
+      "healthy": $([ "$VODER_STATUS" = "200" ] && echo "true" || echo "false")
+    },
+    "edge_ingress": {
+      "cloudflared_pid": ${CLOUDFLARED_PID:-0},
+      "traefik_active": $TRAEFIK_UP
+    },
+    "mesh_network": {
+      "vps_tunis_peer": "$TAILSCALE_VPS_PING"
+    }
+  }
+}
+JSON

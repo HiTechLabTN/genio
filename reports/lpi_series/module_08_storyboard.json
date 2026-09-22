@@ -1,0 +1,217 @@
+{
+  "schema": "genio.motion_storyboard.v1",
+  "project": "HiTech Lab — Genio LPI Series",
+  "topic": "Docker Containers from Scratch",
+  "title": "Docker Containers from Scratch",
+  "slug": "docker-containers-from-scratch",
+  "lang": "ar-TN",
+  "total_duration_s": 48,
+  "resolution": "1920x1080",
+  "fps": 30,
+  "palette": {
+    "background": "#030712",
+    "surface": "#0f172a",
+    "primary": "#00f0ff",
+    "accent": "#00ff87",
+    "warn": "#f43f5e",
+    "text": "#f8fafc"
+  },
+  "motion": {
+    "transitions": [
+      {
+        "from": "hook",
+        "to": "concept",
+        "style": "glitch_split_wipe"
+      },
+      {
+        "from": "concept",
+        "to": "commands",
+        "style": "cards_explode"
+      },
+      {
+        "from": "commands",
+        "to": "scenario",
+        "style": "slide_transition"
+      },
+      {
+        "from": "scenario",
+        "to": "lab",
+        "style": "grid_roll"
+      },
+      {
+        "from": "lab",
+        "to": "cta",
+        "style": "zoom_punch_white_flash"
+      }
+    ],
+    "sfx_library": {
+      "whoosh": "soft whoosh sweep (150ms)",
+      "glitch": "digital glitch stutter x2",
+      "pop": "soft pop reveal",
+      "tap": "typewriter tick per card",
+      "count_up": "number count-up ticks",
+      "impact": "bass impact hit",
+      "chime": "bright confirmation chime",
+      "scan": "radar scan sweep",
+      "slide": "card slide-in swish",
+      "zap": "electric zap burst"
+    },
+    "typography": {
+      "font": "Cairo",
+      "mono": "JetBrains Mono",
+      "direction": "rtl"
+    }
+  },
+  "acts": {
+    "hook": {
+      "act": "hook",
+      "dialogue_text": "⚠️ المشكل اللي يقع للكل؟",
+      "voiceover": "Docker Containers from Scratch يبدو سهل لكن الاختبار الجاد يكشف الأخطاء الشائعة.",
+      "scene": "لقطة تحذير: شاشة حمراء فيها مثلا 'Permission denied' أو 'unit failed' ترتج ثم تستقر",
+      "visual_cue": "glitch_in on surface; on-screen Arabic RTL text",
+      "animation": "glitch_in",
+      "sfx": [
+        {
+          "trigger": "glitch",
+          "desc": "digital glitch stutter x2"
+        },
+        {
+          "trigger": "whoosh",
+          "desc": "soft whoosh sweep (150ms)"
+        }
+      ],
+      "color": "#f43f5e",
+      "timing_s": {
+        "start": 0,
+        "end": 8
+      },
+      "time_code": "00:00 - 00:08",
+      "warning": true
+    },
+    "concept": {
+      "act": "concept",
+      "dialogue_text": "التشبيه: إيش نتصورو باش تفهم؟",
+      "voiceover": "Container هو نمط وحدة معزولة من التطبيق والبيانات — فكرة Box يحمل الـ Code وأمنياً الـ State. بناءً على Image، Container معدّل ومباشر.",
+      "scene": "بطاقة مركزية تكبر؛ النص بالعربية RTL مع وميض توسيط",
+      "visual_cue": "scale_in on surface; on-screen Arabic RTL text",
+      "animation": "scale_in",
+      "sfx": [
+        {
+          "trigger": "pop",
+          "desc": "soft pop reveal"
+        },
+        {
+          "trigger": "slide",
+          "desc": "card slide-in swish"
+        }
+      ],
+      "color": "#00f0ff",
+      "timing_s": {
+        "start": 8,
+        "end": 16
+      },
+      "time_code": "00:08 - 00:16",
+      "warning": false
+    },
+    "commands": {
+      "act": "commands",
+      "dialogue_text": "تفصيل الأوامر واحد بواحد",
+      "voiceover": "1. docker run -d --name myapp nginx:latest: تشغيل Image nginx باسم myapp في عزلة وبدون شاشة.",
+      "scene": "نافذة Terminal بتأثير typing مع إظهار flags ومغزى كل أمر",
+      "visual_cue": "typewriter_grid on surface; on-screen Arabic RTL text",
+      "animation": "typewriter_grid",
+      "sfx": [
+        {
+          "trigger": "tap",
+          "desc": "typewriter tick per card"
+        },
+        {
+          "trigger": "count_up",
+          "desc": "number count-up ticks"
+        }
+      ],
+      "color": "#00ff87",
+      "timing_s": {
+        "start": 16,
+        "end": 24
+      },
+      "time_code": "00:16 - 00:24",
+      "warning": false
+    },
+    "scenario": {
+      "act": "scenario",
+      "dialogue_text": "سيناريو الواقع: التشخيص، الاكتشاف، الإصلاح الجذري",
+      "voiceover": "الحاوية ترفض الـ exec بـ Permission denied: نتحققو من الجذر:",
+      "scene": "مخطط خطوات Diagnosis → Discovery → Fix بتأكيدات خضراء",
+      "visual_cue": "cards_explode on surface; on-screen Arabic RTL text",
+      "animation": "cards_explode",
+      "sfx": [
+        {
+          "trigger": "scan",
+          "desc": "radar scan sweep"
+        },
+        {
+          "trigger": "pop",
+          "desc": "soft pop reveal"
+        }
+      ],
+      "color": "#f59e0b",
+      "timing_s": {
+        "start": 24,
+        "end": 32
+      },
+      "time_code": "00:24 - 00:32",
+      "warning": false
+    },
+    "lab": {
+      "act": "lab",
+      "dialogue_text": "تمرين المخبر العملي (Sandbox)",
+      "voiceover": "1. بنجمة سيرفر جديد، اشرحلي الـ filesystem مائل للـ readonly باستثناء /var/lib/docker و /tmp.",
+      "scene": "شاشة sandbox: قائمة خطوات مرقمة وأسئلة تحقق ذاتي",
+      "visual_cue": "slide_grid on surface; on-screen Arabic RTL text",
+      "animation": "slide_grid",
+      "sfx": [
+        {
+          "trigger": "slide",
+          "desc": "card slide-in swish"
+        },
+        {
+          "trigger": "chime",
+          "desc": "bright confirmation chime"
+        }
+      ],
+      "color": "#22d3ee",
+      "timing_s": {
+        "start": 32,
+        "end": 40
+      },
+      "time_code": "00:32 - 00:40",
+      "warning": false
+    },
+    "cta": {
+      "act": "cta",
+      "dialogue_text": "التطبيق والخطوة الجاية",
+      "voiceover": "واصل مع بقية سلسلة LPI Series في HiTech Lab.",
+      "scene": "Zoom punch إلى خلفية بيضاء ثم رابط الـ LPI Series بألوان النيون",
+      "visual_cue": "zoom_punch on surface; on-screen Arabic RTL text",
+      "animation": "zoom_punch",
+      "sfx": [
+        {
+          "trigger": "impact",
+          "desc": "bass impact hit"
+        },
+        {
+          "trigger": "chime",
+          "desc": "bright confirmation chime"
+        }
+      ],
+      "color": "#00f0ff",
+      "timing_s": {
+        "start": 40,
+        "end": 48
+      },
+      "time_code": "00:40 - 00:48",
+      "warning": false
+    }
+  }
+}

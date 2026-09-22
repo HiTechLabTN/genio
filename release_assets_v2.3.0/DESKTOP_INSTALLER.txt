@@ -1,0 +1,1 @@
+Pour installer Genio sur Desktop, utilisez un navigateur Chromium avec l'option 'Install this site as an app' ou utilisez Electron. Consultez le README.

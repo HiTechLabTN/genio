@@ -1,0 +1,155 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Self-hosted Orbitron — real font (OFL-1.1, via @fontsource/orbitron), not a
+   DejaVuSans substitute — for offline support (was fonts.gstatic.com) */
+@font-face {
+  font-family: "Orbitron";
+  src: url("/fonts/orbitron-400.woff2") format("woff2");
+  font-display: swap;
+  font-weight: 400;
+}
+@font-face {
+  font-family: "Orbitron";
+  src: url("/fonts/orbitron-700.woff2") format("woff2");
+  font-display: swap;
+  font-weight: 700;
+}
+@font-face {
+  font-family: "Orbitron";
+  src: url("/fonts/orbitron-900.woff2") format("woff2");
+  font-display: swap;
+  font-weight: 900;
+}
+
+:root {
+  color-scheme: dark;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+/* Andalusian / Islamic geometry — subtle hexagonal star lattice (base64 SVG). */
+:root,
+html.dark {
+  --andal: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCIgdmlld0JveD0iMCAwIDYwIDYwIj4KICA8ZyBmaWxsPSJub25lIiBzdHJva2U9IiMyMmQzZWUiPgogICAgPHBvbHlnb24gcG9pbnRzPSIzMCwyIDU1LDE2IDU1LDQ0IDMwLDU4IDUsNDQgNSwxNiIvPgogICAgPHBvbHlnb24gcG9pbnRzPSIzMCwyIDU1LDE2IDU1LDQ0IDMwLDU4IDUsNDQgNSwxNiIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMCwwKSByb3RhdGUoMTgwIDMwIDMwKSIvPgogICAgPHBhdGggZD0iTTMwIDIgTDU1IDE2IEwzMCAzMCBMNSAxNiBaIi8+CiAgICA8cGF0aCBkPSJNMzAgNTggTDUgNDQgTDMwIDMwIEw1NSA0NCBaIi8+CiAgICA8cGF0aCBkPSJNNSAxNiBMMzAgMzAgTDU1IDE2Ii8+CiAgICA8cGF0aCBkPSJNNSA0NCBMMzAgMzAgTDU1IDQ0Ii8+CiAgPC9nPgo8L3N2Zz4K");
+  --body-bg: #020617;
+  --body-glow1: rgba(34, 211, 238, 0.10);
+  --body-glow2: rgba(14, 116, 144, 0.12);
+}
+
+html.light {
+  color-scheme: light;
+  --andal: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCIgdmlld0JveD0iMCAwIDYwIDYwIj4KICA8ZyBmaWxsPSJub25lIiBzdHJva2U9IiMwZTc0OTAiPgogICAgPHBvbHlnb24gcG9pbnRzPSIzMCwyIDU1LDE2IDU1LDQ0IDMwLDU4IDUsNDQgNSwxNiIvPgogICAgPHBvbHlnb24gcG9pbnRzPSIzMCwyIDU1LDE2IDU1LDQ0IDMwLDU4IDUsNDQgNSwxNiIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMCwwKSByb3RhdGUoMTgwIDMwIDMwKSIvPgogICAgPHBhdGggZD0iTTMwIDIgTDU1IDE2IEwzMCAzMCBMNSAxNiBaIi8+CiAgICA8cGF0aCBkPSJNMzAgNTggTDUgNDQgTDMwIDMwIEw1NSA0NCBaIi8+CiAgICA8cGF0aCBkPSJNNSAxNiBMMzAgMzAgTDU1IDE2Ii8+CiAgICA8cGF0aCBkPSJNNSA0NCBMMzAgMzAgTDU1IDQ0Ii8+CiAgPC9nPgo8L3N2Zz4K");
+  --body-bg: #eef2f7;
+  --body-glow1: rgba(14, 165, 233, 0.10);
+  --body-glow2: rgba(14, 116, 144, 0.08);
+}
+
+body {
+  @apply bg-void text-slate-200 antialiased font-display;
+  background-color: var(--body-bg);
+  background-image:
+    radial-gradient(ellipse 80% 60% at 50% -10%, var(--body-glow1), transparent 60%),
+    radial-gradient(ellipse 60% 50% at 100% 110%, var(--body-glow2), transparent 60%),
+    image(var(--andal), opacity(0.02));
+  background-size: auto, auto, 60px 60px;
+  background-attachment: fixed;
+  transition: background-color 0.3s ease;
+}
+
+html.light body {
+  background-image:
+    radial-gradient(ellipse 80% 60% at 50% -10%, var(--body-glow1), transparent 60%),
+    radial-gradient(ellipse 60% 50% at 100% 110%, var(--body-glow2), transparent 60%),
+    image(var(--andal), opacity(0.04));
+}
+
+html.light body {
+  color: #1e293b;
+}
+
+@layer components {
+  .glass-panel {
+    @apply bg-glass backdrop-blur-xl border border-slate-700/50 rounded-glass shadow-panel;
+  }
+
+  .neon-input {
+    @apply w-full bg-slate-950/60 border border-slate-700/60 rounded-xl px-4 py-3 text-sm
+      text-slate-100 placeholder-slate-500 outline-none transition-all duration-200
+      focus:border-neon/70 focus:shadow-neon focus:bg-slate-900/80;
+  }
+
+  .neon-button {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-sm
+      font-semibold tracking-wide text-slate-950 bg-neon transition-all duration-200
+      hover:bg-neon-soft hover:shadow-neon-lg active:scale-[0.97] disabled:opacity-40
+      disabled:cursor-not-allowed disabled:hover:shadow-none;
+  }
+
+  .node-chip {
+    @apply inline-flex items-center gap-1.5 rounded-full border border-slate-700/60
+      bg-slate-900/70 px-3 py-1 text-xs font-mono text-slate-300;
+  }
+
+  .neon-label {
+    @apply block text-[11px] font-semibold uppercase tracking-[0.18em] text-neon/80 mb-2;
+  }
+}
+
+@layer utilities {
+  .custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(34, 211, 238, 0.3) rgba(2, 6, 23, 0.5);
+  }
+
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(34, 211, 238, 0.25);
+    border-radius: 999px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(34, 211, 238, 0.5);
+  }
+}
+
+/* Accessibility: respect reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Focus visible for keyboard navigation */
+:focus-visible {
+  outline: 2px solid rgba(34, 211, 238, 0.8);
+  outline-offset: 2px;
+}
+
+/* Skip link for screen readers */
+.skip-link {
+  position: absolute;
+  top: -40px;
+  left: 0;
+  background: #020B1E;
+  color: white;
+  padding: 8px;
+  z-index: 100;
+}
+.skip-link:focus { top: 0; }

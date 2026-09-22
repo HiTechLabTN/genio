@@ -1,0 +1,399 @@
+import os
+import sys
+import time
+import shutil
+
+from voder import (
+    parse_and_execute_oneline,
+    validate_file_exists,
+    is_youtube_url,
+    VIDEO_EXTENSIONS,
+    VOICE_PROFILE_EXTENSIONS,
+    ChainPipeline,
+    parse_chain_file,
+    verify_chain_file,
+    classify_chain_step,
+    find_chain_by_name,
+    list_chains,
+    resolve_chain_path,
+    get_input_formats_for_step,
+    describe_input_slot,
+    _is_voice_profile_position,
+    PREBUILT_CHAINS_DIR,
+    CHAIN_FILE_EXT,
+)
+
+
+def _print_separator(title=None):
+    print("=" * 60)
+    if title:
+        print(title)
+        print("=" * 60)
+
+
+def _select_chain_by_list():
+    chains = list_chains()
+    if not chains:
+        print(f"\nNo prebuilt chains found in: {PREBUILT_CHAINS_DIR}")
+        print(f"Build one with:  python voder.py chains build <name> description \"...\" chain ...")
+        return None
+    print("\nAvailable prebuilt chains:")
+    print("-" * 60)
+    for idx, c in enumerate(chains, start=1):
+        if not c["valid"]:
+            print(f"  {idx}. [INVALID FILE] {os.path.basename(c['path'])}")
+            continue
+        ts_display = ""
+        if c["timestamp"]:
+            ts_display = f"  ({c['timestamp'][:4]}-{c['timestamp'][4:6]}-{c['timestamp'][6:8]} {c['timestamp'][9:11]}:{c['timestamp'][11:13]})"
+        title_display = c["title"] or "(no title)"
+        print(f"  {idx}. {c['name']}{ts_display}")
+        print(f"      {title_display}")
+    print("-" * 60)
+    while True:
+        choice = input("\nEnter number to load, or 'back' to return: ").strip()
+        if choice.lower() == 'back':
+            return None
+        if not choice.isdigit():
+            print("Invalid input. Enter a number or 'back'.")
+            continue
+        n = int(choice)
+        if n < 1 or n > len(chains):
+            print(f"Number out of range. Enter 1-{len(chains)} or 'back'.")
+            continue
+        return chains[n - 1]["path"]
+
+
+def _select_chain_by_name():
+    while True:
+        choice = input("\nEnter chain name (latest by timestamp) or full path (.chain file):\n> ").strip()
+        if not choice:
+            print("Empty input. Please enter a name or path.")
+            continue
+        if choice.lower() == 'back':
+            return None
+        path, err = resolve_chain_path(choice)
+        if err:
+            print(f"Warning: {err}")
+            print("Try again, or type 'back' to return.")
+            continue
+        return path
+
+
+def _select_chain():
+    print("\n--- Prebuilt Chains Mode ---")
+    print("Load and run a saved chain file, or chain multiple prebuilts together.")
+    print()
+    print("1. List available chains (choose by number)")
+    print("2. Enter chain name or path directly")
+    print("3. Back to main menu")
+    while True:
+        choice = input("\nEnter your choice (1-3): ").strip()
+        if choice == '1':
+            path = _select_chain_by_list()
+            if path is None:
+                continue
+            return path
+        if choice == '2':
+            path = _select_chain_by_name()
+            if path is None:
+                continue
+            return path
+        if choice == '3':
+            return None
+        print("Invalid choice. Please enter 1, 2, or 3.")
+
+
+def _select_multiple_chains():
+    selected = []
+    while True:
+        if not selected:
+            print("\n--- Select first prebuilt chain ---")
+        else:
+            print(f"\n--- {len(selected)} chain(s) selected so far ---")
+            for i, p in enumerate(selected, start=1):
+                parsed, _ = parse_chain_file(p)
+                if parsed:
+                    print(f"  {i}. {parsed['name']} — {parsed['title'] or '(no title)'}")
+                else:
+                    print(f"  {i}. [INVALID] {p}")
+            print("\nAdd another prebuilt chain? (subsequent chains can reference")
+            print("prior prebuilt names to receive their final output)")
+        path = _select_chain()
+        if path is None:
+            if selected:
+                while True:
+                    proceed = input("\nProceed with selected chain(s)? (y/n): ").strip().lower()
+                    if proceed in ('y', 'yes'):
+                        return selected
+                    if proceed in ('n', 'no'):
+                        return None if not selected else None
+                    print("Please enter 'y' or 'n'.")
+                continue
+            else:
+                return None
+        selected.append(path)
+        while True:
+            more = input("\nAdd another chain? (y/n): ").strip().lower()
+            if more in ('y', 'yes'):
+                break
+            if more in ('n', 'no'):
+                return selected
+            print("Please enter 'y' or 'n'.")
+
+
+def _validate_input_file(value, content_tokens, slot_pos, prior_prebuilt_names):
+    if not value:
+        return False, "Empty input. Please enter a file path, URL, or a prior prebuilt chain name."
+    if prior_prebuilt_names and value in prior_prebuilt_names:
+        return True, None
+    if os.path.isfile(value):
+        return True, None
+    if is_youtube_url(value):
+        return True, None
+    return False, "Not a file, supported URL, or prior prebuilt chain name. Please enter a valid value."
+
+
+def _format_automated_details(parsed, c, pipeline, prior_prebuilt_names):
+    chain_names = [cc["name"] for cc in parsed["chains"]]
+    tokens = c["content_tokens"]
+    out_lines = []
+    for pos, tok in enumerate(tokens):
+        is_prior_chain_ref = (tok in chain_names and tok != c["name"])
+        is_prior_prebuilt_ref = (tok in prior_prebuilt_names)
+        if not (is_prior_chain_ref or is_prior_prebuilt_ref):
+            continue
+        if is_prior_chain_ref:
+            prior_step_num = chain_names.index(tok) + 1
+            recalls_label = f"'{tok}' (output of step {prior_step_num} '{tok}')"
+        else:
+            recalls_label = f"'{tok}' (prior prebuilt chain's final output)"
+        resolved_file = pipeline.index.get(tok)
+        if resolved_file:
+            file_label = resolved_file
+        else:
+            file_label = "(will resolve at runtime)"
+        substituted_tokens = []
+        for t in tokens:
+            if t == tok:
+                substituted_tokens.append(resolved_file if resolved_file else f"<pending:{t}>")
+            elif t in chain_names and t != c["name"] and t in pipeline.index:
+                substituted_tokens.append(pipeline.index[t])
+            elif t in prior_prebuilt_names and t in pipeline.index:
+                substituted_tokens.append(pipeline.index[t])
+            elif t == "input":
+                substituted_tokens.append("<manual input>")
+            else:
+                substituted_tokens.append(t)
+        command_label = " ".join(substituted_tokens)
+        out_lines.append(f"  recalls:  {recalls_label}")
+        out_lines.append(f"  file:     {file_label}")
+        out_lines.append(f"  command:  {command_label}")
+    return out_lines
+
+
+def _gather_inputs_for_chain(parsed, pipeline, prebuilt_idx, total_prebuilts, prior_prebuilt_names):
+    chain_names = [c["name"] for c in parsed["chains"]]
+    total_steps = len(parsed["chains"])
+    total_manual = sum(1 for c in parsed["chains"]
+                       for t in c["content_tokens"] if t == "input")
+    gathered = {}
+    manual_gathered_count = 0
+    for step_idx, c in enumerate(parsed["chains"], start=1):
+        step_name = c["name"]
+        tokens = c["content_tokens"]
+        prior_names = set(chain_names[:step_idx-1]) | set(pipeline.index.keys())
+        ctype, m_count, a_count = classify_chain_step(c, prior_names)
+        _print_separator(f"Prebuilt {prebuilt_idx}/{total_prebuilts} ({parsed['name']}) — "
+                         f"Step {step_idx}/{total_steps} ({step_name}) — {ctype}")
+        if c["comment"]:
+            print(f"Comment: {c['comment']}")
+        else:
+            print("Comment: (none provided — see chain content for context)")
+        print(f"Content: {c['content']}")
+        if ctype == "automated":
+            ref_descs = []
+            for tok in tokens:
+                if tok in prior_names:
+                    ref_descs.append(f"'{tok}'")
+            if ref_descs:
+                print(f"\n  → Automated input — press Enter to continue")
+                print()
+                print("  [details]")
+                detail_lines = _format_automated_details(parsed, c, pipeline, prior_prebuilt_names)
+                for dl in detail_lines:
+                    print(dl)
+            else:
+                print("\n  → No external inputs — press Enter to continue")
+            input()
+            gathered[step_idx] = []
+            continue
+        if ctype == "semi-automated":
+            ref_descs = []
+            for tok in tokens:
+                if tok in prior_names:
+                    ref_descs.append(f"'{tok}'")
+            print(f"\n  → Automated input(s) — auto-resolved at runtime")
+            print()
+            print("  [details]")
+            detail_lines = _format_automated_details(parsed, c, pipeline, prior_prebuilt_names)
+            for dl in detail_lines:
+                print(dl)
+            print(f"\n  You also need to provide {m_count} manual input(s) below.")
+        else:
+            print(f"\n  This step requires {m_count} manual input(s).")
+        if prior_prebuilt_names:
+            print(f"  Available prior prebuilt outputs (use the name as a value to reference its final output): {', '.join(sorted(prior_prebuilt_names))}")
+        manual_slots = [(pos, tok) for pos, tok in enumerate(tokens) if tok == "input"]
+        step_inputs = []
+        for slot_idx, (pos, _) in enumerate(manual_slots, start=1):
+            manual_gathered_count += 1
+            overall_pct = int(100 * manual_gathered_count / max(1, total_manual))
+            slot_mode = tokens[0].lower() if tokens else ""
+            slot_desc = describe_input_slot(slot_mode, tokens, pos)
+            vp_tag = " [voice-profile eligible]" if _is_voice_profile_position(tokens, pos) else ""
+            input_comment = (c.get("input_comments") or {}).get(slot_idx, "")
+            print(f"\n  [Input {slot_idx}/{len(manual_slots)} for step '{step_name}' "
+                  f"— overall {manual_gathered_count}/{total_manual} ({overall_pct}%)]")
+            print(f"  Accepted: {slot_desc}{vp_tag}")
+            if input_comment:
+                print(f"  Input note: {input_comment}")
+            while True:
+                value = input("  > ").strip()
+                if not value:
+                    print("  Empty input. Please enter a value.")
+                    continue
+                ok, err = _validate_input_file(value, tokens, pos, prior_prebuilt_names)
+                if not ok:
+                    print(f"  Warning: {err}")
+                    continue
+                if prior_prebuilt_names and value in prior_prebuilt_names:
+                    resolved = pipeline.index.get(value)
+                    if resolved:
+                        print(f"  OK — will use prior prebuilt '{value}' final output: {resolved}")
+                    else:
+                        print(f"  OK — will use prior prebuilt '{value}' (output will resolve at runtime).")
+                else:
+                    print(f"  OK — using: {value}")
+                step_inputs.append(value)
+                break
+        gathered[step_idx] = step_inputs
+    return gathered
+
+
+def _execute_prebuilt(parsed, gathered, pipeline, prebuilt_idx, total_prebuilts, prior_prebuilt_names):
+    chain_names = [c["name"] for c in parsed["chains"]]
+    total_steps = len(parsed["chains"])
+    print()
+    _print_separator(f"Ready to run: Prebuilt {prebuilt_idx}/{total_prebuilts} '{parsed['name']}' ({total_steps} steps)")
+    print("Press Enter to start execution.")
+    input()
+    chains_args = []
+    for step_idx, c in enumerate(parsed["chains"], start=1):
+        tokens = list(c["content_tokens"])
+        manual_slots = [(pos, tok) for pos, tok in enumerate(tokens) if tok == "input"]
+        substituted = list(tokens)
+        step_inputs = gathered.get(step_idx, [])
+        for (pos, _), value in zip(manual_slots, step_inputs):
+            if prior_prebuilt_names and value in prior_prebuilt_names:
+                resolved = pipeline.index.get(value)
+                if resolved:
+                    substituted[pos] = resolved
+                else:
+                    substituted[pos] = value
+            else:
+                substituted[pos] = value
+        if step_idx > 1:
+            chains_args.append(ChainPipeline.CHAIN_SEPARATOR)
+        chains_args.append(c["name"])
+        chains_args.extend(substituted)
+    try:
+        ok, err = pipeline.execute(chains_args, result_path=None)
+    except Exception as e:
+        err_msg = str(e)[:500]
+        print()
+        print("=" * 60)
+        print("Something went further than expected.")
+        print(f"Error (at prebuilt {prebuilt_idx} '{parsed['name']}'): {err_msg}")
+        print("=" * 60)
+        return False
+    if not ok:
+        err_msg = (err or "unknown error")[:500]
+        print()
+        print("=" * 60)
+        print("Something went further than expected.")
+        print(f"Error (at prebuilt {prebuilt_idx} '{parsed['name']}'): {err_msg}")
+        print("=" * 60)
+        return False
+    final_step = parsed["chains"][-1]["name"]
+    if final_step in pipeline.index:
+        pipeline.index[parsed["name"]] = pipeline.index[final_step]
+        prior_prebuilt_names.add(parsed["name"])
+    return True
+
+
+def cli_chains_mode():
+    original_cwd = os.getcwd()
+    results_dir = os.path.join(original_cwd, "results")
+    os.makedirs(results_dir, exist_ok=True)
+
+    print("\n--- Prebuilt Chains Mode ---")
+    print("Load a saved chain file and run it with interactive input gathering.")
+    print("Multi-chain supported: each subsequent chain can reference prior chains by name.")
+
+    selected_paths = _select_multiple_chains()
+    if not selected_paths:
+        print("No chains selected. Returning to main menu.")
+        return False
+
+    print()
+    _print_separator(f"Selected {len(selected_paths)} prebuilt chain(s)")
+    for i, p in enumerate(selected_paths, start=1):
+        parsed, _ = parse_chain_file(p)
+        if parsed:
+            print(f"  {i}. {parsed['name']} — {parsed['title'] or '(no title)'}")
+            print(f"     Path: {p}")
+            print(f"     Steps: {len(parsed['chains'])}")
+        else:
+            print(f"  {i}. [INVALID] {p}")
+    print()
+
+    pipeline = ChainPipeline()
+    prior_prebuilt_names = set()
+    for sec_idx, path in enumerate(selected_paths, start=1):
+        parsed, _ = parse_chain_file(path)
+        if parsed is None:
+            print(f"Error: could not parse chain file: {path}")
+            return False
+        ok, errors, warnings = verify_chain_file(path)
+        if not ok:
+            print(f"\nVerification failed for chain '{parsed['name']}':")
+            for e in errors:
+                loc = f"step {e['step_index']} '{e['step_name']}'" if e["step_index"] else "file"
+                print(f"  [{loc}] {e['category']}: {e['message']}")
+            print("\nThis chain file has verification errors and cannot be run.")
+            return False
+        if warnings:
+            print(f"\nWarnings for chain '{parsed['name']}':")
+            for w in warnings:
+                print(f"  - {w}")
+        print(f"\n--- Loading Prebuilt {sec_idx}/{len(selected_paths)}: '{parsed['name']}' ---")
+        if parsed["title"]:
+            print(f"Title: {parsed['title']}")
+        if parsed["description"]:
+            print(f"Description: {parsed['description']}")
+        gathered = _gather_inputs_for_chain(parsed, pipeline, sec_idx, len(selected_paths), prior_prebuilt_names)
+        ok = _execute_prebuilt(parsed, gathered, pipeline, sec_idx, len(selected_paths), prior_prebuilt_names)
+        if not ok:
+            return False
+
+    print()
+    _print_separator("All prebuilt chains completed!")
+    final_parsed, _ = parse_chain_file(selected_paths[-1])
+    final_name = final_parsed["name"] if final_parsed else ""
+    if final_name in pipeline.index:
+        print(f"Final output: {pipeline.index[final_name]}")
+    else:
+        print("Final output: (see results/ directory for the most recent file)")
+    print(f"\nResults directory: {results_dir}")
+    return True

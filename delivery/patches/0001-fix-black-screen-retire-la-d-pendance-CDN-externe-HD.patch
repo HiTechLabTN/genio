@@ -1,0 +1,207 @@
+From 7de1e8b572ab35e45f59c8104b7e04d8bcbf3100 Mon Sep 17 00:00:00 2001
+From: "Claude (audit assistant)" <claude-audit@hitechlab.tn>
+Date: Thu, 3 Sep 2026 04:22:42 +0000
+Subject: [PATCH] =?UTF-8?q?fix(black-screen):=20retire=20la=20d=C3=A9penda?=
+ =?UTF-8?q?nce=20CDN=20externe=20(HDR)=20qui=20faisait=20planter=20tout=20?=
+ =?UTF-8?q?l'arbre=20React?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Cause racine (reproduite empiriquement, client réel connecté à un genio_server réel) :
+CyberAvatar.tsx chargeait <Environment preset="city" /> de @react-three/drei, qui va
+chercher un fichier .hdr sur raw.githack.com au runtime. Quand ce fetch échoue (hors
+ligne au premier lancement, réseau restrictif, CORS selon le scheme de l'app, CDN en
+panne), le rejet de promesse survient hors du cycle de rendu React — Suspense
+n'attrape que l'attente, pas un échec définitif, et aucun ErrorBoundary n'entourait
+ce Canvas. Le hotfix 3.0.1 ajoutait des ErrorBoundary ailleurs mais pas ici, donc il
+ne pouvait structurellement pas résoudre le problème. Résultat observé : #root
+complètement vide après le crash (pas juste un composant cassé) = écran noir.
+
+Corrections :
+- CyberAvatar.tsx : Environment/HDR externe supprimé, l'éclairage manuel existant
+  (ambient + directional + 2 point lights colorées + spot) suffit visuellement et
+  supprime toute dépendance réseau pour ce rendu.
+- Dashboard.tsx : les deux usages de <CyberAvatar> enveloppés dans ErrorBoundary
+  (défense locale, si un autre problème R3F survient un jour, il reste contenu).
+- main.tsx : nouveau RootErrorBoundary autour de toute l'app — dernier filet, garantit
+  qu'une erreur qui échappe à tout le reste affiche un écran réel avec bouton
+  'Recharger' au lieu d'un silence total.
+
+Vérifié en conditions réelles : build + client connecté à un vrai genio_server local
+(WS réel), même scénario exact qui reproduisait le crash — root reste monté, portail
+s'affiche, plus aucune 'pageError' JS (avant: 2 erreurs fatales + WebGLRenderer
+Context Lost + #root vide).
+---
+ genio_client/src/components/Dashboard.tsx     |  5 +-
+ .../src/components/RootErrorBoundary.tsx      | 73 +++++++++++++++++++
+ .../src/components/avatar/CyberAvatar.tsx     | 12 ++-
+ genio_client/src/main.tsx                     |  9 ++-
+ 4 files changed, 92 insertions(+), 7 deletions(-)
+ create mode 100644 genio_client/src/components/RootErrorBoundary.tsx
+
+diff --git a/genio_client/src/components/Dashboard.tsx b/genio_client/src/components/Dashboard.tsx
+index 4b404aa..0276049 100644
+--- a/genio_client/src/components/Dashboard.tsx
++++ b/genio_client/src/components/Dashboard.tsx
+@@ -6,6 +6,7 @@ import BottomInputBar from "./BottomInputBar";
+ import Header from "./Header";
+ import RightDrawer from "./RightDrawer";
+ import CyberAvatar from "./avatar/CyberAvatar";
++import ErrorBoundary from "./v3/ErrorBoundary";
+ import { HolographicHud } from "./avatar/HolographicHud";
+ import type { AgentStatus, Attachment, ChatEvent, TelemetrySnapshot, ToolResultMap } from "../lib/types";
+ import type { DeviceProfile } from "../lib/deviceProfiler";
+@@ -108,7 +109,7 @@ export default function Dashboard({
+                 className="pointer-events-none absolute right-3 top-3 z-20 flex h-28 w-28 items-center justify-center rounded-2xl border border-neon/20 bg-carbon/60 backdrop-blur md:right-4 md:top-4 md:h-32 md:w-32"
+               >
+                 <div className="pointer-events-auto">
+-                  <CyberAvatar mode={avatarMode} size={112} faceTrack={false} audioLevel={0.45} />
++                  <ErrorBoundary name="CyberAvatar-mini"><CyberAvatar mode={avatarMode} size={112} faceTrack={false} audioLevel={0.45} /></ErrorBoundary>
+                 </div>
+               </motion.div>
+             ) : (
+@@ -129,7 +130,7 @@ export default function Dashboard({
+                   <div className="absolute left-1/2 top-1/2 h-[360px] w-[360px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/5" />
+                 </div>
+                 <div className="pointer-events-auto relative z-10">
+-                  <CyberAvatar mode={avatarMode} size={340} faceTrack={selfieActive} audioLevel={0} />
++                  <ErrorBoundary name="CyberAvatar-full"><CyberAvatar mode={avatarMode} size={340} faceTrack={selfieActive} audioLevel={0} /></ErrorBoundary>
+                 </div>
+                 <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-[#020B1E] to-transparent" />
+               </motion.div>
+diff --git a/genio_client/src/components/RootErrorBoundary.tsx b/genio_client/src/components/RootErrorBoundary.tsx
+new file mode 100644
+index 0000000..b5c81b4
+--- /dev/null
++++ b/genio_client/src/components/RootErrorBoundary.tsx
+@@ -0,0 +1,73 @@
++import React from "react";
++
++interface Props { children: React.ReactNode }
++interface State { hasError: boolean; error?: Error }
++
++/**
++ * Root-level safety net. A local ErrorBoundary (see components/v3/ErrorBoundary.tsx)
++ * only protects the component subtree it wraps — an error escaping every local
++ * boundary (or one thrown outside React's render cycle, e.g. a rejected async
++ * texture loader) unmounts the whole app in React 18+, leaving a silent black
++ * screen (reproduced empirically: WebGL Environment HDR fetch failure → #root
++ * left completely empty). This boundary is the last line of defense: whatever
++ * escapes everything else still lands on a real, visible, actionable screen
++ * instead of nothing.
++ */
++export default class RootErrorBoundary extends React.Component<Props, State> {
++  constructor(props: Props) {
++    super(props);
++    this.state = { hasError: false };
++  }
++  static getDerivedStateFromError(error: Error): State {
++    return { hasError: true, error };
++  }
++  componentDidCatch(error: Error, info: React.ErrorInfo) {
++    // eslint-disable-next-line no-console
++    console.error("[Genio RootErrorBoundary] uncaught error", error, info.componentStack);
++  }
++  render() {
++    if (this.state.hasError) {
++      return (
++        <div
++          style={{
++            width: "100vw",
++            height: "100vh",
++            display: "flex",
++            flexDirection: "column",
++            alignItems: "center",
++            justifyContent: "center",
++            gap: "16px",
++            background: "#020B1E",
++            color: "#e2f6ff",
++            fontFamily: "monospace",
++            padding: "24px",
++            textAlign: "center",
++          }}
++        >
++          <div style={{ fontSize: "40px" }}>⚠️</div>
++          <div style={{ fontSize: "16px", fontWeight: 700 }}>Genio a rencontré une erreur inattendue</div>
++          <div style={{ fontSize: "12px", opacity: 0.6, maxWidth: "480px" }}>
++            {this.state.error?.message ?? "Erreur inconnue"}
++          </div>
++          <button
++            onClick={() => window.location.reload()}
++            style={{
++              marginTop: "8px",
++              padding: "10px 20px",
++              borderRadius: "10px",
++              border: "1px solid rgba(0,229,255,0.4)",
++              background: "rgba(0,229,255,0.12)",
++              color: "#00E5FF",
++              cursor: "pointer",
++              fontFamily: "monospace",
++              fontSize: "13px",
++            }}
++          >
++            Recharger
++          </button>
++        </div>
++      );
++    }
++    return this.props.children;
++  }
++}
+diff --git a/genio_client/src/components/avatar/CyberAvatar.tsx b/genio_client/src/components/avatar/CyberAvatar.tsx
+index f87337f..f8ab269 100644
+--- a/genio_client/src/components/avatar/CyberAvatar.tsx
++++ b/genio_client/src/components/avatar/CyberAvatar.tsx
+@@ -1,6 +1,6 @@
+ import { motion } from "framer-motion";
+ import { Canvas, useFrame, useThree } from "@react-three/fiber";
+-import { Environment, OrbitControls, Text } from "@react-three/drei";
++import { OrbitControls, Text } from "@react-three/drei";
+ import * as THREE from "three";
+ import React, { useEffect, useRef, useState, Suspense } from "react";
+ import { useFaceTracking, useFaceTrackingContext } from "./useFaceTracking";
+@@ -329,7 +329,15 @@ function AvatarScene({ mode, audioLevel, interactive }: { mode: AvatarMode; audi
+ 
+   return (
+     <>
+-      <Environment preset="city" background={false} />
++      {/* v3.0.1 hotfix removed drei's <Environment preset="city" /> — it fetched an
++          HDRI file from an external CDN (raw.githack.com) at runtime. When that
++          fetch fails (offline first boot, restrictive network, CORS depending on
++          the app's origin scheme, CDN downtime), the rejection is thrown outside
++          Suspense's reach — only an ErrorBoundary catches a *rejected* loader, and
++          none wrapped this Canvas, so the failure took down the entire React root
++          (empirically reproduced: black screen, #root left completely empty).
++          The existing manual lights below already give the cyberpunk look without
++          any network dependency. */}
+       <ambientLight intensity={0.7} />
+       <directionalLight position={[3, 5, 4]} intensity={1.2} />
+       <pointLight position={[-2.2, 1.2, 3]} intensity={1.8} color="#00E5FF" />
+diff --git a/genio_client/src/main.tsx b/genio_client/src/main.tsx
+index 979186a..108fad0 100644
+--- a/genio_client/src/main.tsx
++++ b/genio_client/src/main.tsx
+@@ -1,13 +1,16 @@
+ import React from "react";
+ import ReactDOM from "react-dom/client";
+ import App from "./App";
++import RootErrorBoundary from "./components/RootErrorBoundary";
+ import { ThemeProvider } from "./lib/theme";
+ import "./index.css";
+ 
+ ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
+   <React.StrictMode>
+-    <ThemeProvider>
+-      <App />
+-    </ThemeProvider>
++    <RootErrorBoundary>
++      <ThemeProvider>
++        <App />
++      </ThemeProvider>
++    </RootErrorBoundary>
+   </React.StrictMode>,
+ );
+-- 
+2.43.0
+

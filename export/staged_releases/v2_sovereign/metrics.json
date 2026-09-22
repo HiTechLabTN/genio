@@ -1,0 +1,12 @@
+{
+  "avgConsec": 0.6588596469510535,
+  "windowVarPct": 11.751479289940828,
+  "maxJump": 0.5,
+  "jumpFrames": 0,
+  "nanFrames": 0,
+  "consoleErrors": [],
+  "count": 240,
+  "pass": true,
+  "sw": 130,
+  "sh": 130
+}

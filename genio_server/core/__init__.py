@@ -1,0 +1,1 @@
+"""Genio harness core — ReAct agent loop over local Ollama."""

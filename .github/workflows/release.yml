@@ -1,0 +1,130 @@
+name: 'Publish Genio Client'
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  publish-tauri:
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: 'ubuntu-22.04'
+            args: ''
+          - platform: 'windows-latest'
+            args: ''
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: setup node
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+      - name: install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+      - name: install Linux dependencies
+        if: matrix.platform == 'ubuntu-22.04'
+        run: |
+          sudo apt-get update || echo "apt update failed, continuing"
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev patchelf || sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev patchelf --fix-missing
+      - name: install frontend dependencies
+        working-directory: ./genio_client
+        run: npm install
+      - name: install Tauri CLI Windows binary
+        if: matrix.platform == 'windows-latest'
+        working-directory: ./genio_client
+        run: npm install @tauri-apps/cli-win32-x64-msvc@2.11.4
+      - name: Build and Publish Tauri app
+        uses: tauri-apps/tauri-action@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        with:
+          projectPath: ./genio_client
+          tagName: app-v__VERSION__
+          releaseName: 'Genio Client v__VERSION__'
+          releaseBody: 'Official release of the Genio AI Client.'
+          releaseDraft: false
+          prerelease: false
+
+  build-android-apk:
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: setup node
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+      - name: install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+      - name: install Linux dependencies
+        run: |
+          sudo apt-get update || echo "apt update failed, continuing"
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev patchelf || sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev patchelf --fix-missing
+      - name: install frontend dependencies
+        working-directory: ./genio_client
+        run: npm install
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+      - name: Install Android NDK
+        run: |
+          sdkmanager --install "ndk;27.0.12077973" "platforms;android-34" "build-tools;34.0.0"
+          echo "NDK_HOME=${ANDROID_SDK_ROOT}/ndk/27.0.12077973" >> "$GITHUB_ENV"
+          echo "ANDROID_HOME=${ANDROID_SDK_ROOT}" >> "$GITHUB_ENV"
+          echo "ANDROID_SDK_ROOT=${ANDROID_SDK_ROOT}" >> "$GITHUB_ENV"
+      - name: Add Android platform
+        working-directory: ./genio_client
+        run: npx tauri android init
+      - name: Apply Android cleartext overlay
+        working-directory: ./genio_client
+        run: bash scripts/apply-android-cleartext.sh
+      - name: Build Android APK
+        working-directory: ./genio_client
+        run: npx tauri android build --apk --target aarch64
+      - name: Sign APK with generated keystore
+        run: |
+          set -e
+          APK=$(find genio_client/src-tauri/gen/android -path "*release*" -name "*.apk" | head -1)
+          if [ -z "$APK" ]; then echo "no apk found"; exit 0; fi
+          BT=$(ls "$ANDROID_SDK_ROOT/build-tools" | sort -V | tail -1)
+          keytool -genkey -v -keystore /tmp/genio.keystore -storepass genio2026 \
+            -keypass genio2026 -alias genio -dname "CN=Genio,O=HiTechLab,C=TN" \
+            -keyalg RSA -keysize 2048 -validity 10000
+          "$ANDROID_SDK_ROOT/build-tools/$BT/zipalign" -f 4 "$APK" /tmp/genio-aligned.apk
+          "$ANDROID_SDK_ROOT/build-tools/$BT/apksigner" sign --ks /tmp/genio.keystore \
+            --ks-pass pass:genio2026 --key-pass pass:genio2026 --ks-key-alias genio \
+            --out "${APK%-unsigned.apk}.apk" /tmp/genio-aligned.apk
+          rm -f "$APK"
+          echo "signed APK ready: ${APK%-unsigned.apk}.apk"
+      - name: Derive app version
+        id: ver
+        run: |
+          VER=$(node -p "require('./genio_client/package.json').version")
+          echo "APP_VERSION=${VER}" >> "$GITHUB_OUTPUT"
+      - name: List APK outputs
+        run: find genio_client/src-tauri/gen/android -name "*.apk" 2>/dev/null || true
+      - name: Upload APK to Android release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: genio-android-v${{ steps.ver.outputs.APP_VERSION }}
+          name: Genio Android v${{ steps.ver.outputs.APP_VERSION }}
+          body: 'Native Android APK build of the Genio AI Client.'
+          draft: false
+          prerelease: false
+          files: |
+            genio_client/src-tauri/gen/android/app/build/outputs/apk/**/*.apk
+          fail_on_unmatched_files: true
