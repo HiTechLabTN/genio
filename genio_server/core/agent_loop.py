@@ -288,8 +288,15 @@ def _session_context_block(memory=None) -> str:
 
 
 def build_instructions(mode: str = DEFAULT_MODE, memory=None) -> str:
-    base = REACT_INSTRUCTIONS + _session_context_block(memory)
-    return base + (AUTONOMY_MODE if mode == "autonomous" else "")
+    # Phase 11 : canaux typés — jamais de contexte indifférencié.
+    from genio_server.core.trust import Trust, label_block
+    base = label_block(Trust.SYSTEM, REACT_INSTRUCTIONS)
+    mem_block = _session_context_block(memory)
+    if mem_block:
+        base += "\n" + label_block(Trust.MEMORY, mem_block)
+    if mode == "autonomous":
+        base += "\n" + label_block(Trust.POLICY, AUTONOMY_MODE)
+    return base
 
 
 class OllamaConnectionError(RuntimeError):
@@ -715,13 +722,16 @@ class AgentLoop:
         # user turn if we saved before the load — it would appear both in the
         # stored history and as the new turn).
         resumed = await self._build_initial_messages()
+        # Phase 11 : requête opérateur étiquetée TRUSTED_USER (jamais brute).
+        from genio_server.core.trust import Trust, guard_block, label_block
+        trusted_user = label_block(Trust.USER, user_input)
         if resumed is not None:
-            messages = resumed + [{"role": "user", "content": user_input}]
+            messages = resumed + [{"role": "user", "content": trusted_user}]
             self.system_prompt = messages[0]["content"]
         else:
             messages: List[Dict[str, str]] = [
                 {"role": "system", "content": self.system_prompt},
-                {"role": "user", "content": user_input},
+                {"role": "user", "content": trusted_user},
             ]
         await self._save_message("user", user_input)
         final_answer = ""
@@ -981,6 +991,14 @@ class AgentLoop:
                     return
 
                 feedback = _feedback_for(result, assistant)
+                # Phase 11 : sortie d'outil = UNTRUSTED (garde anti-élévation
+                # si détournement détecté dans le contenu).
+                try:
+                    from genio_server.core.trust import Trust as _T
+                    from genio_server.core.trust import guard_block as _gb
+                    feedback = _gb(_T.TOOL_OUTPUT, feedback)
+                except Exception:
+                    pass
                 messages.append({"role": "assistant", "content": assistant})
                 messages.append({"role": "user", "content": feedback})
                 await self._save_message("assistant", assistant)
