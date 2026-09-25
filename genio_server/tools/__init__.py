@@ -62,6 +62,15 @@ def invoke(tool: str, payload: Any, session_id: str | None = None) -> Dict[str, 
     ``bash`` accepts a command string (or ``{"command": ...}``);
     ``social_post`` accepts a JSON string (or dict) of its arguments.
     """
+    # Phase 17 : halted => aucun dispatch (re-arm explicite requis).
+    try:
+        from genio_server.tools.safety import SAFETY as _SAFETY_INV
+        if not _SAFETY_INV.armed:
+            return {"tool": tool,
+                    "error": "KILL SWITCH engaged — tool dispatch refused. "
+                             "Re-arm before running tools."}
+    except Exception:
+        pass
     # Dynamic forged tools (Phase 4) — checked before built-in unknown error
     try:
         import os as _os

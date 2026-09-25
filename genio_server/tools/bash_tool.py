@@ -259,16 +259,27 @@ def run_command(command: str, timeout: int = DEFAULT_TIMEOUT,
 
     started = time.monotonic()
     cmd = ["/bin/bash", "-lc", command] if os.name == "posix" else command
+    # Phase 17 : Popen enregistré → halt() préemptif le termine en vol.
+    from genio_server.tools.safety import SAFETY as _SAFETY17
     try:
-        proc = subprocess.run(
+        proc = subprocess.Popen(
             cmd,
-            capture_output=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
             text=True,
-            timeout=timeout,
             cwd=os.getcwd(),
         )
-        return _result(command, proc.stdout, proc.stderr, proc.returncode, started, False)
+        key = _SAFETY17.register_proc(proc)
+        try:
+            out, err = proc.communicate(timeout=timeout)
+        finally:
+            _SAFETY17.unregister_proc(key)
+        return _result(command, out, err, proc.returncode, started, False)
     except subprocess.TimeoutExpired:
+        try:
+            proc.kill()
+        except Exception:
+            pass
         return {
             "command": command,
             "stdout": "",
@@ -325,6 +336,8 @@ async def async_run_command(command: str, timeout: int = DEFAULT_TIMEOUT,
 
     started = time.monotonic()
     cmd = ["/bin/bash", "-lc", command] if os.name == "posix" else ["/bin/sh", "-c", command]
+    # Phase 17 : enregistré → halt() préemptif le termine en vol.
+    from genio_server.tools.safety import SAFETY as _SAFETY17A
     try:
         proc = await asyncio.create_subprocess_exec(
             *cmd,
@@ -332,9 +345,13 @@ async def async_run_command(command: str, timeout: int = DEFAULT_TIMEOUT,
             stderr=asyncio.subprocess.PIPE,
             cwd=os.getcwd(),
         )
-        stdout, stderr = await asyncio.wait_for(
-            proc.communicate(), timeout=timeout,
-        )
+        key = _SAFETY17A.register_proc(proc)
+        try:
+            stdout, stderr = await asyncio.wait_for(
+                proc.communicate(), timeout=timeout,
+            )
+        finally:
+            _SAFETY17A.unregister_proc(key)
         decoded_out = stdout.decode(errors="replace") if stdout else ""
         decoded_err = stderr.decode(errors="replace") if stderr else ""
         return _result(command, decoded_out, decoded_err, proc.returncode, started, False)
