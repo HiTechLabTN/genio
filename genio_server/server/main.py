@@ -383,9 +383,9 @@ if _has_multipart():
         except Exception as exc:
             raise HTTPException(status_code=500, detail=f"transcription failed: {exc}")
         return result
-else:
+else:  # pragma: no cover — graceful degradation without python-multipart
     @app.post("/api/v1/voice/transcribe")
-    async def voice_transcribe(_: None = Depends(require_key)) -> Dict[str, Any]:  # type: ignore[no-redef]
+    async def voice_transcribe_unavailable() -> Dict[str, Any]:
         raise HTTPException(status_code=500,
                             detail='Form data requires "python-multipart" to be installed. pip install python-multipart')
 
