@@ -643,6 +643,27 @@ async def ws_agent(ws: WebSocket, node: str = Query(default=None)) -> None:
                 await safe_send(ws, {"type": "armed", **SAFETY.snapshot()})
                 continue
 
+            if action == "approve":
+                # Phase 5: approbation explicite d'une action en attente
+                # (REQUIRE_CONFIRMATION). Nonce unique, booléen explicite.
+                nonce = str(msg.get("nonce") or "").strip()
+                approved = bool(msg.get("approved", False))
+                if not nonce:
+                    await safe_send(ws, {"type": "error",
+                                         "message": "missing nonce"})
+                    continue
+                try:
+                    from core.policy_engine import get_policy_engine
+                    ok = get_policy_engine().resolve(nonce, approved)
+                except Exception as exc:
+                    await safe_send(ws, {"type": "error",
+                                         "message": f"approve failed: {exc}"})
+                    continue
+                await safe_send(ws, {"type": "approval_resolved",
+                                     "nonce": nonce, "approved": approved,
+                                     "known": ok})
+                continue
+
             if action == "resume":
                 # Bounded checkpoint of a previous session (last N turns +
                 # compressed summary). NEVER sends unbounded raw history.

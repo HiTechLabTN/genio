@@ -857,6 +857,46 @@ class AgentLoop:
                     await self._save_message("assistant", assistant)
                     await self._save_message("user", feedback)
                     continue
+                # Phase 5: interrupteur de confirmation — REQUIRE_CONFIRMATION
+                # suspend le tour et attend l'opérateur (timeout = refus).
+                if cap_info["decision"] == "REQUIRE_CONFIRMATION":
+                    try:
+                        from core.policy_engine import get_policy_engine
+                    except Exception:
+                        logger.exception("policy engine import failed")
+                        msg = ("POLICY ERROR: confirmation gate unavailable — "
+                               "refused fail-closed.")
+                        yield {"type": "error", "message": msg}
+                        feedback = ("POLICY DENIED: " + msg)
+                        messages.append({"role": "assistant",
+                                         "content": assistant})
+                        messages.append({"role": "user", "content": feedback})
+                        await self._save_message("assistant", assistant)
+                        await self._save_message("user", feedback)
+                        continue
+                    engine = get_policy_engine()
+                    pend = engine.request_confirmation(tool_name, command)
+                    yield {"type": "action_confirmation_required",
+                           "tool": tool_name,
+                           "capability": cap_info["capability"],
+                           "risk": cap_info["risk"],
+                           "command": str(command)[:500],
+                           "nonce": pend.nonce,
+                           "expires_in_s": float(os.getenv(
+                               "GENIO_CONFIRM_TIMEOUT", "120"))}
+                    approved = await asyncio.to_thread(
+                        engine.await_decision, pend.nonce)
+                    if not approved:
+                        msg = (f"POLICY REQUIRE_CONFIRMATION unapproved for "
+                               f"'{tool_name}' (timeout/refus) — refused.")
+                        yield {"type": "error", "message": msg}
+                        feedback = ("POLICY DENIED: " + msg)
+                        messages.append({"role": "assistant",
+                                         "content": assistant})
+                        messages.append({"role": "user", "content": feedback})
+                        await self._save_message("assistant", assistant)
+                        await self._save_message("user", feedback)
+                        continue
                 # Phase 3: pré-check boucle AVANT exécution — le 3e doublon
                 # ne part jamais (2 exécutions max).
                 _fp = command_fingerprint(tool_name, command)
