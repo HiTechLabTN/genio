@@ -586,19 +586,28 @@ def _decode_payload(data_b64: str) -> bytes:
     return base64.b64decode(data_b64)
 
 
-def _save_attachment(kind: str, name: str, data_b64: str) -> str:
+def _save_attachment(kind: str, name: str, data_b64: str,
+                     session: str = "default") -> str:
+    from genio_server.tools.upload_guard import (
+        check_quota, purge_expired, secure_write, validate_upload)
     data = _decode_payload(data_b64)
-    # Phase 8 : seul le suffixe est client-influencé — assaini + autorisé
-    # après canonicalisation (jamais de traversal vers le FS hôte).
+    # Phase 21 : octets magiques (jamais le MIME client) + quota session.
+    ext, reason = validate_upload(data, name)
+    if ext is None:
+        raise HTTPException(status_code=400, detail=f"upload refusé: {reason}")
+    denied = check_quota(session, len(data))
+    if denied is not None:
+        raise HTTPException(status_code=413, detail=denied)
     from genio_server.tools.fs_guard import authorize, sanitize_ext
-    ext = sanitize_ext(name)
-    path = SERVICE_DIR / "tmp" / f"{kind}_{uuid.uuid4().hex[:8]}{ext}"
-    reason = authorize(str(path), workspace=str(SERVICE_DIR / "tmp"),
-                       for_write=True)
+    ext = sanitize_ext(f"x{ext}")
+    tmpdir = SERVICE_DIR / "tmp"
+    purge_expired(tmpdir)
+    path = tmpdir / f"{kind}_{uuid.uuid4().hex[:8]}{ext}"
+    reason = authorize(str(path), workspace=str(tmpdir), for_write=True)
     if reason is not None:
         raise HTTPException(status_code=400, detail=reason)
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_bytes(data)
+    secure_write(str(path), data)
     return str(path)
 
 
@@ -836,14 +845,16 @@ async def ws_agent(ws: WebSocket, node: str = Query(default=None)) -> None:
 
             if action == "attach_file":
                 name = str(msg.get("name", "file.bin"))
-                path = _save_attachment("file", name, msg["data_b64"])
+                sid0 = sorted(_SESSION_IDS.get(conn_id, set()) or ["default"])[0]
+                path = _save_attachment("file", name, msg["data_b64"], session=sid0)
                 await safe_send(ws, {"type": "attached", "kind": "file", "path": path,
                                      "name": name, "size": len(_decode_payload(msg["data_b64"]))})
                 continue
 
             if action == "attach_image":
                 name = str(msg.get("name", "image.png"))
-                path = _save_attachment("img", name, msg["data_b64"])
+                sid0 = sorted(_SESSION_IDS.get(conn_id, set()) or ["default"])[0]
+                path = _save_attachment("img", name, msg["data_b64"], session=sid0)
                 await safe_send(ws, {"type": "attached", "kind": "image", "path": path,
                                      "name": name, "size": len(_decode_payload(msg["data_b64"]))})
                 continue
