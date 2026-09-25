@@ -532,6 +532,15 @@ class AgentLoop:
         return bool(tool) and tool in cls._known_tools()
 
     @staticmethod
+    def _tel(event: str, session_id: Optional[str] = None, **kw: Any) -> None:
+        # Phase 16 : télémétrie structurée best-effort (jamais bloquante).
+        try:
+            from genio_server.core.telemetry import get_telemetry
+            get_telemetry().emit(event, session_id=session_id or "", **kw)
+        except Exception:
+            pass
+
+    @staticmethod
     def _sandbox_available() -> bool:
         return os.getenv("GENIO_SANDBOX_MODE", "").strip().lower() == "container"
 
@@ -748,6 +757,7 @@ class AgentLoop:
             ]
         await self._save_message("user", user_input)
         final_answer = ""
+        self._tel("agent.started", self.session_id)
 
         # Phase 2 v2.1: System 1 Reflex fast-path — resolve deterministic
         # high-frequency intents without any Ollama tokens.
@@ -779,6 +789,7 @@ class AgentLoop:
                     yield {"type": "tool_result", "result": res}
                     final_answer = f"[ردّ سريع من جينيو] {res.get('stdout', '').strip()}"
                     await self._save_message("assistant", final_answer)
+                    self._tel("agent.completed", self.session_id)
                     yield {"type": "answer", "text": final_answer}
                     return
             except Exception:
@@ -796,6 +807,8 @@ class AgentLoop:
                 # (WebSocket telemetry, SSE stream, kill handling) can run.
                 await asyncio.sleep(0)
                 if self.cancelled():
+                    self._tel("kill_switch.triggered", self.session_id)
+                    self._tel("agent.failed", self.session_id, result="halted")
                     yield {
                         "type": "error",
                         "message": "HALTED — kill switch engaged. Re-arm the system "
@@ -805,6 +818,7 @@ class AgentLoop:
                 if time.monotonic() >= turn_deadline:
                     final_answer = self._quota_synthesis(trajectory)
                     await self._save_message("assistant", final_answer)
+                    self._tel("agent.completed", self.session_id)
                     yield {"type": "answer", "text": final_answer}
                     return
                 assistant, eval_count, tok_per_s = await self._chat(client, messages)
@@ -818,6 +832,7 @@ class AgentLoop:
                     final_answer = await asyncio.to_thread(
                         sanitize_for_client, assistant.strip())
                     await self._save_message("assistant", final_answer)
+                    self._tel("agent.completed", self.session_id)
                     yield {"type": "answer", "text": final_answer}
                     # Phase 2 v2.1: trajectory compiler — a >1 tool-turn run that
                     # ends with a real answer is serialized as a reusable skill.
@@ -854,6 +869,9 @@ class AgentLoop:
                            "Reply with ONLY one JSON tool call using a known "
                            "tool, or a final plain-text answer.")
                     yield {"type": "error", "message": msg}
+                    self._tel("policy.denied", self.session_id,
+                                  tool=tool_name, decision="DENY",
+                                  result="unknown-tool")
                     feedback = ("TOOL REJECTED (unknown tool): " + msg)
                     messages.append({"role": "assistant", "content": assistant})
                     messages.append({"role": "user", "content": feedback})
@@ -868,12 +886,17 @@ class AgentLoop:
                 # renvoyée au modèle (jamais d'exécution, jamais d'exception).
                 cap_info = self._capability_check(tool_name)
                 yield {"type": "capability.requested", **cap_info}
+                self._tel("tool.requested", self.session_id, tool=tool_name,
+                          capability=cap_info.get("capability", ""),
+                          risk=cap_info.get("risk", ""))
                 if cap_info["decision"] == "DENY":
                     msg = (f"POLICY DENY [{cap_info['capability']}/"
                            f"{cap_info['risk']}]: tool '{tool_name}' refused "
                            f"({cap_info.get('reason', 'policy')}). "
                            "Use a permitted tool or answer directly.")
                     yield {"type": "error", "message": msg}
+                    self._tel("policy.denied", self.session_id,
+                                  tool=tool_name, decision="DENY")
                     feedback = ("POLICY DENIED: " + msg)
                     messages.append({"role": "assistant", "content": assistant})
                     messages.append({"role": "user", "content": feedback})
@@ -890,6 +913,8 @@ class AgentLoop:
                         msg = ("POLICY ERROR: confirmation gate unavailable — "
                                "refused fail-closed.")
                         yield {"type": "error", "message": msg}
+                        self._tel("policy.denied", self.session_id,
+                                  tool=tool_name, decision="DENY")
                         feedback = ("POLICY DENIED: " + msg)
                         messages.append({"role": "assistant",
                                          "content": assistant})
@@ -913,6 +938,8 @@ class AgentLoop:
                         msg = (f"POLICY REQUIRE_CONFIRMATION unapproved for "
                                f"'{tool_name}' (timeout/refus) — refused.")
                         yield {"type": "error", "message": msg}
+                        self._tel("policy.denied", self.session_id,
+                                  tool=tool_name, decision="DENY")
                         feedback = ("POLICY DENIED: " + msg)
                         messages.append({"role": "assistant",
                                          "content": assistant})
@@ -931,6 +958,7 @@ class AgentLoop:
                     final_answer = self._quota_synthesis(
                         trajectory, prefix="[توقّف ضدّ التكرار] ")
                     await self._save_message("assistant", final_answer)
+                    self._tel("agent.completed", self.session_id)
                     yield {"type": "answer", "text": final_answer}
                     return
                 # Tools (playwright / pyautogui / mss) are blocking — run them
@@ -984,6 +1012,13 @@ class AgentLoop:
                             result[k] = truncate_output(result[k])
                 trajectory.append({"command": command, "result": result})
                 yield {"type": "tool_result", "result": result}
+                try:
+                    _rc = result.get("returncode", "?") if isinstance(
+                        result, dict) else "?"
+                except Exception:
+                    _rc = "?"
+                self._tel("tool.completed", self.session_id, tool=tool_name,
+                          result=f"rc={_rc}")
 
                 # Phase 3: détecteur de boucle + budget de retry.
                 failed = bool(isinstance(result, dict) and (
@@ -1000,6 +1035,7 @@ class AgentLoop:
                     final_answer = self._quota_synthesis(
                         trajectory, prefix="[توقّف ضدّ التكرار] ")
                     await self._save_message("assistant", final_answer)
+                    self._tel("agent.completed", self.session_id)
                     yield {"type": "answer", "text": final_answer}
                     return
 
