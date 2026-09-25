@@ -28,6 +28,7 @@ class Capability:
     SAFE_WRITE = "SAFE_WRITE"
     WORKSPACE_WRITE = "WORKSPACE_WRITE"
     NETWORK = "NETWORK"
+    NETWORK_ACCESS = "NETWORK"  # alias taxonomie mission (même capacité)
     PROCESS_EXECUTION = "PROCESS_EXECUTION"
     SYSTEM_SERVICE_CONTROL = "SYSTEM_SERVICE_CONTROL"
     CREDENTIAL_ACCESS = "CREDENTIAL_ACCESS"
@@ -37,9 +38,29 @@ class Capability:
     CRITICAL = "CRITICAL"
 
 
+class RiskLevel:
+    LOW = "LOW"
+    MEDIUM = "MEDIUM"
+    HIGH = "HIGH"
+    CRITICAL = "CRITICAL"
+
+
+class FilesystemScope:
+    NONE = "none"  # pas d'accès fichier direct (ex: pur réseau/opaque)
+    READ_ONLY_SYSTEM = "read_only_system"
+    WORKSPACE_ONLY = "workspace_only"
+    UNRESTRICTED = "unrestricted"  #sandbox/conteneur requis (voir ExecEnv)
+
+
+class ExecEnv:
+    SANDBOX_ONLY = "SANDBOX_ONLY"
+    HOST_ALLOWED = "HOST_ALLOWED"
+
+
 class Decision:
     ALLOW = "ALLOW"
     DENY = "DENY"
+    DENIED_UNKNOWN_CAPABILITY = "DENY"  # alias sémantique (rejet défaut)
     REQUIRE_CONFIRMATION = "REQUIRE_CONFIRMATION"
     SANDBOX_ONLY = "SANDBOX_ONLY"
     RATE_LIMIT = "RATE_LIMIT"
@@ -74,14 +95,67 @@ class ToolRegistry:
 # --------------------------------------------------------------------------- #
 # CapabilityRegistry — authoritative tool -> capability/risk mapping
 # --------------------------------------------------------------------------- #
+@dataclass(frozen=True)
+class ToolDescriptor:
+    """Descripteur immuable : le LLM ne peut NI le lire comme modifiable NI
+    l'altérer via ses arguments (lookup par NOM seul, payload ignoré)."""
+    name: str
+    capability: str
+    risk_level: str
+    requires_network: bool = False
+    filesystem_scope: str = FilesystemScope.NONE
+    execution_environment: str = ExecEnv.HOST_ALLOWED
+    requires_confirmation: bool = False
+
+
+_TOOL_DESCRIPTORS: Dict[str, ToolDescriptor] = {
+    "bash": ToolDescriptor(
+        "bash", Capability.PROCESS_EXECUTION, RiskLevel.HIGH,
+        requires_network=False,
+        filesystem_scope=FilesystemScope.UNRESTRICTED,
+        execution_environment=ExecEnv.SANDBOX_ONLY,
+        requires_confirmation=False),
+    "browser": ToolDescriptor(
+        "browser", Capability.NETWORK_ACCESS, RiskLevel.MEDIUM,
+        requires_network=True,
+        filesystem_scope=FilesystemScope.NONE,
+        execution_environment=ExecEnv.HOST_ALLOWED,
+        requires_confirmation=False),
+    "computer": ToolDescriptor(
+        "computer", Capability.DEVICE_CONTROL, RiskLevel.HIGH,
+        requires_network=False,
+        filesystem_scope=FilesystemScope.NONE,
+        execution_environment=ExecEnv.HOST_ALLOWED,
+        requires_confirmation=True),
+    "screen": ToolDescriptor(
+        "screen", Capability.READ_ONLY, RiskLevel.LOW,
+        requires_network=False,
+        filesystem_scope=FilesystemScope.NONE,
+        execution_environment=ExecEnv.HOST_ALLOWED,
+        requires_confirmation=False),
+    "api": ToolDescriptor(
+        "api", Capability.NETWORK_ACCESS, RiskLevel.MEDIUM,
+        requires_network=True,
+        filesystem_scope=FilesystemScope.NONE,
+        execution_environment=ExecEnv.HOST_ALLOWED,
+        requires_confirmation=False),
+    "social_post": ToolDescriptor(
+        "social_post", Capability.NETWORK_ACCESS, RiskLevel.LOW,
+        requires_network=True,
+        filesystem_scope=FilesystemScope.NONE,
+        execution_environment=ExecEnv.HOST_ALLOWED,
+        requires_confirmation=False),
+    "tool_forge": ToolDescriptor(
+        "tool_forge", Capability.ADMINISTRATIVE, RiskLevel.CRITICAL,
+        requires_network=False,
+        filesystem_scope=FilesystemScope.WORKSPACE_ONLY,
+        execution_environment=ExecEnv.SANDBOX_ONLY,
+        requires_confirmation=True),
+}
+
 _TOOL_CAPABILITIES: Dict[str, Dict[str, str]] = {
-    "bash": {"capability": Capability.PROCESS_EXECUTION, "risk": "high"},
-    "browser": {"capability": Capability.NETWORK, "risk": "medium"},
-    "computer": {"capability": Capability.DEVICE_CONTROL, "risk": "high"},
-    "screen": {"capability": Capability.READ_ONLY, "risk": "low"},
-    "api": {"capability": Capability.NETWORK, "risk": "medium"},
-    "social_post": {"capability": Capability.NETWORK, "risk": "low"},
-    "tool_forge": {"capability": Capability.ADMINISTRATIVE, "risk": "critical"},
+    name: {"capability": d.capability, "risk": d.risk_level}
+    for name, d in _TOOL_DESCRIPTORS.items()
 }
 
 
@@ -95,14 +169,21 @@ class CapabilityRegistry:
 
     @classmethod
     def risk_of(cls, tool: str) -> str:
-        return _TOOL_CAPABILITIES.get(tool, {}).get("risk", "critical")
+        return _TOOL_CAPABILITIES.get(tool, {}).get("risk",
+                                                    RiskLevel.CRITICAL)
+
+    @classmethod
+    def descriptor_of(cls, name: str) -> Optional[ToolDescriptor]:
+        """Lookup par NOM seul — le payload/les arguments du LLM sont ignorés,
+        donc le modèle ne peut pas altérer son propre niveau de privilège."""
+        return _TOOL_DESCRIPTORS.get(name)
 
     @classmethod
     def all(cls) -> Dict[str, Dict[str, str]]:
         out = dict(_TOOL_CAPABILITIES)
         for name in ToolRegistry.names():
             out.setdefault(name, {"capability": Capability.CRITICAL,
-                                  "risk": "critical"})
+                                  "risk": RiskLevel.CRITICAL})
         return out
 
 
@@ -120,29 +201,29 @@ class Action:
 
 
 _ACTIONS: Dict[str, Action] = {
-    "prompt": Action("prompt", Capability.PROCESS_EXECUTION, "high", 600.0,
+    "prompt": Action("prompt", Capability.PROCESS_EXECUTION, RiskLevel.HIGH, 600.0,
                      (), "Run one agent turn (may chain tools)"),
-    "kill": Action("kill", Capability.ADMINISTRATIVE, "medium", 5.0, (),
+    "kill": Action("kill", Capability.ADMINISTRATIVE, RiskLevel.MEDIUM, 5.0, (),
                    "Halt all runs (kill switch)"),
-    "rearm": Action("rearm", Capability.ADMINISTRATIVE, "medium", 5.0, (),
+    "rearm": Action("rearm", Capability.ADMINISTRATIVE, RiskLevel.MEDIUM, 5.0, (),
                     "Re-arm after halt"),
-    "resume": Action("resume", Capability.READ_ONLY, "low", 10.0, (),
+    "resume": Action("resume", Capability.READ_ONLY, RiskLevel.LOW, 10.0, (),
                      "Load bounded session checkpoint"),
-    "screenshot": Action("screenshot", Capability.READ_ONLY, "low", 15.0, (),
+    "screenshot": Action("screenshot", Capability.READ_ONLY, RiskLevel.LOW, 15.0, (),
                          "Capture host display"),
-    "screen_stream": Action("screen_stream", Capability.READ_ONLY, "low", 5.0,
+    "screen_stream": Action("screen_stream", Capability.READ_ONLY, RiskLevel.LOW, 5.0,
                             (), "Toggle display streaming"),
-    "attach_file": Action("attach_file", Capability.WORKSPACE_WRITE, "low",
+    "attach_file": Action("attach_file", Capability.WORKSPACE_WRITE, RiskLevel.LOW,
                           30.0, (), "Stage an uploaded file"),
-    "attach_image": Action("attach_image", Capability.WORKSPACE_WRITE, "low",
+    "attach_image": Action("attach_image", Capability.WORKSPACE_WRITE, RiskLevel.LOW,
                            30.0, (), "Stage an uploaded image"),
-    "voice_wav": Action("voice_wav", Capability.WORKSPACE_WRITE, "low", 30.0,
+    "voice_wav": Action("voice_wav", Capability.WORKSPACE_WRITE, RiskLevel.LOW, 30.0,
                         (), "Stage recorded audio"),
-    "transcribe": Action("transcribe", Capability.READ_ONLY, "low", 300.0, (),
+    "transcribe": Action("transcribe", Capability.READ_ONLY, RiskLevel.LOW, 300.0, (),
                          "STT over staged audio"),
-    "synthesize": Action("synthesize", Capability.READ_ONLY, "low", 300.0, (),
+    "synthesize": Action("synthesize", Capability.READ_ONLY, RiskLevel.LOW, 300.0, (),
                          "VODER TTS synthesis"),
-    "telemetry": Action("telemetry", Capability.READ_ONLY, "low", 10.0, (),
+    "telemetry": Action("telemetry", Capability.READ_ONLY, RiskLevel.LOW, 10.0, (),
                         "System vitals snapshot"),
 }
 
@@ -187,6 +268,10 @@ class PolicyRegistry:
                mode: Optional[str] = None) -> str:
         mode = (mode or cls.mode())
         if capability in _STRICT_DENY:
+            return Decision.DENY
+        # Règle absolue : capacité inconnue/non documentée = DENY dans TOUS
+        # les modes (DENIED_UNKNOWN_CAPABILITY). Le LLM ne s'auto-classifie pas.
+        if capability not in _KNOWN_CAPABILITIES:
             return Decision.DENY
         if mode == "strict":
             if capability not in _KNOWN_CAPABILITIES:

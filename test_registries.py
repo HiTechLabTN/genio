@@ -15,6 +15,7 @@ from genio_server.core.registries import (
     MemoryRegistry,
     ModelRegistry,
     PolicyRegistry,
+    RiskLevel,
     SkillRegistry,
     ToolRegistry,
 )
@@ -30,7 +31,7 @@ def test_tool_registry_mirrors_owner():
 
 def test_capability_unknown_is_critical():
     assert CapabilityRegistry.capability_of("nope") == Capability.CRITICAL
-    assert CapabilityRegistry.risk_of("nope") == "critical"
+    assert CapabilityRegistry.risk_of("nope") == RiskLevel.CRITICAL
     assert CapabilityRegistry.capability_of("bash") == Capability.PROCESS_EXECUTION
     assert set(CapabilityRegistry.all().keys()) >= set(ToolRegistry.names())
 

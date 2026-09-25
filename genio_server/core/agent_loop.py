@@ -512,6 +512,35 @@ class AgentLoop:
         return bool(tool) and tool in cls._known_tools()
 
     @staticmethod
+    def _sandbox_available() -> bool:
+        return os.getenv("GENIO_SANDBOX_MODE", "").strip().lower() == "container"
+
+    @classmethod
+    def _capability_check(cls, tool: str) -> Dict[str, str]:
+        """Phase 4 : descripteur + décision policy (pur, testable).
+
+        Lookup par NOM seul (le payload du LLM est ignoré) ; hook prêt pour
+        le PolicyEngine Phase 5 (REQUIRE_CONFIRMATION → interrupteur à venir).
+        """
+        try:
+            from genio_server.core.registries import (
+                CapabilityRegistry, PolicyRegistry)
+            desc = CapabilityRegistry.descriptor_of(tool)
+            if desc is None:
+                return {"tool": tool, "capability": "UNKNOWN",
+                        "risk": "CRITICAL", "decision": "DENY",
+                        "reason": "DENIED_UNKNOWN_CAPABILITY"}
+            decision = PolicyRegistry.decide_tool(
+                tool, sandbox_available=cls._sandbox_available())
+            return {"tool": tool, "capability": desc.capability,
+                    "risk": desc.risk_level, "decision": decision,
+                    "requires_confirmation": str(desc.requires_confirmation)}
+        except Exception:
+            return {"tool": tool, "capability": "UNKNOWN",
+                    "risk": "CRITICAL", "decision": "DENY",
+                    "reason": "registry-unavailable"}
+
+    @staticmethod
     def _quota_synthesis(
             trajectory: List[Dict[str, object]],
             prefix: str = "[تلخيص مرحلي — quota atteint] ") -> str:
@@ -810,6 +839,24 @@ class AgentLoop:
                     continue
                 yield {"type": "tool_call", "command": command}
 
+                # Phase 4: interception capability — le LLM ne s'autorise plus
+                # lui-même. Descripteur extrait (nom seul), event télémétrique
+                # structuré, décision PolicyRegistry ; DENY = erreur structurée
+                # renvoyée au modèle (jamais d'exécution, jamais d'exception).
+                cap_info = self._capability_check(tool_name)
+                yield {"type": "capability.requested", **cap_info}
+                if cap_info["decision"] == "DENY":
+                    msg = (f"POLICY DENY [{cap_info['capability']}/"
+                           f"{cap_info['risk']}]: tool '{tool_name}' refused "
+                           f"({cap_info.get('reason', 'policy')}). "
+                           "Use a permitted tool or answer directly.")
+                    yield {"type": "error", "message": msg}
+                    feedback = ("POLICY DENIED: " + msg)
+                    messages.append({"role": "assistant", "content": assistant})
+                    messages.append({"role": "user", "content": feedback})
+                    await self._save_message("assistant", assistant)
+                    await self._save_message("user", feedback)
+                    continue
                 # Phase 3: pré-check boucle AVANT exécution — le 3e doublon
                 # ne part jamais (2 exécutions max).
                 _fp = command_fingerprint(tool_name, command)
