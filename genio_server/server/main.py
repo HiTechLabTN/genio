@@ -482,8 +482,15 @@ def _decode_payload(data_b64: str) -> bytes:
 
 def _save_attachment(kind: str, name: str, data_b64: str) -> str:
     data = _decode_payload(data_b64)
-    ext = os.path.splitext(name)[1]
+    # Phase 8 : seul le suffixe est client-influencé — assaini + autorisé
+    # après canonicalisation (jamais de traversal vers le FS hôte).
+    from genio_server.tools.fs_guard import authorize, sanitize_ext
+    ext = sanitize_ext(name)
     path = SERVICE_DIR / "tmp" / f"{kind}_{uuid.uuid4().hex[:8]}{ext}"
+    reason = authorize(str(path), workspace=str(SERVICE_DIR / "tmp"),
+                       for_write=True)
+    if reason is not None:
+        raise HTTPException(status_code=400, detail=reason)
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_bytes(data)
     return str(path)
