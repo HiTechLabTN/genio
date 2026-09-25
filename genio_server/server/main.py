@@ -23,6 +23,7 @@ import base64
 import json
 import logging
 import os
+import re
 import shutil
 import subprocess
 import threading
@@ -90,6 +91,69 @@ app.add_middleware(
 )
 
 
+# --------------------------------------------------------------------------- #
+# Phase 20 — garde-fous HTTP : rate-limit par IP + taille max du corps.
+# Lus par requête (env modifiable sans restart) ; SSE/WS exclus du bucket.
+# --------------------------------------------------------------------------- #
+import threading as _th
+
+_RATE_STATE: Dict[str, list] = {}
+_RATE_LOCK = _th.Lock()
+
+
+def _rate_cfg() -> tuple:
+    try:
+        rps = float(os.getenv("GENIO_RATE_LIMIT_RPS", "20"))
+    except ValueError:
+        rps = 20.0
+    try:
+        burst = int(os.getenv("GENIO_RATE_LIMIT_BURST", "40"))
+    except ValueError:
+        burst = 40
+    try:
+        max_body = int(os.getenv("GENIO_MAX_BODY_BYTES", str(10 * 1024 * 1024)))
+    except ValueError:
+        max_body = 10 * 1024 * 1024
+    return rps, burst, max_body
+
+
+@app.middleware("http")
+async def _guards_middleware(request: Request, call_next):
+    path = request.url.path
+    # SSE + websockets : pas de bucket (connexions longues légitimes).
+    if path.startswith("/api/v1/telemetry") or path.startswith("/ws"):
+        return await call_next(request)
+    if path.startswith("/api/") or path == "/":
+        rps, burst, max_body = _rate_cfg()
+        if request.method in ("POST", "PUT", "PATCH"):
+            try:
+                length = int(request.headers.get("content-length", "0") or "0")
+            except ValueError:
+                length = 0
+            if length > max_body:
+                return JSONResponse(status_code=413, content={
+                    "detail": "payload too large"})
+        if path.startswith("/api/"):
+            client = request.client.host if request.client else "?"
+            key = f"{client}:{path.rsplit('/', 1)[0]}"
+            now = time.monotonic()
+            with _RATE_LOCK:
+                stamps = [t for t in _RATE_STATE.get(key, []) if now - t < 1.0]
+                if len(stamps) >= max(int(rps), 1) + burst:
+                    try:
+                        from genio_server.core.telemetry import get_telemetry
+                        get_telemetry().emit(
+                            "security.event", actor=client,
+                            result="rate-limited", decision="RATE_LIMIT")
+                    except Exception:
+                        pass
+                    return JSONResponse(status_code=429, content={
+                        "detail": "rate limited, slow down"})
+                stamps.append(now)
+                _RATE_STATE[key] = stamps[-max(int(rps), 1) - burst - 1:]
+    return await call_next(request)
+
+
 def _idle_timeout() -> int:
     return int(os.getenv("GENIO_SESSION_CONTAINER_IDLE_TIMEOUT", "1800"))
 
@@ -149,22 +213,43 @@ async def _stop_periodic_cleanup():
 def _authorized(key: Optional[str]) -> bool:
     if not API_KEY:
         return True
-    return bool(key) and key == API_KEY
+    if bool(key) and key == API_KEY:
+        return True
+    # Phase 20 : Bearer court-terme (jamais la clé maîtresse en URL).
+    if key and key.startswith("Bearer "):
+        try:
+            from genio_server.server.auth_tokens import verify_token
+            return verify_token(key[7:])
+        except Exception:
+            return False
+    return False
 
 
 def require_key(
     x_api_key: Optional[str] = Header(default=None),
+    authorization: Optional[str] = Header(default=None),
 ) -> None:
-    if not _authorized(x_api_key):
-        raise HTTPException(status_code=401, detail="invalid or missing API key")
+    if not _authorized(x_api_key) and not _authorized(authorization):
+        try:
+            from genio_server.core.telemetry import get_telemetry
+            get_telemetry().emit("security.event", actor="http",
+                                 result="auth-rejected", decision="DENY")
+        except Exception:
+            pass
+        raise HTTPException(status_code=401, detail="invalid or missing credentials")
 
 
 def _ws_authorized(ws: WebSocket) -> bool:
     if not API_KEY:
         return True
     header_key = ws.headers.get("x-api-key")
+    authz = ws.headers.get("authorization")
+    # Phase 20 : token éphémère préféré (`?token=`), clé longue `?key=` legacy.
+    query_token = ws.query_params.get("token")
     query_key = ws.query_params.get("key")
-    return _authorized(header_key) or _authorized(query_key)
+    return (_authorized(header_key) or _authorized(authz)
+            or _authorized(query_key)
+            or (bool(query_token) and _authorized(f"Bearer {query_token}")))
 
 
 # --------------------------------------------------------------------------- #
@@ -240,6 +325,27 @@ async def get_status(_: None = Depends(require_key)) -> Dict[str, Any]:
 @app.get("/api/v1/safety")
 def get_safety(_: None = Depends(require_key)) -> Dict[str, Any]:
     return {"ok": True, **SAFETY.snapshot()}
+
+
+@app.post("/api/v1/auth/token")
+def mint_auth_token(_: None = Depends(require_key)) -> Dict[str, Any]:
+    """Émet un Bearer éphémère (jamais la clé maîtresse côté client/URL)."""
+    try:
+        from genio_server.server.auth_tokens import mint_token
+        token, ttl = mint_token()
+    except RuntimeError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    return {"token": token, "expires_in_s": ttl, "scheme": "Bearer"}
+
+
+def _public_error(exc: BaseException, prefix: str) -> str:
+    """Assainit les erreurs 500/WS : jamais de traceback ni de chemin hôte."""
+    msg = f"{type(exc).__name__}: {exc}"
+    msg = re.sub(r"/[^\s:]*", "[path]", msg)
+    return f"{prefix}: {msg[:200]}"
+
+
+@app.post("/api/v1/safety")
 
 
 @app.post("/api/v1/safety")
@@ -655,16 +761,17 @@ async def ws_agent(ws: WebSocket, node: str = Query(default=None)) -> None:
                 # (REQUIRE_CONFIRMATION). Nonce unique, booléen explicite.
                 nonce = str(msg.get("nonce") or "").strip()
                 approved = bool(msg.get("approved", False))
-                if not nonce:
+                if not re.fullmatch(r"[0-9a-f]{32}", nonce):
                     await safe_send(ws, {"type": "error",
-                                         "message": "missing nonce"})
+                                         "message": "invalid nonce shape"})
                     continue
                 try:
                     from core.policy_engine import get_policy_engine
                     ok = get_policy_engine().resolve(nonce, approved)
                 except Exception as exc:
                     await safe_send(ws, {"type": "error",
-                                         "message": f"approve failed: {exc}"})
+                                         "message": _public_error(
+                                             exc, "approve failed")})
                     continue
                 await safe_send(ws, {"type": "approval_resolved",
                                      "nonce": nonce, "approved": approved,
@@ -721,7 +828,8 @@ async def ws_agent(ws: WebSocket, node: str = Query(default=None)) -> None:
                 except OllamaConnectionError as exc:
                     await safe_send(ws, {"type": "error", "message": str(exc)})
                 except Exception as exc:  # never let one run kill the socket
-                    await safe_send(ws, {"type": "error", "message": f"agent run failed: {exc}"})
+                    await safe_send(ws, {"type": "error", "message": _public_error(
+                        exc, "agent run failed")})
                 finally:
                     _ACTIVE_RUNS[conn_id] = False
                 continue
