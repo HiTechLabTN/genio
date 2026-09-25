@@ -24,6 +24,52 @@ class ModelEndpoint:
     api_key: str = ""
     timeout: float = 180.0
     priority: int = 0
+    backend: str = "OLLAMA_LOCAL"
+
+
+class Backend:
+    """Taxonomie backends Phase 13 (souveraineté explicite)."""
+    OLLAMA_LOCAL = "OLLAMA_LOCAL"
+    GGUF_DIRECT = "GGUF_DIRECT"
+    HITECH_OS_DAEMON = "HITECH_OS_DAEMON"
+    CLOUD_FALLBACK = "CLOUD_FALLBACK"
+
+
+def cloud_authorized() -> bool:
+    """Autorisation EXPLICITE opérateur pour le fallback cloud.
+
+    Aucune donnée privée ne transite vers un cloud sans ce flag
+    (GENIO_ALLOW_CLOUD=1). Défaut : refus (fail-closed vie privée).
+    """
+    import os as _os
+    return _os.getenv("GENIO_ALLOW_CLOUD", "").strip().lower() in (
+        "1", "true", "yes")
+
+
+def declared_backends() -> list:
+    """Inventaire : backends connus + disponibilité + raison.
+
+    GGUF_DIRECT (llama-server) et HITECH_OS_DAEMON (UDS) sont déclarés même
+    indisponibles — traçabilité Phase 14, jamais de fallback silencieux.
+    """
+    import os as _os
+    import shutil as _sh
+    out = [{"backend": Backend.OLLAMA_LOCAL, "available": True,
+            "reason": "local ollama"}]
+    gguf = bool(_sh.which("llama-server") or _os.getenv("GENIO_GGUF_URL"))
+    out.append({"backend": Backend.GGUF_DIRECT, "available": gguf,
+                "reason": "llama-server/GENIO_GGUF_URL absent"
+                if not gguf else "llama-server présent"})
+    sock = _os.getenv("GENIO_HITECHOS_SOCK", "/run/hitechos/ai.sock")
+    present = bool(_os.path.exists(sock))
+    out.append({"backend": Backend.HITECH_OS_DAEMON, "available": present,
+                "reason": "socket indisponible (Phase 14)"
+                if not present else f"socket {sock}"})
+    out.append({"backend": Backend.CLOUD_FALLBACK,
+                "available": cloud_authorized(),
+                "reason": "GENIO_ALLOW_CLOUD=1"
+                if cloud_authorized() else "cloud non autorisé (défaut)"})
+    return out
 
 
 @dataclass
@@ -62,6 +108,7 @@ class ModelRouter:
                 api_key=cfg.openrouter.api_key,
                 timeout=60.0,
                 priority=100,
+                backend=Backend.CLOUD_FALLBACK,
             ))
         # Phase C: Gemini as additional provider endpoint, failover via ModelRouter.
         # Key is read server-side only via GENIO_GEMINI_API_KEY; never exposed to client.
@@ -74,6 +121,7 @@ class ModelRouter:
                 api_key=cfg.gemini.api_key,
                 timeout=60.0,
                 priority=90,
+                backend=Backend.CLOUD_FALLBACK,
             ))
         self.state = RouterState()
         self.endpoints.sort(key=lambda e: e.priority)
@@ -83,6 +131,31 @@ class ModelRouter:
         if time.monotonic() < cooldown:
             return False
         return True
+
+    def _cloud_ok(self, ep: ModelEndpoint, errors: list) -> bool:
+        """Porte de confidentialité Phase 13 : cloud = autorisation explicite.
+
+        Sans GENIO_ALLOW_CLOUD=1, l'endpoint est sauté (jamais de fuite
+        silencieuse) et le saut est consigné dans errors pour traçabilité.
+        """
+        if ep.backend == Backend.CLOUD_FALLBACK and not cloud_authorized():
+            errors.append(f"{ep.name}: skipped (cloud not authorized — "
+                          f"set GENIO_ALLOW_CLOUD=1)")
+            logger.info(f"[router] 🔒 {ep.name} skipped: cloud not authorized")
+            return False
+        return True
+
+    def breaker_state(self, name: str) -> dict:
+        """État disjoncteur exposé (tests + télémétrie)."""
+        return {"failures": self.state.failures.get(name, 0),
+                "cooldown_until": self.state.cooldown_until.get(name, 0),
+                "in_cooldown": time.monotonic() < self.state.cooldown_until.get(name, 0)}
+
+    def backends(self) -> list:
+        """Inventaire déclaré + endpoints vivants."""
+        return {"declared": declared_backends(),
+                "endpoints": [{"name": e.name, "backend": e.backend,
+                               "model": e.model} for e in self.endpoints]}
 
     def _mark_failure(self, ep: ModelEndpoint):
         count = self.state.failures.get(ep.name, 0) + 1
@@ -120,6 +193,8 @@ class ModelRouter:
         for ep in self.endpoints:
             self._check_cancelled(cancel_event)
             if not self._is_available(ep):
+                continue
+            if not self._cloud_ok(ep, errors):
                 continue
             for attempt in range(1, 3):  # one retry for gemma4 empty-generation bug
                 self._check_cancelled(cancel_event)
@@ -167,6 +242,8 @@ class ModelRouter:
         for ep in self.endpoints:
             self._check_cancelled(cancel_event)
             if not self._is_available(ep):
+                continue
+            if not self._cloud_ok(ep, errors):
                 continue
             try:
                 content, eval_count, tok_per_s = await asyncio.wait_for(
