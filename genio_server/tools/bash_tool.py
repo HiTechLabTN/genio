@@ -75,6 +75,15 @@ def is_dangerous(command: str) -> Optional[str]:
     """
     if not command or not command.strip():
         return None
+    # Phase 7 : validation structurée D'ABORD (couche primaire) — les regex
+    # historiques ci-dessous restent en défense en profondeur.
+    try:
+        from genio_server.tools.bash_ast import denial_reason
+        structured = denial_reason(command)
+        if structured:
+            return structured
+    except Exception:
+        pass
     if not _allow_sudo() and _contains_sudo(command):
         return "sudo is disabled (set GENIO_ALLOW_SUDO=1 to enable)"
 
