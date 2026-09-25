@@ -280,11 +280,24 @@ def _session_context_block(memory=None) -> str:
     except Exception:
         text = ""
     if not text:
-        return ""
-    return (
-        "\n\nSESSION CONTEXT (durable facts about the project/user, treat as "
-        "authoritative ground truth):\n" + text
-    )
+        text = ""
+    else:
+        text = (
+            "\n\nSESSION CONTEXT (durable facts about the project/user, treat as "
+            "authoritative ground truth):\n" + text
+        )
+    # Phase 12 : faits sémantiques autoritaires (métadonnées vérifiées) —
+    # additif uniquement, jamais de remplacement du contexte existant.
+    try:
+        from genio_server.core.memory_schema import SemanticMemory
+        facts = SemanticMemory().read_authoritative(limit=10)
+        if facts:
+            text += ("\n\nSEMANTIC FACTS (verified durable memory):\n" + "\n".join(
+                f"- {f.text} [conf={f.confidence_score:g} src={f.source}]"
+                for f in facts))
+    except Exception:
+        pass
+    return text
 
 
 def build_instructions(mode: str = DEFAULT_MODE, memory=None) -> str:
