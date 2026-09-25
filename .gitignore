@@ -43,3 +43,13 @@ local_workspace/
 tmp/
 **/venv_voder/
 venv_voder/
+
+# 5. Secrets & credentials — JAMAIS committés (placeholders uniquement si requis
+#    par un loader, avec valeur vide ; les vrais tokens vivent hors repo).
+**/*TOKEN*.txt
+**/*SECRET*.txt
+**/*CREDENTIALS*.txt
+**/*_KEY.txt
+**/*.pem
+**/*.key
+.env.*

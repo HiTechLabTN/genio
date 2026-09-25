@@ -1,0 +1,17 @@
+[
+  {
+    "name": "auto-1790120464",
+    "description": "compiled from prompt: شوف شنو فما في dossier /data/ai_tools/genio/export، ومبعد قولي قداش من fichier",
+    "prompt_re": "(?=.*\\bai_tools\\b)(?=.*\\bdossier\\b)(?=.*\\bfichier\\b).*",
+    "params": [],
+    "steps": [
+      {
+        "command": "ls -1 /data/ai_tools/genio/export"
+      },
+      {
+        "command": "ls -1 /data/ai_tools/genio/export | wc -l"
+      }
+    ],
+    "compiled_at": "2026-09-22T23:41:04Z"
+  }
+]

@@ -199,13 +199,14 @@ function startSpeechRecognition(onTranscript: (text: string, final: boolean) => 
 }
 
 function scheduleSilenceStop() {
-  // Auto-stop after ~2.5s of no final transcript while idle-audio.
+  // Auto-stop après 1.5s de silence (VAD) : dès que l'utilisateur se tait,
+  // on coupe l'enregistrement et on expédie le tour immédiatement.
   if (silenceTimer) clearTimeout(silenceTimer);
   silenceTimer = setTimeout(() => {
     if (recorder && recorder.state === "recording") {
       stopVoiceRecording().catch(() => {});
     }
-  }, 2500);
+  }, 1500);
 }
 
 export function speechRecognitionSupported(): boolean {

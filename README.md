@@ -1,51 +1,65 @@
-# 🧞 Genio — Sovereign Autonomous AI Co-Founder & Technical Director
+# 🇹🇳 Genio (جينيو) — الرفيق والذكاء الاصطناعي السيادي التونسي
 
-> **Genio** est l'ecosysteme d'intelligence artificielle souverain de l'infrastructure **HiTech Lab**.
-> Concu pour operer en local sur station de travail (RTX 3060 12GB) et maille avec le cloud/VPS via Tailscale et Cloudflare Tunnels.
 
----
+<p align="center">
+  <img src="assets-pipeline/genio_banner.png" alt="Genio Logo" width="600px" onerror="this.style.display='none'"/>
+</p>
 
-## 🏛️ Architecture & Composants Cles
 
-                            ┌───────────────────────────────┐
-                            │   Sovereign Cockpit (PWA)     │
-                            └──────────────┬────────────────┘
-                                           │ WebSocket / WebRTC
-                                           ▼
-    ┌─────────────────────────────────────────────────────────────────────────────┐
-    │ Pop!_OS / HiTech-OS Host (RTX 3060 12GB)                                    │
-    │                                                                             │
-    │  [3D Avatar Engine]      [Core Agent Loop]        [Voice Synthesis]         │
-    │  - Rigged Chibi GLB      - Gemma4:12B / Qwen2.5   - VODER Zero-Shot Local   │
-    │  - Bone socket submeshes - 100% Tunisian Darija   - Low-latency port :5050  │
-    │  - Three.js / React-R3F  - 0% Latin token leak    - Auto-offload idle 300s  │
-    │                                                                             │
-    │  [Midnight Patrol & Compiler]       [Telemetry & Health Probe]              │
-    │  - Deterministic Scoring (0.5/0.3)  - JSON Telemetry (:8095, GPU, Mesh)    │
-    │  - Skill generation in /compiled/   - genio-probe CLI daemon                │
-    └─────────────────────────────────────────────────────────────────────────────┘
+<p align="center">
+  <b>ذكاء اصطناعي محلي 100%، يحكي تونسي، يخدم على سيرفرك، ويحمي بياناتك بسيادة كاملة.</b>
+</p>
+
 
 ---
 
-## 📊 Etat des Validations (Release Milestone)
 
-| Chantier | Composant / Module | Metrique / Statut | Description |
-| :--- | :--- | :--- | :--- |
-| **Partie A** | Avatar 3D Chibi & Sockets | **PASS** | v2_fallback_baked_rigged.glb + sous-maillages (gland, casque). |
-| **Partie B** | Mouvement & Cinematique | **PASS (11.75%)** | 60 FPS synchronise, cinematique continue sans vertex tearing. |
-| **Partie C** | Persona Darija & Anti-leak | **PASS (0.00%)** | 10 cycles AgentLoop : 0.00% fuite latine, Darija pure. |
-| **Partie D** | Evolution & Patrouille Minuit| **PASS** | Scoring deterministe (0.5/0.3/0.2) + timer 03:00. |
-| **Audio** | VODER Zero-Shot Cloning | **ACTIVE (:5050)**| Remplacement souverain d'ElevenLabs avec dechargement intelligent. |
-| **Ops** | Sonde Telemetrique | **ACTIVE** | Sortie JSON standardisee pour monitoring et self-healing. |
+## 💡 شكونو جينيو (Genio)؟
+
+
+**جينيو** موش مجرد واجهة لنموذج ذكاء اصطناعي عادي، جينيو هو **شريك عمل ورفيق يومي** مبني بخصائص سيادية:
+- 🗣️ **يفهم ويحكي تونسي:** بفضل محرك الصوت التونسي الأصيل (**VODER Engine**)، جينيو يتواصل بالدارجة التونسية بطلاقة وفهم عميق للثقافة والسياق المحلي.
+- 🔒 **سيادة رقمية وأمان تام:** كل البيانات، النماذج، والذاكرة تخدم محلياً ومحمية بدون إرسال أسرارك لسيرفرات طرف ثالث.
+- 🧠 **ذاكرة موحدة ومستودع ملفات:** مربوط مباشرة بـ **HiTech Drive** لتبادل التقارير، الملفات الكبيرة، وأوزان النماذج بسلاسة.
+- ⚡ **تفاعل بالصوت والأفاتار:** تجربة تفاعلية تجمع بين الصوت الطبيعي وواجهة الأفاتار المباشرة.
+
 
 ---
 
-## 🚀 Installation & Deploiement Rapide (HiTech-OS / Debian-based)
 
-Pour deployer Genio sur une nouvelle infrastructure ou apres l'installation de HiTech-OS :
+## 🏛️ البنية المعمارية (Architecture)
 
-    git clone [https://github.com/HiTechTN/Genio.git](https://github.com/HiTechTN/Genio.git) /data/ai_tools/genio
-    cd /data/ai_tools/genio
-    chmod +x deploy/bootstrap_hitech_os.sh
-    ./deploy/bootstrap_hitech_os.sh
 
+يتكون نظام جينيو من طبقات متناسقة:
+1. **Core Runtime & Server (`genio_server/`):** إدارة المحادثات، التفكير، وتوجيه المهام محلياً.
+2. **محرك الصوت التونسي (`engines/voder/`):** توليد الكلام والصوت التونسي (Text-to-Speech) بدقة وسرعة.
+3. **واجهة التفاعل والعميل (`genio_client/` & `web/`):** واجهة ويب سريعة وخفيفة وتطبيقات تفاعلية.
+4. **تخزين الذاكرة والأصول (`HiTech Drive`):** إدارة وحفظ مخرجات المهام، النماذج (MLOps)، والتقارير عبر شبكة محلية مشفرة.
+
+
+---
+
+
+## 🚀 التشغيل والتثبيت السريع
+
+
+### المتطلبات الأساسية
+- بيئة عمل لينكس مدعومة بالتسريع العتادي المحلي.
+- بيئة بايثون حديثة ومستقرة.
+- اتصال بـ HiTech Drive لمزامنة الذاكرة والملفات الضخمة.
+
+
+### خطوات الإطلاق
+```bash
+# 1. الدخول لمجلد المشروع
+cd /data/ai_tools/genio
+
+
+# 2. تشغيل سكريبت الإطلاق السيادي
+./deploy/bootstrap_hitech_os.sh
+
+
+# 3. التحقق من صحة النظام
+genio-probe
+🤝 المساهمة والخصوصية
+هذا المشروع مطوّر وموجّه لبناء تقنيات ذكاء اصطناعي سيادية تونسية. نحرص على فصل الأكواد البرمجية عن النماذج الضخمة لضمان خفة وسرعة المستودع.

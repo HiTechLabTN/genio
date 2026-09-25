@@ -21,10 +21,18 @@ sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)),
                                 "src"))
 
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
 app = FastAPI(title="VODER audio service")
+# Sovereign web UI (genio_client) appelle POST /synthesize depuis le navigateur.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["GET", "POST"],
+    allow_headers=["Content-Type"],
+)
 VRAM_CAP_MB = 3200
 UNLOAD_IDLE_S = 300
 
@@ -37,6 +45,35 @@ class SynthReq(BaseModel):
     text: str
     speaker_wav: str = ""
     language: str = "ar"
+
+
+# Voix masculine souveraine par défaut (145.5Hz médian mesuré — profil grave
+# "Jarvis"). Un speaker_wav explicite et existant prime toujours dessus.
+DEFAULT_SPEAKER = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                               "voices", "speaker_male_sovereign.wav")
+
+
+def _jarvis_filter(wav: "np.ndarray", sr: int) -> "np.ndarray":
+    """Post-filtre Jarvis : bass shelf +6dB @120Hz (autorité grave) +
+    léger sheen métallique (excitation harmonique douce à 5%).
+    Numpy pur — aucune dépendance supplémentaire.
+    """
+    import numpy as np
+    x = wav.astype(np.float64)
+    # Bass shelf : one-pole lowpass mixé à +6dB sous ~120Hz.
+    alpha = 1.0 - float(np.exp(-2.0 * np.pi * 120.0 / sr))
+    y = np.zeros_like(x)
+    acc = 0.0
+    for i in range(x.shape[0]):
+        acc += alpha * (x[i] - acc)
+        y[i] = acc
+    x = x + y  # +6dB graves
+    # Sheen : 5% d'harmonique 2 douce (tanh) pour la brillance métallique.
+    x = x + 0.05 * np.tanh(2.0 * x)
+    peak = float(np.max(np.abs(x))) or 1.0
+    if peak > 0.98:
+        x = x * (0.98 / peak)
+    return x.astype(np.float32)
 
 
 def _vram_mb() -> float:
@@ -91,10 +128,12 @@ def synthesize(req: SynthReq):
     except RuntimeError as e:
         raise HTTPException(503, str(e))
     with _lock:
-        if req.speaker_wav and os.path.exists(req.speaker_wav):
-            if not tts.extract_voice(req.speaker_wav):
-                raise HTTPException(422, "extract_voice a échoué sur "
-                                         + req.speaker_wav)
+        ref = req.speaker_wav if req.speaker_wav and os.path.exists(req.speaker_wav) else ""
+        if not ref and os.path.exists(DEFAULT_SPEAKER):
+            ref = DEFAULT_SPEAKER  # voix masculine souveraine par défaut
+        if ref:
+            if not tts.extract_voice(ref):
+                raise HTTPException(422, "extract_voice a échoué sur " + ref)
         elif tts.voice_prompt is None:
             raise HTTPException(422, "speaker_wav introuvable et aucune voix "
                                      "en cache — fournissez un wav de référence")
@@ -105,5 +144,14 @@ def synthesize(req: SynthReq):
     _maybe_unload()
     if not ok:
         raise HTTPException(500, "synthèse TTS échouée")
+    # Post-filtre Jarvis (grave + sheen) appliqué sur le wav cloné.
+    try:
+        import soundfile as sf
+        import numpy as np
+        data, sr = sf.read(tmp.name, dtype="float32")
+        mono = data.mean(axis=1) if data.ndim > 1 else data
+        sf.write(tmp.name, _jarvis_filter(np.asarray(mono), sr), sr)
+    except Exception as e:
+        print(f"[voder] jarvis filter skipped: {e}")
     return FileResponse(tmp.name, media_type="audio/wav",
                         filename="genio_tts.wav")

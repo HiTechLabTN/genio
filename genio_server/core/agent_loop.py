@@ -43,7 +43,7 @@ if TYPE_CHECKING:
 
 DEFAULT_MODEL = os.environ.get("GENIO_MODEL", "gemma4:12b")
 OLLAMA_URL = os.environ.get("GENIO_OLLAMA_URL", "http://127.0.0.1:11434")
-DEFAULT_MAX_ITERATIONS = int(os.environ.get("GENIO_MAX_ITERATIONS", "15"))
+DEFAULT_MAX_ITERATIONS = int(os.environ.get("GENIO_MAX_ITERATIONS", "5"))
 DEFAULT_MODE = os.environ.get("GENIO_MODE", "autonomous")
 STEP_TIMEOUT = 120  # seconds per model request
 
@@ -615,7 +615,7 @@ class AgentLoop:
                     res = fast.get("result") or fast
                     yield {"type": "tool_call", "command": res.get("command", "")}
                     yield {"type": "tool_result", "result": res}
-                    final_answer = f"[Reflex fast-path] {res.get('stdout', '').strip()}"
+                    final_answer = f"[ردّ سريع من جينيو] {res.get('stdout', '').strip()}"
                     await self._save_message("assistant", final_answer)
                     yield {"type": "answer", "text": final_answer}
                     return

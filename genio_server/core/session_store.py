@@ -96,6 +96,13 @@ class SessionStore:
         turns into ``sessions.summary``. Bounded storage by construction."""
         db = await self._db()
         seq = await self._next_seq(session_id)
+        # Named sessions (ex: "azmi") : crée la ligne parent si absente, sinon
+        # load_session() répond exists=False et chaque turn repart amnésique.
+        await db.execute(
+            "INSERT OR IGNORE INTO sessions(id, created_at, updated_at, mode, status, summary) "
+            "VALUES (?, ?, ?, ?, ?, ?)",
+            (session_id, _now(), _now(), "autonomous", "active", ""),
+        )
         await db.execute(
             "INSERT INTO messages(session_id, seq, role, content, ts) VALUES (?,?,?,?,?)",
             (session_id, seq, role, content, _now()),

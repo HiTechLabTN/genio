@@ -65,6 +65,16 @@ def _invoke_bash(command: str, session_id: Optional[str] = None) -> Dict[str, ob
 _R = re.compile
 _REFLEX_PATTERNS: List[Dict[str, object]] = [
     {
+        # Salutations pures UNIQUEMENT (match exact ancré ^…$ — jamais de
+        # tâche réelle hijackée). Réponse instantanée <1s, 100% Darija.
+        "name": "greeting",
+        "prompt_re": _R(r"^\s*(عسلامة|سلام|مرحبا|اهلا|أهلا|صباح الخير|صباح النور|"
+                        r"مساء الخير|bonjour|salut|hello|hi|hey|cc|yo|azul)"
+                        r"[\s!?.،…]*$"),
+        "handler": "bash",
+        "command": "echo 'عسلامة بيك! أنا جينيو، المهندس متاعك في هايتيك لاب. شنو تحب نعمل اليوم؟'",
+    },
+    {
         "name": "system_health",
         "prompt_re": _R(r"(system\s*health|check\s*(the\s*)?system|resource\s*usage|"
                         r"how\s*(is|are)\s*(cpu|ram|memory|disk)|uptime|load\s*average)",

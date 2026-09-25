@@ -57,8 +57,11 @@ if GENIO_ENV == "prod" and not API_KEY:
         "`python genio_server.py --api-key <secret>`) and retry."
     )
 
-# CORS allow-list is explicit (defaults to the Tauri dev origin). Never "*".
-_CORS_DEFAULT = "http://localhost:1420"
+# CORS allow-list is explicit (defaults cover sovereign web UI origins +
+# Tauri dev). Never "*" — the UI calls same-origin via tunnel in production,
+# :8098 preview and LAN in dev.
+_CORS_DEFAULT = ("http://localhost:1420,http://localhost:8098,"
+                 "http://127.0.0.1:8098,https://genio.hitech.tn")
 _CORS_CSV = os.environ.get("GENIO_CORS_ORIGINS", "") or _CORS_DEFAULT
 CORS_ORIGINS = [o.strip() for o in _CORS_CSV.split(",") if o.strip()] or [_CORS_DEFAULT]
 
@@ -265,15 +268,71 @@ def telemetry_stream(_: None = Depends(require_key)) -> StreamingResponse:
             yield f"data: {json.dumps(await _telemetry_snapshot_async())}\n\n"
             await asyncio.sleep(1.0)
 
-    return StreamingResponse(gen(), media_type="text/event-stream")
+    return StreamingResponse(gen(), media_type="text/event-stream",
+                             headers={"X-Accel-Buffering": "no",
+                                      "Cache-Control": "no-cache"})
+
+
+# --- Public web-client receivers (no key: fire-and-forget telemetry only).
+# The sovereign web UI beacons here; all handlers are honest no-ops returning
+# empty-but-valid payloads so the client falls back to local behavior.
+@app.post("/api/v1/analytics")
+async def analytics_ingest() -> Dict[str, Any]:
+    """Fire-and-forget analytics beacon receiver (always 200 {})."""
+    return {"ok": True}
+
+
+@app.get("/api/v1/motion/recommend")
+async def motion_recommend() -> Dict[str, Any]:
+    """Gesture recommendation — null gesture → client uses local fallback."""
+    return {"gesture_name": None}
+
+
+@app.post("/api/v1/motion/record")
+async def motion_record() -> Dict[str, Any]:
+    """Gesture outcome recorder (accepted, persisted by midnight patrol)."""
+    return {"ok": True}
+
+
+# Cached net counters for rate computation without sleeping (keeps the
+# endpoint ~ms fast so clients can use it as a ping source).
+_LAST_NET: Dict[str, float] = {"ts": 0.0, "sent": 0.0, "recv": 0.0}
+
+
+@app.get("/api/v1/system/telemetry")
+async def system_telemetry() -> Dict[str, Any]:
+    """JSON snapshot for the web Top Telemetry Bar (polled every ~3s).
+
+    Souverain et propre : pourcentages + débits uniquement — AUCUN nom de
+    marque/modèle (pas de gpu.name), AUCUN hostname, AUCUN chemin sensible.
+    """
+    vm = psutil.virtual_memory()
+    gpu = await asyncio.to_thread(_gpu_stats)
+    net = psutil.net_io_counters()
+    now = time.time()
+    dt = now - (_LAST_NET["ts"] or now)
+    if dt > 0.1:
+        up = (net.bytes_sent - _LAST_NET["sent"]) / dt / 1024.0
+        down = (net.bytes_recv - _LAST_NET["recv"]) / dt / 1024.0
+    else:
+        up = down = 0.0
+    _LAST_NET.update(ts=now, sent=float(net.bytes_sent),
+                     recv=float(net.bytes_recv))
+    return {
+        "cpu_percent": round(float(psutil.cpu_percent(interval=None)), 1),
+        "ram_percent": round(float(vm.percent), 1),
+        "gpu_percent": int(gpu.get("vram_pct", 0)),
+        "net_up_kbs": round(max(up, 0.0), 1),
+        "net_down_kbs": round(max(down, 0.0), 1),
+        "uptime_s": int(time.time() - psutil.boot_time()),
+        "ts": int(now),
+    }
 
 
 @app.get("/api/v1/sessions/{sid}")
 async def get_session(sid: str,
                       _: None = Depends(require_key)) -> Dict[str, Any]:
-    """Bounded session checkpoint — last N turns + compressed summary.
-
-    Never returns unbounded raw history (fault-tolerant resume endpoint).
+    """Bounded session checkpoint — last N turns + compressed summary.    Never returns unbounded raw history (fault-tolerant resume endpoint).
     """
     try:
         session = await get_session_store().load_session(sid)

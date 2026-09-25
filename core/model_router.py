@@ -116,7 +116,7 @@ class ModelRouter:
         """
         errors = []
         import os
-        turn_timeout = float(os.getenv("GENIO_MODEL_TURN_TIMEOUT", "30"))
+        turn_timeout = float(os.getenv("GENIO_MODEL_TURN_TIMEOUT", "120"))
         for ep in self.endpoints:
             self._check_cancelled(cancel_event)
             if not self._is_available(ep):
@@ -162,7 +162,7 @@ class ModelRouter:
         cancel the task to close the HTTP connection.
         """
         import os
-        turn_timeout = float(os.getenv("GENIO_MODEL_TURN_TIMEOUT", "30"))
+        turn_timeout = float(os.getenv("GENIO_MODEL_TURN_TIMEOUT", "120"))
         errors = []
         for ep in self.endpoints:
             self._check_cancelled(cancel_event)

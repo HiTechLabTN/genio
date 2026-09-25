@@ -12,12 +12,15 @@ import type { Attachment, ServerNode } from "./lib/types";
 import { ErrorBoundary } from "./components/v3";
 import { useVoiceOutput } from "./components/v3/useVoiceOutput";
 import IslamicPatterns from "./components/background/IslamicPatterns";
+import TelemetryBar from "./components/TelemetryBar";
 import IntroCinematic from "./components/intro/IntroCinematic";
-import StateLoopAvatar from "./components/mascot/StateLoopAvatar";
-import MascotStage from "./components/mascot/MascotStage";
 import CinematicPortalSplash from "./components/layout/CinematicPortalSplash";
+import CinematicAvatar from "./components/CinematicAvatar";
+// MascotStage (graphe Three.js/GLB + useGLTF.preload au niveau module) en
+// lazy : le chunk 3D + les .glb ne se téléchargent QUE si l'utilisateur entre
+// réellement en mode mascotte. Fichiers Partie A intacts (aucune édition).
 import { lazy } from "react";
-const Genio3D = lazy(() => import("./components/mascot/Genio3D"));
+const MascotStage = lazy(() => import("./components/mascot/MascotStage"));
 import {
   setIntermediateTranscript,
   startVoiceRecording,
@@ -25,6 +28,46 @@ import {
   speechRecognitionSupported,
   transcribeAudio,
 } from "./lib/audio";
+
+// Sovereign agent view — VODER voice playback for answers.
+// POSTs Darija text to the local VODER service and plays the returned wav.
+// CORS is enabled server-side (voder_service CORSMiddleware).
+const VODER_URL =
+  (typeof window !== "undefined" &&
+    (window as unknown as { __GENIO_VODER_URL?: string }).__GENIO_VODER_URL) ||
+  "http://127.0.0.1:5050";
+let voderAudio: HTMLAudioElement | null = null;
+async function speakViaVoder(text: string): Promise<void> {
+  try {
+    voderAudio?.pause();
+    const res = await fetch(`${VODER_URL}/synthesize`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text: text.slice(0, 500), language: "auto" }),
+    });
+    if (!res.ok) return;
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    voderAudio = new Audio(url);
+    voderAudio.onended = () => URL.revokeObjectURL(url);
+    await voderAudio.play();
+  } catch {
+    // voice unavailable — silent no-op, text remains the source of truth
+  }
+}
+
+// Smoke seed (?smoke=1) : a synthetic turn exercising the collapsible
+// thought/tool/answer rendering without a live backend.
+function isSmokeSeed(): boolean {
+  try {
+    return (
+      typeof window !== "undefined" &&
+      new URLSearchParams(window.location.search).has("smoke")
+    );
+  } catch {
+    return false;
+  }
+}
 
 export default function App() {
   const [showGoogleAuth, setShowGoogleAuth] = useState(() => shouldShowGoogleAuth());
@@ -46,11 +89,13 @@ export default function App() {
   }, [showGoogleAuth]);
 
   // Partie A — interface mascotte primaire par défaut, bascule technique ↔ mascotte
+  // Écran par défaut = Mode technique (vue agent 2D légère, sans canvas 3D
+  // lourd). Choix persistant respecté si déjà enregistré.
   const [interfaceMode, setInterfaceMode] = useState<"mascot" | "technique">(() => {
     try {
-      return (localStorage.getItem("genio.interfaceMode") as "mascot" | "technique") || "mascot";
+      return (localStorage.getItem("genio.interfaceMode") as "mascot" | "technique") || "technique";
     } catch {
-      return "mascot";
+      return "technique";
     }
   });
   useEffect(() => {
@@ -68,6 +113,7 @@ export default function App() {
     agentStatus: wsAgentStatus,
     telemetry,
     chat: wsChat,
+    addChat,
     connect,
     disconnect,
     send,
@@ -80,6 +126,26 @@ export default function App() {
   const [geminiStatus, setGeminiStatus] = useState<typeof wsAgentStatus>({ kind: "idle" });
   const chat = isGeminiCloud ? geminiChat : wsChat;
   const agentStatus = isGeminiCloud ? geminiStatus : wsAgentStatus;
+
+  // Smoke seed (?smoke=1) — injecte un tour synthétique thought/tool/answer
+  // pour valider le rendu collapsible sans backend live.
+  useEffect(() => {
+    if (!isSmokeSeed()) return;
+    const seed = [
+      { type: "thought", text: "عسلامة! نثبت في الطلب متاعك ونحضر الأدوات اللازمة." },
+      { type: "tool_call", command: '{"tool": "bash", "command": "pwd && ls"}' },
+      {
+        type: "tool_result",
+        result: { stdout: "/data/ai_tools/genio\n", returncode: 0 },
+      },
+      { type: "answer", text: "تمّت المهمة بنجاح ✅ — تحب نكمل في حاجة أخرى؟" },
+    ] as typeof wsChat;
+    // Seed both lanes: the visible lane depends on connection state
+    // (sovereign wsChat when connected, geminiChat cloud lane otherwise).
+    addChat(seed);
+    setGeminiChat(seed);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const sendPrompt = isGeminiCloud
     ? (text: string, attachments?: Attachment[]) => {
@@ -168,6 +234,8 @@ export default function App() {
 
   const [update, setUpdate] = useState<{ version: string; notes?: string } | null>(null);
   const lastPromptRef = useRef("");
+  // Garde anti double-déclenchement micro tactile (pointerup + click émulé).
+  const micTouchTsRef = useRef(0);
   const [splashReady] = useState(true);
   // Splash MUST play on every visit to /app — no sessionStorage skip
   const [showCinematic, setShowCinematic] = useState<boolean>(() => true);
@@ -499,7 +567,14 @@ export default function App() {
   if (interfaceMode === "mascot") {
     return (
       <ErrorBoundary name="MascotStage-root">
-        <MascotStage
+        <Suspense
+          fallback={
+            <div className="fixed inset-0 flex items-center justify-center bg-[#020B1E]">
+              <p className="font-mono text-sm text-white/60">…تحميل المشهد</p>
+            </div>
+          }
+        >
+          <MascotStage
           chat={chat}
           agentStatus={agentStatus}
           sendPrompt={(text, attachments) => {
@@ -507,12 +582,18 @@ export default function App() {
           }}
           onSwitchToTechnicalMode={() => setInterfaceMode("technique")}
         />
+        </Suspense>
       </ErrorBoundary>
     );
   }
 
   return (
     <div className="fixed inset-0 h-[100dvh] w-full overflow-hidden bg-[#020B1E]">
+      {/* Barre télémétrie souveraine — sticky top, vitals temps réel */}
+      <TelemetryBar
+        status={(agentStatus as { kind?: string }).kind ?? "idle"}
+        connected={connected}
+      />
       {/* Bascule retour vers mascotte primaire (Partie A) — dashboard v4.1 intact */}
       <button
         onClick={() => setInterfaceMode("mascot")}
@@ -528,13 +609,12 @@ export default function App() {
         </div>
       </ErrorBoundary>
 
-      {/* z-1 Full 3D Genio — photoréaliste 70k polys + PBR 2K + Rig 34 bones + 60FPS — fallback 2.5D */}
+      {/* z-1 Cinematic 2.5D — remplace le canvas Three.js/GLB lourd (perf
+          mobile). MascotStage/RiggedMascot (Partie A) intacts par ailleurs. */}
       {showV3Portal ? (
         <div className="absolute inset-0 z-[1]">
-          <ErrorBoundary name="Genio3D">
-            <Suspense fallback={<StateLoopAvatar status={mascotStatus} audioLevel={audioLevel} />}>
-              <Genio3D audioLevel={audioLevel} status={mascotStatus} />
-            </Suspense>
+          <ErrorBoundary name="CinematicAvatar">
+            <CinematicAvatar audioLevel={audioLevel} status={mascotStatus} />
           </ErrorBoundary>
         </div>
       ) : (
@@ -597,7 +677,9 @@ export default function App() {
                         const t = (c as unknown as { type?: string }).type;
                         if (t === "pong") return false;
                         if (t === "stats") return false;
-                        if (t === "thought") return false;
+                        // Sovereign agent view: sanitized Darija thoughts +
+                        // tool calls/results render as collapsibles (below).
+                        if (t === "thought" || t === "tool_call" || t === "tool_result") return true;
                         // string contains pong heartbeats
                         const raw = JSON.stringify(c).toLowerCase();
                         if (raw.includes("pong")) {
@@ -619,7 +701,39 @@ export default function App() {
                         return true;
                       })
                       .slice(-14)
-                      .map((c, i) => {
+                      .map((c, i, arr) => {
+                      const ctype = (c as unknown as { type?: string }).type;
+                      const isLast = i === arr.length - 1;
+                      // — Sovereign agent view: collapsible reasoning —
+                      if (ctype === "thought") {
+                        const ttxt = (c as unknown as { text?: string }).text ?? "";
+                        if (!ttxt) return null;
+                        return (
+                          <details key={i} className="thought-container mr-6 rounded-lg border border-violet-400/25 bg-violet-500/10 px-2.5 py-1.5 font-mono text-[11px] leading-relaxed text-violet-100" open={isLast || undefined}>
+                            <summary className="cursor-pointer select-none text-[10px] font-bold text-violet-200">
+                              🧠 تفكير جينيو (Reasoning){isLast ? <span className="ml-1 inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-violet-300" /> : null}
+                            </summary>
+                            <p dir="rtl" lang="ar" className="mt-1 whitespace-pre-wrap text-white/85">{ttxt}</p>
+                          </details>
+                        );
+                      }
+                      // — Collapsible tool call / result —
+                      if (ctype === "tool_call" || ctype === "tool_result") {
+                        const cmd = (c as unknown as { command?: string }).command ?? "";
+                        const res = (c as unknown as { result?: unknown }).result;
+                        let toolName = ctype === "tool_call" ? "tool" : "result";
+                        try {
+                          const parsed = JSON.parse(cmd) as { tool?: string };
+                          if (parsed && typeof parsed.tool === "string") toolName = parsed.tool;
+                        } catch { /* raw command string */ }
+                        const body = ctype === "tool_call" ? cmd : JSON.stringify(res ?? "", null, 2);
+                        return (
+                          <details key={i} className="tool-call mr-6 rounded-lg border border-amber-400/25 bg-amber-500/10 px-2.5 py-1.5 font-mono text-[11px] leading-relaxed">
+                            <summary className="cursor-pointer select-none text-[10px] font-bold text-amber-200">⚙️ أداة: {toolName}</summary>
+                            <pre className="mt-1 overflow-x-auto whitespace-pre-wrap text-amber-100/90"><code>{body}</code></pre>
+                          </details>
+                        );
+                      }
                       const rawText = (c as unknown as { text?: string }).text;
                       const msg = (c as unknown as { message?: string }).message;
                       // sanitize thought blocks & prefixes from answer
@@ -663,9 +777,12 @@ export default function App() {
                         );
                       }
                       const isUser = c.type === "user";
+                      const isAnswer = ctype === "answer";
                       return (
                         <div
                           key={i}
+                          dir={isUser || !isAnswer ? undefined : "rtl"}
+                          lang={isUser || !isAnswer ? undefined : "ar"}
                           className={`rounded-lg px-2.5 py-1.5 font-mono text-[11px] leading-relaxed ${
                             isUser
                               ? "ml-6 bg-cyan-500/15 text-cyan-100 border border-cyan-400/20"
@@ -673,6 +790,15 @@ export default function App() {
                           }`}
                         >
                           <span className="opacity-40 text-[9px]">{isUser ? "you" : "genio"}:</span> {cleanText ?? msg ?? ""}
+                          {isAnswer && cleanText ? (
+                            <button
+                              onClick={() => void speakViaVoder(cleanText)}
+                              title="استمع للرد بالصوت (VODER)"
+                              className="ml-2 inline-flex items-center rounded-full border border-emerald-400/30 bg-emerald-500/10 px-2 py-0.5 text-[10px] text-emerald-200 hover:bg-emerald-500/20"
+                            >
+                              🔊 استمع
+                            </button>
+                          ) : null}
                         </div>
                       );
                     })}
@@ -716,7 +842,27 @@ export default function App() {
                 />
 
                 <button
-                  onClick={() => void fabToggleMic()}
+                  onClick={() => {
+                    // Ignore le clic émulé qui suit un relâcher tactile déjà traité.
+                    if (Date.now() - (micTouchTsRef.current || 0) < 800) return;
+                    void fabToggleMic();
+                  }}
+                  // Mobile: le tap tactile émet pointerup sans click fiable —
+                  // on traite le relâcher tactile directement (garde anti
+                  // double-déclenchement avec le click émulé qui suit).
+                  onPointerUp={(e) => {
+                    if (e.pointerType !== "touch") return;
+                    e.preventDefault();
+                    micTouchTsRef.current = Date.now();
+                    void fabToggleMic();
+                  }}
+                  onTouchEnd={(e) => {
+                    // Filet de sécurité si Pointer Events indisponibles.
+                    if (Date.now() - (micTouchTsRef.current || 0) < 800) return;
+                    e.preventDefault();
+                    micTouchTsRef.current = Date.now();
+                    void fabToggleMic();
+                  }}
                   aria-label={fabRecording ? "Stop recording" : "Microphone"}
                   className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border backdrop-blur transition-all ${
                     fabRecording

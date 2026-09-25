@@ -83,9 +83,18 @@ def _transcribe_faster_whisper(data: bytes, mime: str,
     from faster_whisper import WhisperModel
     path = _write_tmp(data, mime)
     try:
-        model = WhisperModel("small", compute_type="int8")
-        segments, info = model.transcribe(path, language=language or "auto")
-        return " ".join(s.text.strip() for s in segments if s.text.strip())
+        # CUDA d'abord (rapide) ; repli CPU intégral si les libs cuBLAS
+        # manquent — construction ET transcription dans chaque tentative.
+        for kwargs in ({"compute_type": "int8"},
+                       {"device": "cpu", "compute_type": "int8"}):
+            try:
+                model = WhisperModel("small", **kwargs)
+                segments, info = model.transcribe(path, language=language)
+                return " ".join(s.text.strip() for s in segments
+                                if s.text.strip())
+            except Exception:
+                continue
+        return ""
     finally:
         _cleanup(path)
 

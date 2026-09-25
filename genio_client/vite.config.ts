@@ -16,6 +16,9 @@ export default defineConfig(async () => ({
       workbox: {
         maximumFileSizeToCacheInBytes: 10 * 1024 * 1024,
         globPatterns: ["**/*.{js,css,html,ico,png,svg,webp,woff2}"],
+        // Le chunk three.js (~1MB) ne se précache PAS : il ne se télécharge
+        // qu'à la demande en mode mascotte (MascotStage lazy). Idem rapier.
+        globIgnores: ["**/three-*.js", "**/rapier-*.js"],
         navigateFallbackDenylist: [/^\/chat\.html/, /^\/console\.html/, /^\/sw\.js/, /^\/workbox/],
         runtimeCaching: [
           {
@@ -37,11 +40,24 @@ export default defineConfig(async () => ({
     cssCodeSplit: true,
     sourcemap: false,
     chunkSizeWarningLimit: 600,
+    // Pas de préchargement des chunks 3D lourds au boot : three/rapier ne se
+    // téléchargent qu'à la demande (mode mascotte lazy). Critique mobile.
+    modulePreload: {
+      resolveDependencies: (filename, deps) =>
+        deps.filter((d) => !/three-|rapier-/.test(d)),
+    },
     rollupOptions: {
       output: {
+        // Ne remonte JAMAIS les deps transitives des chunks lazy en imports
+        // statiques : le graphe three/GLB de MascotStage reste strictement
+        // à la demande (sinon chaque route retélécharge 3.3MB au boot).
+        hoistTransitiveImports: false,
         manualChunks(id) {
           if (id.includes("node_modules")) {
-            if (id.includes("@react-three") || id.includes("/three/")) return "three";
+            // PAS de chunk three partagé : three/fiber/drei n'ont qu'un seul
+            // consommateur (MascotStage lazy) — partagé, chaque route le
+            // retéléchargerait au boot via le helper preload. Inliné dans le
+            // chunk async, il ne part qu'en mode mascotte.
             if (id.includes("@dimforge/rapier")) return "rapier";
             if (id.includes("framer-motion")) return "motion";
             if (id.includes("react-dom") || id === "react" || id.includes("/react/")) return "react";
@@ -52,6 +68,14 @@ export default defineConfig(async () => ({
     },
   },
 
+  // Production preview (genio-web.service :8098 ← cloudflared genio.hitech.tn) :
+  // autorise l'host public + LAN à travers le tunnel (sinon 403 Vite).
+  preview: {
+    port: 8098,
+    strictPort: true,
+    host: "0.0.0.0",
+    allowedHosts: ["genio.hitech.tn", "localhost", "127.0.0.1"],
+  },
   // Vite options tailored for Tauri development and only applied in `tauri dev` or `tauri build`
   //
   // 1. prevent Vite from obscuring rust errors

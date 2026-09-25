@@ -148,7 +148,10 @@ export function useGenioSocket(): UseGenioSocket {
           },
           (event: GenioEvent) => {
             const ev = event as Record<string, unknown>;
-            // STRICT purge: pong heartbeats + stats leakage + thought internals never hit chat
+            // Sovereign agent view: pong/stats never hit chat. Sanitized Darija
+            // `thought` narrations ARE surfaced (collapsible Reasoning accordion
+            // in App) — server-side sanitize_for_client already stripped raw
+            // reasoning; the <thought>/thought: guards below stay as 2nd layer.
             const rawStr = JSON.stringify(ev).toLowerCase();
             if (ev.type === "pong" || rawStr.includes('"pong"') || rawStr.includes("pong")) {
               const isPongType = ev.type === "pong";
@@ -156,7 +159,6 @@ export function useGenioSocket(): UseGenioSocket {
               if (isPongType || isPongString || rawStr.includes("pong")) return;
             }
             if (ev.type === "stats") return;
-            if (ev.type === "thought") return;
             // strip thought blocks serialized as answer with <thought>
             if (typeof ev.text === "string" && /<thought[\s>]/i.test(ev.text)) return;
             if (typeof ev.text === "string" && /^thought\s*:/i.test(ev.text.trim())) return;
@@ -164,9 +166,9 @@ export function useGenioSocket(): UseGenioSocket {
             if (ev.type === "telemetry") { setTelemetry(event as unknown as TelemetrySnapshot); lastTelemetryAtRef.current = Date.now(); return; }
             if (isChatEvent(event)) {
               const chatEv = event as ChatEvent;
-              // double-guard: never surface stats/thought even if isChatEvent
+              // double-guard: never surface stats even if isChatEvent.
+              // `thought` passes (sanitized Darija narration, rendered collapsed).
               if ((chatEv as unknown as { type: string }).type === "stats") return;
-              if ((chatEv as unknown as { type: string }).type === "thought") return;
               if ((chatEv as unknown as { type: string }).type === "pong") return;
               // sanitize answer text — strip <thought>...</thought>
               if (chatEv.type === "answer" && typeof (chatEv as { text: string }).text === "string") {
@@ -229,7 +231,7 @@ export function useGenioSocket(): UseGenioSocket {
           const rawStr2 = JSON.stringify(ev).toLowerCase();
           if (ev.type === "pong" || rawStr2.includes('"pong"') || (typeof ev.text === "string" && ev.text.toLowerCase().includes("pong"))) return;
           if (ev.type === "stats") return;
-          if (ev.type === "thought") return;
+          // (thought allowed — see handler above; guards below stay 2nd layer)
           if (typeof ev.text === "string" && /<thought[\s>]/i.test(ev.text)) return;
           if (typeof ev.text === "string" && /^thought\s*:/i.test(ev.text.trim())) return;
           if (ev.type === "screen" || ev.type === "browser_view") {
@@ -244,8 +246,8 @@ export function useGenioSocket(): UseGenioSocket {
           if (isChatEvent(event)) {
             const chatEv = event as ChatEvent;
             if ((chatEv as unknown as { type: string }).type === "stats") return;
-            if ((chatEv as unknown as { type: string }).type === "thought") return;
             if ((chatEv as unknown as { type: string }).type === "pong") return;
+            // (thought allowed — sanitized Darija narration, rendered collapsed)
             if (chatEv.type === "answer" && typeof (chatEv as { text: string }).text === "string") {
               const t2 = (chatEv as { text: string }).text;
               if (/<thought[\s>]/i.test(t2) || /^thought\s*:/i.test(t2.trim())) return;
