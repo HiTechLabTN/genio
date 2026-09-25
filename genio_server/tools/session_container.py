@@ -39,6 +39,18 @@ def _enabled() -> bool:
     return os.getenv("GENIO_SANDBOX_MODE", "").strip().lower() == "container"
 
 
+def _strict() -> bool:
+    """Production/security mode : aucun repli hôte, jamais (Phase 6 P0)."""
+    return os.getenv("GENIO_SECURITY_MODE", "").strip().lower() == "strict"
+
+
+def _unavailable(command: str, reason: str, started: float) -> Dict[str, object]:
+    """Erreur structurée SANDBOX_UNAVAILABLE (fail-closed, jamais d'hôte)."""
+    return {"command": command, "stdout": "", "stderr": f"SANDBOX_UNAVAILABLE: {reason}",
+            "returncode": 125, "duration": round(time.monotonic() - started, 3),
+            "timed_out": False, "sandbox": False}
+
+
 def _image() -> str:
     env_img = os.getenv("GENIO_SANDBOX_IMAGE", "").strip()
     if env_img:
@@ -110,9 +122,14 @@ def _ensure_container(session_id: str) -> tuple[bool, str]:
     # try to run new container detached, keep alive with sleep infinity
     try:
         # Phase C: montage volume isolé par session
+        # Phase 6: quotas d'isolation — CPU, RAM 512m, pids, FS lecture seule
+        # sauf /workspace (/work rw + /tmp tmpfs pour les outils).
+        cpus = os.getenv("GENIO_SANDBOX_CPUS", "2.0")
         cmd = ["docker", "run", "-d", "--name", name] + net_args + [
               "-v", f"{workdir}:/work", "-w", "/work",
               "--memory", "512m", "--pids-limit", "256",
+              "--cpus", cpus,
+              "--read-only", "--tmpfs", "/tmp",
               img, "sleep", "infinity"]
         res = subprocess.run(
             cmd,
@@ -150,6 +167,11 @@ def exec_in_container(session_id: str, command: str, timeout: int = 30) -> Dict[
         command = f"cd {shlex.quote(cwd)} && {command}"
 
     if not _enabled():
+        if _strict():
+            # Phase 6 P0 : mode strict SANS conteneur = refus fermé, jamais hôte.
+            return _unavailable(command, "container mode disabled "
+                                "(GENIO_SANDBOX_MODE!=container) in strict mode",
+                                started)
         # Should not be called when disabled, but handle gracefully
         from genio_server.tools.bash_tool import run_command as local_run
         # avoid recursion: call local directly without session_id
@@ -166,6 +188,10 @@ def exec_in_container(session_id: str, command: str, timeout: int = 30) -> Dict[
                 os.environ["GENIO_SANDBOX_MODE"] = old
 
     if not _docker_available():
+        if _strict():
+            # Phase 6 P0 : Docker absent en strict = refus fermé, jamais hôte.
+            return _unavailable(command, "docker unavailable in strict mode",
+                                started)
         # Fallback: local execution
         from genio_server.tools.bash_tool import run_command as local_run
         old = os.getenv("GENIO_SANDBOX_MODE")
@@ -198,6 +224,10 @@ def exec_in_container(session_id: str, command: str, timeout: int = 30) -> Dict[
 
     ok, msg = _ensure_container(session_id)
     if not ok:
+        if _strict():
+            # Phase 6 P0 : conteneur impossible en strict = refus fermé.
+            return _unavailable(command, f"container start failed: {msg}",
+                                started)
         # Fallback to local
         try:
             proc = subprocess.run(["/bin/bash", "-lc", command], capture_output=True, text=True, timeout=timeout)
@@ -302,9 +332,12 @@ async def async_ensure_container(session_id: str) -> tuple[bool, str]:
     except Exception:
         pass
     try:
+        cpus = os.getenv("GENIO_SANDBOX_CPUS", "2.0")
         cmd = ["docker", "run", "-d", "--name", name] + net_args + [
             "-v", f"{workdir}:/work", "-w", "/work",
             "--memory", "512m", "--pids-limit", "256",
+            "--cpus", cpus,
+            "--read-only", "--tmpfs", "/tmp",
             img, "sleep", "infinity"]
         proc = await asyncio.create_subprocess_exec(
             *cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
@@ -356,6 +389,11 @@ async def _async_exec_in_container(session_id: str, command: str,
         import shlex
         command = f"cd {shlex.quote(cwd)} && {command}"
 
+    if _strict() and (not _enabled() or not _docker_available()):
+        # Phase 6 P0 (async) : strict sans sandbox = refus fermé, jamais hôte.
+        return _unavailable(command, "container unavailable in strict mode",
+                            started)
+
     if not _enabled():
         from genio_server.tools.bash_tool import async_run_command
         old = os.getenv("GENIO_SANDBOX_MODE")
@@ -400,6 +438,10 @@ async def _async_exec_in_container(session_id: str, command: str,
 
     ok, msg = await async_ensure_container(session_id)
     if not ok:
+        if _strict():
+            # Phase 6 P0 (async) : conteneur impossible en strict = refus fermé.
+            return _unavailable(command, f"container start failed: {msg}",
+                                started)
         old = os.getenv("GENIO_SANDBOX_MODE")
         os.environ["GENIO_SANDBOX_MODE"] = ""
         try:

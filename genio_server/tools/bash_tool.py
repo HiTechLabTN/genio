@@ -238,6 +238,8 @@ def run_command(command: str, timeout: int = DEFAULT_TIMEOUT,
                 "returncode": 126, "duration": 0.0, "timed_out": False}
 
     # Container sandboxing (Phase 5) — route per-session when enabled.
+    # Phase 6 : en strict, exec_in_container refuse fermé (SANDBOX_UNAVAILABLE)
+    # si le conteneur manque — jamais de repli hôte (voir session_container).
     if session_id and os.getenv("GENIO_SANDBOX_MODE", "").strip().lower() == "container":
         try:
             from genio_server.tools.session_container import exec_in_container
@@ -303,6 +305,7 @@ async def async_run_command(command: str, timeout: int = DEFAULT_TIMEOUT,
                 "returncode": 126, "duration": 0.0, "timed_out": False}
 
     # Container sandboxing (Phase 5) — route per-session when enabled.
+    # Phase 6 : idem async (fail-closed dans session_container).
     if session_id and os.getenv("GENIO_SANDBOX_MODE", "").strip().lower() == "container":
         try:
             from genio_server.tools.session_container import async_exec_in_container
