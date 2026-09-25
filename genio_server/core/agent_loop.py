@@ -47,12 +47,81 @@ DEFAULT_MAX_ITERATIONS = int(os.environ.get("GENIO_MAX_ITERATIONS", "5"))
 DEFAULT_MODE = os.environ.get("GENIO_MODE", "autonomous")
 STEP_TIMEOUT = 120  # seconds per model request
 
+# Phase 3 — budgets d'exécution (plafonds infranchissables, configurables).
+# turn_budget_seconds : durée globale max d'un tour utilisateur.
+# tool_timeout_seconds : durée max d'UN appel d'outil individuel.
+TURN_BUDGET_SECONDS = float(os.environ.get("GENIO_TURN_BUDGET", "600"))
+TOOL_TIMEOUT_SECONDS = float(os.environ.get("GENIO_TOOL_TIMEOUT", "120"))
+# Loop/stuck detection : même empreinte outil+args >2 fois de suite, ou même
+# outil en échec >2 fois → arrêt avec statut explicite (pas de boucle infinie).
+MAX_SAME_CALL_REPEATS = 2
+MAX_TOOL_ERROR_RETRIES = 2
+
 # Safety: cap any single tool output so giant dumps (e.g. ``ls -R``) can never
 # overflow the LLM context window and crash the loop into a premature terminal
 # state. When the cap is hit a marker is appended so the model knows the
 # result was truncated rather than complete.
 MAX_TOOL_OUTPUT = 3000
 TRUNCATE_MARKER = "\n... [Output truncated to preserve context window]"
+
+
+def command_fingerprint(tool: str, command: object) -> str:
+    """Empreinte normalisée d'un appel (outil + args canoniques).
+
+    Deux appels identiques → même empreinte (détection de boucle).
+    JSON normalisé (clés triées) pour éviter les faux négatifs d'espaces.
+    """
+    import hashlib
+    import json as _json
+    if isinstance(command, (dict, list)):
+        try:
+            body = _json.dumps(command, sort_keys=True, ensure_ascii=False)
+        except Exception:
+            body = str(command)
+    else:
+        body = re.sub(r"\s+", " ", str(command or "")).strip()
+    return hashlib.sha1(f"{tool}\n{body}".encode("utf-8")).hexdigest()[:16]
+
+
+class LoopGuard:
+    """Détecteur de répétition + budget de retry (pur, testable, sans I/O).
+
+    - même empreinte > MAX_SAME_CALL_REPEATS fois de suite → "LOOP_DETECTED"
+    - même outil en échec > MAX_TOOL_ERROR_RETRIES fois (cumulé sur le tour)
+      → "RETRY_EXHAUSTED"
+    """
+
+    def __init__(self) -> None:
+        self._last_fp: Optional[str] = None
+        self._run_len = 0
+        self._tool_errors: Dict[str, int] = {}
+
+    def would_loop(self, fingerprint: str) -> bool:
+        """True si cet appel serait la 3e répétition identique de suite.
+
+        Appelé AVANT l'exécution pour ne jamais lancer le 3e doublon.
+        """
+        return (fingerprint == self._last_fp
+                and self._run_len >= MAX_SAME_CALL_REPEATS)
+
+    def note_call(self, fingerprint: str, tool: str,
+                  failed: bool) -> Optional[str]:
+        if fingerprint == self._last_fp:
+            self._run_len += 1
+        else:
+            self._last_fp = fingerprint
+            self._run_len = 1
+        if self._run_len > MAX_SAME_CALL_REPEATS:
+            return "LOOP_DETECTED"
+        if failed:
+            self._tool_errors[tool] = self._tool_errors.get(tool, 0) + 1
+            if self._tool_errors[tool] > MAX_TOOL_ERROR_RETRIES:
+                return "RETRY_EXHAUSTED"
+        return None
+
+    @property
+    def repeats(self) -> int:
+        return self._run_len
 
 SYSTEM_PROMPT = (
     "أنت جينيو، المهندس المستقل للذكاء الاصطناعي في HiTech Lab. "
@@ -425,6 +494,47 @@ class AgentLoop:
     def cancelled(self) -> bool:
         return bool(self.cancel_event is not None and self.cancel_event.is_set())
 
+    # -- Phase 3 helpers (synchrones, testables) -------------------------- #
+    @staticmethod
+    def _known_tools() -> List[str]:
+        try:
+            from genio_server.core.registries import ToolRegistry
+            return ToolRegistry.names()
+        except Exception:
+            try:
+                from genio_server.tools import TOOLS
+                return sorted(TOOLS.keys())
+            except Exception:
+                return []
+
+    @classmethod
+    def _tool_known(cls, tool: str) -> bool:
+        return bool(tool) and tool in cls._known_tools()
+
+    @staticmethod
+    def _quota_synthesis(
+            trajectory: List[Dict[str, object]],
+            prefix: str = "[تلخيص مرحلي — quota atteint] ") -> str:
+        """Synthèse intermédiaire propre à l'atteinte d'un quota.
+
+        Résume les étapes exécutées (jamais de contenu brut tronqué) pour que
+        l'utilisateur voie la progression au lieu d'un mur vide.
+        """
+        steps = []
+        for t in trajectory[-5:]:
+            # Ligne à dominante arabe (le sanitizer anti-leak retire les
+            # lignes latines) — commandes et sorties restent verbatim.
+            cmd = str(t.get("command", ""))[:120]
+            res = t.get("result") if isinstance(t.get("result"), dict) else {}
+            rc = res.get("returncode", "?")
+            out = str(res.get("stdout") or res.get("stderr") or "").strip()
+            steps.append(f"• الأمر المنفذ: {cmd} — النتيجة (رمز الخروج {rc}): "
+                         f"{out[:160]}".strip())
+        body = "\n".join(steps) if steps else "ما بديت حتى خطوة بعد."
+        return sanitize_for_client(
+            f"{prefix}وقفت بعد {len(trajectory)} خطوات باش ما ندورش في حلقة. "
+            f"آخر الخطوات:\n{body}\nقولي كيفاش نكمل.")
+
     async def _wait_cancel(self):
         """Wait until cancel_event is set — for race with chat."""
         while not self.cancelled():
@@ -624,6 +734,9 @@ class AgentLoop:
 
         # Phase 2 v2.1: trajectory tracking for skill compilation.
         trajectory: List[Dict[str, object]] = []
+        # Phase 3: loop guard (répétition + retry budget) + deadline du tour.
+        guard = LoopGuard()
+        turn_deadline = time.monotonic() + TURN_BUDGET_SECONDS
 
         async with httpx.AsyncClient(base_url=self.ollama_url) as client:
             for _ in range(self.max_iterations):
@@ -634,8 +747,13 @@ class AgentLoop:
                     yield {
                         "type": "error",
                         "message": "HALTED — kill switch engaged. Re-arm the system "
-                                   "before running another autonomous task.",
+                                    "before running another autonomous task.",
                     }
+                    return
+                if time.monotonic() >= turn_deadline:
+                    final_answer = self._quota_synthesis(trajectory)
+                    await self._save_message("assistant", final_answer)
+                    yield {"type": "answer", "text": final_answer}
                     return
                 assistant, eval_count, tok_per_s = await self._chat(client, messages)
                 if eval_count:
@@ -666,11 +784,60 @@ class AgentLoop:
                 if not command:
                     yield {"type": "error", "message": "tool call had empty command"}
                     return
+                # Phase 3: assainit les arguments (dict/list JSON → canonique).
+                if isinstance(command, (dict, list)):
+                    try:
+                        command = json.dumps(command, sort_keys=True,
+                                             ensure_ascii=False)
+                    except Exception:
+                        command = str(command)
+                else:
+                    command = str(command)
+                tool_name = str(call.get("tool", "")).strip()
+                # Phase 3: outils hallucinés — gate ToolRegistry (Phase 2) :
+                # erreur structurée renvoyée au LLM, jamais d'exception.
+                if not self._tool_known(tool_name):
+                    msg = (f"unknown tool '{tool_name}' — known: "
+                           f"{', '.join(self._known_tools())}. "
+                           "Reply with ONLY one JSON tool call using a known "
+                           "tool, or a final plain-text answer.")
+                    yield {"type": "error", "message": msg}
+                    feedback = ("TOOL REJECTED (unknown tool): " + msg)
+                    messages.append({"role": "assistant", "content": assistant})
+                    messages.append({"role": "user", "content": feedback})
+                    await self._save_message("assistant", assistant)
+                    await self._save_message("user", feedback)
+                    continue
                 yield {"type": "tool_call", "command": command}
 
+                # Phase 3: pré-check boucle AVANT exécution — le 3e doublon
+                # ne part jamais (2 exécutions max).
+                _fp = command_fingerprint(tool_name, command)
+                if guard.would_loop(_fp):
+                    msg = ("LOOP_DETECTED: same tool call repeated "
+                           "without progress — stopping to avoid an "
+                           "infinite loop.")
+                    yield {"type": "error", "message": msg}
+                    final_answer = self._quota_synthesis(
+                        trajectory, prefix="[توقّف ضدّ التكرار] ")
+                    await self._save_message("assistant", final_answer)
+                    yield {"type": "answer", "text": final_answer}
+                    return
                 # Tools (playwright / pyautogui / mss) are blocking — run them
                 # in a worker thread so the async loop stays responsive.
-                result = await asyncio.to_thread(invoke, call["tool"], command, self.session_id)
+                # Phase 3: budget individuel par outil (timeout dur).
+                try:
+                    result = await asyncio.wait_for(
+                        asyncio.to_thread(invoke, tool_name, command,
+                                          self.session_id),
+                        timeout=TOOL_TIMEOUT_SECONDS,
+                    )
+                except asyncio.TimeoutError:
+                    result = {"tool": tool_name, "command": command,
+                              "stdout": "", "stderr": "",
+                              "returncode": 124,
+                              "error": f"tool timeout after "
+                                       f"{TOOL_TIMEOUT_SECONDS:g}s — aborted"}
                 # Phase 2 v2.1: deterministic auto-fix — map a known fatal
                 # stderr pattern (e.g. ModuleNotFoundError) to an immediate
                 # corrective command, before feeding it back for LLM reflection.
@@ -708,6 +875,24 @@ class AgentLoop:
                 trajectory.append({"command": command, "result": result})
                 yield {"type": "tool_result", "result": result}
 
+                # Phase 3: détecteur de boucle + budget de retry.
+                failed = bool(isinstance(result, dict) and (
+                    result.get("error") or
+                    result.get("returncode") not in (0, None)))
+                verdict = guard.note_call(
+                    command_fingerprint(tool_name, command), tool_name, failed)
+                if verdict in ("LOOP_DETECTED", "RETRY_EXHAUSTED"):
+                    msg = ("LOOP_DETECTED: same tool call repeated "
+                           if verdict == "LOOP_DETECTED" else
+                           "RETRY_EXHAUSTED: same tool failing repeatedly ") + \
+                        "without progress — stopping to avoid an infinite loop."
+                    yield {"type": "error", "message": msg}
+                    final_answer = self._quota_synthesis(
+                        trajectory, prefix="[توقّف ضدّ التكرار] ")
+                    await self._save_message("assistant", final_answer)
+                    yield {"type": "answer", "text": final_answer}
+                    return
+
                 feedback = _feedback_for(result, assistant)
                 messages.append({"role": "assistant", "content": assistant})
                 messages.append({"role": "user", "content": feedback})
@@ -716,7 +901,7 @@ class AgentLoop:
 
             yield {
                 "type": "answer",
-                "text": final_answer or "Max iterations reached without a final answer.",
+                "text": final_answer or self._quota_synthesis(trajectory),
             }
             # Phase 2 v2.1: Trajectory compiler — a >1 tool-turn run that ended
             # with a final answer qualifies for skill serialization.
