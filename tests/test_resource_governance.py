@@ -75,7 +75,6 @@ def test_env_override(monkeypatch):
 
 def test_loop_stops_cleanly_on_tool_quota(monkeypatch):
     import asyncio
-    import genio_server.core.agent_loop as mod
     from genio_server.core.agent_loop import AgentLoop
     monkeypatch.setenv("GENIO_MAX_TOOL_CALLS", "1")
 

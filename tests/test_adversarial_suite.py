@@ -5,7 +5,6 @@ binaire, timeouts, crash, hallucination, JSON cassé, boucles, pannes)
 doit produire une erreur STRUCTURÉE, jamais d'exception échappée ni de hang.
 """
 import asyncio
-import os
 import sys
 import time
 

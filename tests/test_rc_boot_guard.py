@@ -1,8 +1,11 @@
 """RC 29.2 : strict-sans-clé refuse le boot ; dev-sans-clé démarre."""
-import os, subprocess, sys
+import os
+import subprocess
+import sys
 
 def boot(env_extra):
-    env = dict(os.environ); env.update(env_extra)
+    env = dict(os.environ)
+    env.update(env_extra)
     p = subprocess.run(
         [sys.executable, "-c",
          "import sys; sys.path.insert(0,'/data/ai_tools/genio');"

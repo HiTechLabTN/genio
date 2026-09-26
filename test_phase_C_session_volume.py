@@ -3,7 +3,6 @@
 Run: pytest test_phase_C_session_volume.py -v
 Q2: Allow-list registries, workdir isolé state/session_workdirs/<session_id>/, network bridge
 """
-import os
 import uuid
 import pytest
 
