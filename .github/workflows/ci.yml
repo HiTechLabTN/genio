@@ -44,6 +44,8 @@ jobs:
           cache: pip
       - name: Install system dependencies
         run: sudo apt-get update && sudo apt-get install -y libsndfile1 ffmpeg xvfb
+      - name: Install Playwright browsers (real-browser security tests)
+        run: python -m playwright install --with-deps chromium
       - name: Install dependencies (pinned lockfile)
         run: |
           python -m pip install --upgrade pip

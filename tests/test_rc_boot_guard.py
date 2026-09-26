@@ -2,15 +2,21 @@
 import os
 import subprocess
 import sys
+from pathlib import Path
+
+# RC-fix CI : racine dérivée du fichier (chemin absolu local hardcodé
+# cassait le runner GitHub).
+REPO = str(Path(__file__).resolve().parents[1])
+
 
 def boot(env_extra):
     env = dict(os.environ)
     env.update(env_extra)
     p = subprocess.run(
         [sys.executable, "-c",
-         "import sys; sys.path.insert(0,'/data/ai_tools/genio');"
+         f"import sys; sys.path.insert(0,{REPO!r});"
          "import genio_server.server.main as m; print('BOOTED')"],
-        capture_output=True, text=True, env=env, cwd="/data/ai_tools/genio")
+        capture_output=True, text=True, env=env, cwd=REPO)
     return p.returncode, (p.stdout + p.stderr)
 
 def test_strict_without_key_refuses_boot():

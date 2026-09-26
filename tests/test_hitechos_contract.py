@@ -8,6 +8,7 @@ import os
 import socket
 import struct
 import sys
+import tempfile
 import threading
 
 sys.path.insert(0, "/data/ai_tools/genio")
@@ -24,7 +25,9 @@ from genio.integrations.hitechos.protocol import (
 )
 from genio.integrations.hitechos.transport import TransportError, query
 
-SOCK = "/tmp/opencode/ph14_test.sock"
+
+_SOCKDIR = tempfile.mkdtemp(prefix="ph14_sock_")
+SOCK = os.path.join(_SOCKDIR, "ph14_test.sock")
 
 
 def _serve_once(handler, ready):

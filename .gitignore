@@ -56,3 +56,6 @@ venv_voder/
 
 # Phase 30 : workdirs de session éphémères (tests/conteneurs)
 state/session_workdirs/
+
+# RC-fix CI : asset requis par le build (exception ciblée au ban **/*.png)
+!genio_client/src/assets/mascot/mascot_cutout.png

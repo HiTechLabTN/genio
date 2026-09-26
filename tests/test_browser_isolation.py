@@ -5,10 +5,31 @@ Validateur pur (sans réseau sauf DNS public), isolation cookies réelle
 """
 import sys
 import subprocess
+from pathlib import Path
 
-sys.path.insert(0, "/data/ai_tools/genio")
+import pytest
 
-from genio_server.tools import browser_tool as bt
+# RC-fix CI : racine dérivée du fichier (chemin absolu local hardcodé
+# cassait le runner GitHub).
+REPO = str(Path(__file__).resolve().parents[1])
+sys.path.insert(0, REPO)
+
+from genio_server.tools import browser_tool as bt  # noqa: E402 (sys.path ci-dessus)
+
+
+def _chromium_available():
+    """Binaires navigateurs Playwright présents ? (rapide, sans lancement)."""
+    base = Path.home() / ".cache" / "ms-playwright"
+    if not base.is_dir():
+        return False
+    return any(p.name.startswith("chromium") for p in base.iterdir())
+
+
+needs_browser = pytest.mark.skipif(
+    not _chromium_available(),
+    reason="binaires Chromium Playwright absents (CI sans "
+           "`playwright install` ou poste sans navigateurs)",
+)
 
 
 def test_ssrf_direct_private_blocked():
@@ -40,13 +61,14 @@ def test_open_blocked_without_browser():
     assert r["ok"] is False
 
 
+@needs_browser
 def test_session_cookie_isolation():
     # Navigateur RÉEL mais en sous-processus : Playwright gare une event loop
     # runnante dans le thread appelant, ce qui empoisonnerait asyncio.run()
     # des autres tests du même worker pytest.
     import json
     code = (
-        "import json, sys; sys.path.insert(0, '/data/ai_tools/genio');"
+        f"import json, sys; sys.path.insert(0, {REPO!r});"
         "from genio_server.tools import browser_tool as bt;"
         "pa, pb = bt.page_for('ph10_A'), bt.page_for('ph10_B');"
         "assert pa is not pb;"

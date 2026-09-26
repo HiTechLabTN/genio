@@ -8,10 +8,12 @@ prod 0 high/critical, dev-only documentés).
 import json
 import re
 import sys
+from pathlib import Path
 
-sys.path.insert(0, "/data/ai_tools/genio")
-
-ROOT = "/data/ai_tools/genio"
+# RC-fix CI : racine dérivée du fichier (chemin absolu local hardcodé
+# cassait le runner GitHub). Aucun comportement changé en local.
+ROOT = str(Path(__file__).resolve().parents[1])
+sys.path.insert(0, ROOT)
 
 
 def _reqs():
