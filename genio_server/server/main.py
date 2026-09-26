@@ -52,11 +52,13 @@ SERVICE_DIR = safe_cwd()
 
 # Runtime environment guard: production REQUIRES an API key.
 GENIO_ENV = os.environ.get("GENIO_ENV", "dev").strip().lower()
-if GENIO_ENV == "prod" and not API_KEY:
+_STRICT_BOOT = os.environ.get("GENIO_SECURITY_MODE", "").strip().lower() == "strict"
+if (GENIO_ENV == "prod" or _STRICT_BOOT) and not API_KEY:
     raise RuntimeError(
-        "GENIO_ENV=prod requires GENIO_API_KEY to be set. Refusing to start an "
-        "unauthenticated server. Export GENIO_API_KEY=<secret> (or run "
-        "`python genio_server.py --api-key <secret>`) and retry."
+        "GENIO_ENV=prod or GENIO_SECURITY_MODE=strict requires GENIO_API_KEY "
+        "to be set. Refusing to start an unauthenticated server. Export "
+        "GENIO_API_KEY=<secret> (or run `python genio_server.py --api-key "
+        "<secret>`) and retry."
     )
 
 # CORS allow-list is explicit (defaults cover sovereign web UI origins +
