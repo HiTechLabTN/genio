@@ -29,12 +29,13 @@ import subprocess
 import threading
 import time
 import uuid
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 import psutil
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Depends, Header, HTTPException, Query, File, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, StreamingResponse
+import httpx as _httpx  # local alias to avoid shadowing
 
 from genio_server.core.agent_loop import AgentLoop, OllamaConnectionError
 from genio_server.core.session_store import get_session_store
@@ -95,10 +96,8 @@ app.add_middleware(
 # Phase 20 — garde-fous HTTP : rate-limit par IP + taille max du corps.
 # Lus par requête (env modifiable sans restart) ; SSE/WS exclus du bucket.
 # --------------------------------------------------------------------------- #
-import threading as _th
-
 _RATE_STATE: Dict[str, list] = {}
-_RATE_LOCK = _th.Lock()
+_RATE_LOCK = threading.Lock()
 
 
 def _rate_cfg() -> tuple:
@@ -164,7 +163,9 @@ async def _periodic_container_cleanup():
         await asyncio.sleep(60)
         try:
             from genio_server.tools.session_container import _LAST_USED, cleanup_container, _container_name
-            import subprocess as _sp, time as _time, shutil as _sh
+            import subprocess as _sp
+            import time as _time
+            import shutil as _sh
             if not _sh.which("docker"):
                 continue
             res = _sp.run(["docker", "ps", "--filter", "name=genio-session-", "--format", "{{.Names}}"],
@@ -501,7 +502,6 @@ else:  # pragma: no cover — graceful degradation without python-multipart
 # All Gemini traffic from the client is routed through this proxy.
 # The key lives only in the server env (GENIO_GEMINI_API_KEY via config.gemini).
 # --------------------------------------------------------------------------- #
-import httpx as _httpx  # local alias to avoid shadowing
 
 @app.api_route("/api/v1/gemini/{full_path:path}", methods=["GET", "POST", "PUT", "DELETE"])
 async def gemini_proxy(full_path: str, request: Request, _: None = Depends(require_key)):
@@ -635,7 +635,6 @@ _PENDING_TRANSCRIPT: Dict[str, str] = {}
 def _capture_screen_png() -> Optional[bytes]:
     """Capture the host display to PNG bytes (via mss)."""
     try:
-        import io
         shot = computer_tool.screenshot()
         if isinstance(shot, dict) and shot.get("path"):
             return open(shot["path"], "rb").read()
@@ -943,4 +942,67 @@ def root() -> Dict[str, Any]:
 @app.get("/health")
 async def health_check():
     return {"status": "ok", "service": "genio-core", "version": "3.1.2"}
+
+
+# --------------------------------------------------------------------------- #
+# Phase 27 — sondes unifiées + traçabilité request_id.
+# --------------------------------------------------------------------------- #
+@app.middleware("http")
+async def _request_id_middleware(request: Request, call_next):
+    rid = request.headers.get("x-request-id") or uuid.uuid4().hex[:12]
+    request.state.request_id = rid
+    response = await call_next(request)
+    response.headers["X-Request-ID"] = rid
+    return response
+
+
+@app.get("/health/liveness")
+async def health_liveness() -> Dict[str, Any]:
+    """Le processus répond (pas de dépendance externe)."""
+    return {"status": "ok", "probe": "liveness", "ts": int(time.time())}
+
+
+@app.get("/health/readiness")
+async def health_readiness() -> Dict[str, Any]:
+    """Prêt à servir : Ollama joignable (court timeout)."""
+    ok, detail = True, "ollama reachable"
+    try:
+        import httpx as _hx
+        async with _hx.AsyncClient(timeout=5.0) as client:
+            resp = await client.get("http://127.0.0.1:11434/api/tags")
+            if resp.status_code != 200:
+                ok, detail = False, f"ollama http {resp.status_code}"
+    except Exception as exc:
+        ok, detail = False, f"ollama unreachable: {type(exc).__name__}"
+    return {"status": "ok" if ok else "degraded", "probe": "readiness",
+            "detail": detail, "ts": int(time.time())}
+
+
+@app.get("/health/metrics")
+async def health_metrics() -> Dict[str, Any]:
+    """Métriques conformes : tours, outils, télémétrie récente."""
+    try:
+        from genio_server.core.telemetry import get_telemetry
+        recent = get_telemetry().recent(20)
+    except Exception:
+        recent = []
+    return {"status": "ok", "probe": "metrics",
+            "active_runs": sum(1 for v in _ACTIVE_RUNS.values() if v),
+            "recent_events": len(recent),
+            "uptime_s": int(time.time() - psutil.boot_time()),
+            "ts": int(time.time())}
+
+
+@app.get("/api/v1/executions/{sid}")
+async def execution_trace(sid: str,
+                          _: None = Depends(require_key)) -> Dict[str, Any]:
+    """Résumé d'exécution auditable d'une session (télémétrie filtrée)."""
+    try:
+        from genio_server.core.telemetry import get_telemetry
+        events = [e for e in get_telemetry().recent(500)
+                  if e.get("session_id") == sid]
+    except Exception:
+        events = []
+    return {"session_id": sid, "events": events[-100:],
+            "count": len(events)}
 
