@@ -6,6 +6,29 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ffmpeg curl && \
     rm -rf /var/lib/apt/lists/*
 
+# Docker CLI (sandbox-in-Docker via mounted socket, §20). Static binary
+# pin 29.8.1, SHA-256 measured 2026-09-26 (no vendor checksum file
+# published for static builds — recorded honestly, fail closed on drift).
+ARG DOCKER_VERSION=29.8.1
+ARG DOCKER_SHA256_AMD64=d8db66739d2e28d4933786d73e918d9be643a67fbd835db1bf740d650a259e70
+ARG TARGETARCH
+RUN set -e; \
+    case "$TARGETARCH" in \
+      arm64) DARCH=aarch64 ;; \
+      *) DARCH=x86_64 ;; \
+    esac; \
+    if [ "$DARCH" = "x86_64" ]; then \
+      echo "$DOCKER_SHA256_AMD64  /tmp/docker.tgz" > /tmp/docker.sha; \
+    else \
+      echo "arm64 docker CLI: unmeasured digest — refusing (add digest explicitly)" >&2; exit 1; \
+    fi; \
+    curl -fsSL "https://download.docker.com/linux/static/stable/${DARCH}/docker-${DOCKER_VERSION}.tgz" -o /tmp/docker.tgz; \
+    sha256sum -c /tmp/docker.sha; \
+    tar -xzf /tmp/docker.tgz -C /tmp docker/docker; \
+    install -m 0755 /tmp/docker/docker /usr/local/bin/docker; \
+    rm -rf /tmp/docker.tgz /tmp/docker /tmp/docker.sha; \
+    docker --version
+
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 

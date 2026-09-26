@@ -1,0 +1,1083 @@
+{
+ "openapi": "3.1.0",
+ "info": {
+  "title": "Genio Server",
+  "description": "Distributed Genio harness \u2014 ReAct loop, tools and telemetry.",
+  "version": "1.0.0"
+ },
+ "paths": {
+  "/api/v1/status": {
+   "get": {
+    "summary": "Get Status",
+    "operationId": "get_status_api_v1_status_get",
+    "parameters": [
+     {
+      "name": "x-api-key",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Api-Key"
+      }
+     },
+     {
+      "name": "authorization",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "title": "Response Get Status Api V1 Status Get"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/safety": {
+   "get": {
+    "summary": "Get Safety",
+    "operationId": "get_safety_api_v1_safety_get",
+    "parameters": [
+     {
+      "name": "x-api-key",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Api-Key"
+      }
+     },
+     {
+      "name": "authorization",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "title": "Response Get Safety Api V1 Safety Get"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "post": {
+    "summary": "Set Safety",
+    "operationId": "set_safety_api_v1_safety_post",
+    "parameters": [
+     {
+      "name": "x-api-key",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Api-Key"
+      }
+     },
+     {
+      "name": "authorization",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "type": "object",
+        "title": "Payload"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "title": "Response Set Safety Api V1 Safety Post"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/auth/token": {
+   "post": {
+    "summary": "Mint Auth Token",
+    "description": "\u00c9met un Bearer \u00e9ph\u00e9m\u00e8re (jamais la cl\u00e9 ma\u00eetresse c\u00f4t\u00e9 client/URL).",
+    "operationId": "mint_auth_token_api_v1_auth_token_post",
+    "parameters": [
+     {
+      "name": "x-api-key",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Api-Key"
+      }
+     },
+     {
+      "name": "authorization",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "title": "Response Mint Auth Token Api V1 Auth Token Post"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/telemetry": {
+   "get": {
+    "summary": "Telemetry Stream",
+    "description": "SSE stream of live CPU / RAM / GPU telemetry (one event per second).",
+    "operationId": "telemetry_stream_api_v1_telemetry_get",
+    "parameters": [
+     {
+      "name": "x-api-key",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Api-Key"
+      }
+     },
+     {
+      "name": "authorization",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/analytics": {
+   "post": {
+    "summary": "Analytics Ingest",
+    "description": "Fire-and-forget analytics beacon receiver (always 200 {}).",
+    "operationId": "analytics_ingest_api_v1_analytics_post",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "title": "Response Analytics Ingest Api V1 Analytics Post"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/motion/recommend": {
+   "get": {
+    "summary": "Motion Recommend",
+    "description": "Gesture recommendation \u2014 null gesture \u2192 client uses local fallback.",
+    "operationId": "motion_recommend_api_v1_motion_recommend_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "title": "Response Motion Recommend Api V1 Motion Recommend Get"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/motion/record": {
+   "post": {
+    "summary": "Motion Record",
+    "description": "Gesture outcome recorder (accepted, persisted by midnight patrol).",
+    "operationId": "motion_record_api_v1_motion_record_post",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "title": "Response Motion Record Api V1 Motion Record Post"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/system/telemetry": {
+   "get": {
+    "summary": "System Telemetry",
+    "description": "JSON snapshot for the web Top Telemetry Bar (polled every ~3s).\n\nSouverain et propre : pourcentages + d\u00e9bits uniquement \u2014 AUCUN nom de\nmarque/mod\u00e8le (pas de gpu.name), AUCUN hostname, AUCUN chemin sensible.",
+    "operationId": "system_telemetry_api_v1_system_telemetry_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "title": "Response System Telemetry Api V1 System Telemetry Get"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/sessions/{sid}": {
+   "get": {
+    "summary": "Get Session",
+    "description": "Bounded session checkpoint \u2014 last N turns + compressed summary.    Never returns unbounded raw history (fault-tolerant resume endpoint).",
+    "operationId": "get_session_api_v1_sessions__sid__get",
+    "parameters": [
+     {
+      "name": "sid",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Sid"
+      }
+     },
+     {
+      "name": "x-api-key",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Api-Key"
+      }
+     },
+     {
+      "name": "authorization",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "title": "Response Get Session Api V1 Sessions  Sid  Get"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/voice/transcribe": {
+   "post": {
+    "summary": "Voice Transcribe",
+    "description": "Phase 3 v2.1 \u2014 Native audio pipeline transcription endpoint.\n\nAccepts a multipart upload of raw audio (WAV / WebM/Opus / M4A) and routes\nto the best available local transcriber (faster-whisper > whisper) with a\ndeterministic fallback. Gated by ``GENIO_AUDIO_PIPELINE=1``.",
+    "operationId": "voice_transcribe_api_v1_voice_transcribe_post",
+    "parameters": [
+     {
+      "name": "language",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "string",
+       "default": "auto",
+       "title": "Language"
+      }
+     },
+     {
+      "name": "x-api-key",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Api-Key"
+      }
+     },
+     {
+      "name": "authorization",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "multipart/form-data": {
+       "schema": {
+        "$ref": "#/components/schemas/Body_voice_transcribe_api_v1_voice_transcribe_post"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "title": "Response Voice Transcribe Api V1 Voice Transcribe Post"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/gemini/{full_path}": {
+   "put": {
+    "summary": "Gemini Proxy",
+    "description": "Proxy Gemini calls through the server so the API key never leaves the server.\nSupports both :generateContent and :streamGenerateContent. The client calls\n/api/v1/gemini/models/{model}:generateContent which is forwarded to\nhttps://generativelanguage.googleapis.com/v1beta/{full_path} with the server key.",
+    "operationId": "gemini_proxy_api_v1_gemini__full_path__put",
+    "parameters": [
+     {
+      "name": "full_path",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Full Path"
+      }
+     },
+     {
+      "name": "x-api-key",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Api-Key"
+      }
+     },
+     {
+      "name": "authorization",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "delete": {
+    "summary": "Gemini Proxy",
+    "description": "Proxy Gemini calls through the server so the API key never leaves the server.\nSupports both :generateContent and :streamGenerateContent. The client calls\n/api/v1/gemini/models/{model}:generateContent which is forwarded to\nhttps://generativelanguage.googleapis.com/v1beta/{full_path} with the server key.",
+    "operationId": "gemini_proxy_api_v1_gemini__full_path__put",
+    "parameters": [
+     {
+      "name": "full_path",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Full Path"
+      }
+     },
+     {
+      "name": "x-api-key",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Api-Key"
+      }
+     },
+     {
+      "name": "authorization",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "post": {
+    "summary": "Gemini Proxy",
+    "description": "Proxy Gemini calls through the server so the API key never leaves the server.\nSupports both :generateContent and :streamGenerateContent. The client calls\n/api/v1/gemini/models/{model}:generateContent which is forwarded to\nhttps://generativelanguage.googleapis.com/v1beta/{full_path} with the server key.",
+    "operationId": "gemini_proxy_api_v1_gemini__full_path__put",
+    "parameters": [
+     {
+      "name": "full_path",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Full Path"
+      }
+     },
+     {
+      "name": "x-api-key",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Api-Key"
+      }
+     },
+     {
+      "name": "authorization",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "get": {
+    "summary": "Gemini Proxy",
+    "description": "Proxy Gemini calls through the server so the API key never leaves the server.\nSupports both :generateContent and :streamGenerateContent. The client calls\n/api/v1/gemini/models/{model}:generateContent which is forwarded to\nhttps://generativelanguage.googleapis.com/v1beta/{full_path} with the server key.",
+    "operationId": "gemini_proxy_api_v1_gemini__full_path__put",
+    "parameters": [
+     {
+      "name": "full_path",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Full Path"
+      }
+     },
+     {
+      "name": "x-api-key",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Api-Key"
+      }
+     },
+     {
+      "name": "authorization",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/": {
+   "get": {
+    "summary": "Root",
+    "operationId": "root__get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "title": "Response Root  Get"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/health": {
+   "get": {
+    "summary": "Health Check",
+    "operationId": "health_check_health_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     }
+    }
+   }
+  },
+  "/health/liveness": {
+   "get": {
+    "summary": "Health Liveness",
+    "description": "Le processus r\u00e9pond (pas de d\u00e9pendance externe).",
+    "operationId": "health_liveness_health_liveness_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "title": "Response Health Liveness Health Liveness Get"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/health/readiness": {
+   "get": {
+    "summary": "Health Readiness",
+    "description": "Pr\u00eat \u00e0 servir : Ollama joignable (court timeout).",
+    "operationId": "health_readiness_health_readiness_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "title": "Response Health Readiness Health Readiness Get"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/health/metrics": {
+   "get": {
+    "summary": "Health Metrics",
+    "description": "M\u00e9triques conformes : tours, outils, t\u00e9l\u00e9m\u00e9trie r\u00e9cente.",
+    "operationId": "health_metrics_health_metrics_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "title": "Response Health Metrics Health Metrics Get"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/executions/{sid}": {
+   "get": {
+    "summary": "Execution Trace",
+    "description": "R\u00e9sum\u00e9 d'ex\u00e9cution auditable d'une session (t\u00e9l\u00e9m\u00e9trie filtr\u00e9e).",
+    "operationId": "execution_trace_api_v1_executions__sid__get",
+    "parameters": [
+     {
+      "name": "sid",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Sid"
+      }
+     },
+     {
+      "name": "x-api-key",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Api-Key"
+      }
+     },
+     {
+      "name": "authorization",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "title": "Response Execution Trace Api V1 Executions  Sid  Get"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  }
+ },
+ "components": {
+  "schemas": {
+   "Body_voice_transcribe_api_v1_voice_transcribe_post": {
+    "properties": {
+     "audio": {
+      "type": "string",
+      "contentMediaType": "application/octet-stream",
+      "title": "Audio"
+     }
+    },
+    "type": "object",
+    "required": [
+     "audio"
+    ],
+    "title": "Body_voice_transcribe_api_v1_voice_transcribe_post"
+   },
+   "HTTPValidationError": {
+    "properties": {
+     "detail": {
+      "items": {
+       "$ref": "#/components/schemas/ValidationError"
+      },
+      "type": "array",
+      "title": "Detail"
+     }
+    },
+    "type": "object",
+    "title": "HTTPValidationError"
+   },
+   "ValidationError": {
+    "properties": {
+     "loc": {
+      "items": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "integer"
+        }
+       ]
+      },
+      "type": "array",
+      "title": "Location"
+     },
+     "msg": {
+      "type": "string",
+      "title": "Message"
+     },
+     "type": {
+      "type": "string",
+      "title": "Error Type"
+     },
+     "input": {
+      "title": "Input"
+     },
+     "ctx": {
+      "type": "object",
+      "title": "Context"
+     }
+    },
+    "type": "object",
+    "required": [
+     "loc",
+     "msg",
+     "type"
+    ],
+    "title": "ValidationError"
+   }
+  }
+ }
+}

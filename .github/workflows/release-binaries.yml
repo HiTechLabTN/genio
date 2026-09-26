@@ -1,3 +1,10 @@
+# Build Binaries (EXE, DEB, APK) — hardened release workflow.
+#
+# Policy (no masking): required steps fail loudly. No `|| true`,
+# no `|| echo ... continuing`, no `exit 0` on missing artifacts.
+# Signing requires secrets; debug keystores are NEVER generated here
+# (previous hardcoded `genio2026` debug signing removed — finding R-01).
+# Unsigned artifacts are rejected, not uploaded silently.
 name: Build Binaries (EXE, DEB, APK)
 
 on:
@@ -14,15 +21,18 @@ jobs:
   build-web:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
-          node-version: lts/*
-      - name: Install & Build Web
+          node-version: 22
+          cache: npm
+          cache-dependency-path: genio_client/package-lock.json
+      - name: Install & Build Web (locked, deterministic)
         working-directory: genio_client
         run: |
-          npm install
+          npm ci
           npm run build
+          test -f dist/index.html || { echo "dist/index.html missing"; exit 1; }
       - name: Upload Web Artifact
         uses: actions/upload-artifact@v4
         with:
@@ -38,13 +48,15 @@ jobs:
       fail-fast: false
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
-          node-version: lts/*
-      - name: Install deps
+          node-version: 22
+          cache: npm
+          cache-dependency-path: genio_client/package-lock.json
+      - name: Install deps (locked)
         working-directory: genio_client
-        run: npm install
+        run: npm ci
       - name: Download Web dist
         uses: actions/download-artifact@v4
         with:
@@ -58,15 +70,19 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         working-directory: genio_client
         run: npm run electron:build:linux
-      - name: List build outputs
-        if: always()
-        working-directory: genio_client
+      - name: Validate build outputs (fail if empty)
         shell: bash
         run: |
-          echo "=== release-builds ==="
-          ls -R release-builds 2>&1 || echo "no release-builds"
-          echo "=== dist ==="
-          ls -R dist 2>&1 | head -50 || ls -la dist 2>&1 | head -50
+          ls genio_client/release-builds/ | head -20
+          count=$(ls genio_client/release-builds/ | wc -l)
+          if [ "$count" -eq 0 ]; then
+            echo "ERROR: electron build produced no artifacts"; exit 1
+          fi
+      - name: Checksum artifacts
+        shell: bash
+        run: |
+          cd genio_client/release-builds && sha256sum * > SHA256SUMS.txt
+          cat SHA256SUMS.txt
       - name: Derive version
         id: ver
         shell: bash
@@ -82,7 +98,8 @@ jobs:
           files: |
             genio_client/release-builds/*.exe
             genio_client/release-builds/*.exe.blockmap
-          fail_on_unmatched_files: false
+            genio_client/release-builds/SHA256SUMS.txt
+          fail_on_unmatched_files: true
           generate_release_notes: false
       - name: Upload DEB to Release
         if: matrix.os == 'ubuntu-latest'
@@ -92,20 +109,23 @@ jobs:
           files: |
             genio_client/release-builds/*.deb
             genio_client/release-builds/*.AppImage
-          fail_on_unmatched_files: false
+            genio_client/release-builds/SHA256SUMS.txt
+          fail_on_unmatched_files: true
           generate_release_notes: false
 
   build-android:
     needs: build-web
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
-          node-version: lts/*
-      - name: Install deps
+          node-version: 22
+          cache: npm
+          cache-dependency-path: genio_client/package-lock.json
+      - name: Install deps (locked)
         working-directory: genio_client
-        run: npm install
+        run: npm ci
       - name: Download Web dist
         uses: actions/download-artifact@v4
         with:
@@ -124,76 +144,66 @@ jobs:
           targets: aarch64-linux-android,armv7-linux-androideabi,i686-linux-android,x86_64-linux-android
       - name: Install Linux dependencies (Tauri)
         run: |
-          sudo apt-get update || echo "apt update failed (microsoft repo 403), continuing"
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev patchelf || sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev patchelf --fix-missing
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev patchelf
       - name: Install Android NDK
         run: |
-          sdkmanager --install "ndk;27.0.12077973" "platforms;android-34" "build-tools;34.0.0" || true
+          sdkmanager --install "ndk;27.0.12077973" "platforms;android-34" "build-tools;34.0.0"
           echo "NDK_HOME=${ANDROID_SDK_ROOT}/ndk/27.0.12077973" >> "$GITHUB_ENV"
           echo "ANDROID_HOME=${ANDROID_SDK_ROOT}" >> "$GITHUB_ENV"
           echo "ANDROID_SDK_ROOT=${ANDROID_SDK_ROOT}" >> "$GITHUB_ENV"
-      - name: Add Android platform (Capacitor fallback)
+      - name: Add Android platform (Capacitor)
         working-directory: genio_client
         run: |
           if [ ! -d "android" ]; then
-            npx cap add android || echo "cap add android failed, will try tauri init"
+            npx cap add android
           fi
-          npx capacitor-assets generate --android || echo "capacitor-assets generate skipped"
-          npx cap sync android || echo "cap sync skipped"
+          npx capacitor-assets generate --android
+          npx cap sync android
       - name: Add Android platform (Tauri)
         working-directory: genio_client
         run: |
-          npx tauri android init || echo "tauri android init skipped (already exists)"
-          bash scripts/apply-android-cleartext.sh || echo "cleartext overlay skipped"
+          npx tauri android init
+          bash scripts/apply-android-cleartext.sh
       - name: Build APK (Tauri)
         working-directory: genio_client
-        run: |
-          npx tauri android build --apk --target aarch64 || echo "tauri android build failed, trying gradle fallback"
+        run: npx tauri android build --apk --target aarch64
       - name: Build AAB (Tauri)
         working-directory: genio_client
         run: |
-          npx tauri android build --aab --target aarch64 || echo "tauri android AAB build failed, trying gradle bundle"
+          npx tauri android build --aab --target aarch64
           if [ -f "genio_client/android/gradlew" ]; then
-            echo "Trying Capacitor bundleRelease..."
-            cd genio_client/android && chmod +x gradlew && ./gradlew bundleRelease || echo "gradle bundleRelease failed"
+            cd genio_client/android && chmod +x gradlew && ./gradlew bundleRelease
           fi
-      - name: Build APK (Gradle fallback)
+      - name: Validate APK/AAB outputs (fail if empty)
         run: |
-          if [ -f "genio_client/android/gradlew" ]; then
-            echo "Trying Capacitor gradle build..."
-            cd genio_client/android && chmod +x gradlew && ./gradlew assembleDebug || echo "gradle build failed"
+          found=$(find genio_client -name "*.apk" -o -name "*.aab" 2>/dev/null | grep -v unaligned | head -20)
+          if [ -z "$found" ]; then
+            echo "ERROR: android build produced no APK/AAB"; exit 1
           fi
-          if [ -d "genio_client/src-tauri/gen/android" ]; then
-            echo "Tauri android outputs:"
-            find genio_client/src-tauri/gen/android -name "*.apk" -o -name "*.aab" 2>/dev/null | head -20 || true
-          fi
-          echo "Capacitor outputs:"
-          find genio_client/android -name "*.apk" -o -name "*.aab" 2>/dev/null | head -20 || true
-      - name: Sign APK (if unsigned)
+          echo "$found"
+      - name: Sign APK (release keystore required)
         run: |
           set -e
-          APK=$(find genio_client/src-tauri/gen/android genio_client/android -name "*.apk" 2>/dev/null | grep -v "unaligned" | head -1 || true)
-          if [ -z "$APK" ]; then
-            echo "No APK found to sign"
-            ls -R genio_client/src-tauri/gen 2>&1 | head -100
-            ls -R genio_client/android 2>&1 | head -100
-            exit 0
+          if [ -z "${ANDROID_KEYSTORE_BASE64:-}" ]; then
+            echo "ERROR: ANDROID_KEYSTORE_BASE64 secret not configured."
+            echo "Refusing to upload unsigned APKs or to generate debug keys. Configure release signing."
+            exit 1
           fi
-          echo "Found APK: $APK"
-          # If already signed, skip signing
-          if echo "$APK" | grep -q "unsigned"; then
-            BT=$(ls "$ANDROID_SDK_ROOT/build-tools" | sort -V | tail -1)
-            keytool -genkey -v -keystore /tmp/genio.keystore -storepass genio2026 \
-              -keypass genio2026 -alias genio -dname "CN=Genio,O=HiTechLab,C=TN" \
-              -keyalg RSA -keysize 2048 -validity 10000 || true
-            "$ANDROID_SDK_ROOT/build-tools/$BT/zipalign" -f 4 "$APK" /tmp/genio-aligned.apk || cp "$APK" /tmp/genio-aligned.apk
-            "$ANDROID_SDK_ROOT/build-tools/$BT/apksigner" sign --ks /tmp/genio.keystore \
-              --ks-pass pass:genio2026 --key-pass pass:genio2026 --ks-key-alias genio \
-              --out "${APK%-unsigned.apk}.apk" /tmp/genio-aligned.apk || echo "apksigner failed"
-            rm -f "$APK"
-            echo "Signed APK ready"
-          fi
-          find genio_client -name "*.apk" -o -name "*.aab" 2>/dev/null | head -20
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > /tmp/release.keystore
+          APK=$(find genio_client/src-tauri/gen/android genio_client/android -name "*.apk" 2>/dev/null | grep -v "unaligned" | head -1)
+          BT=$(ls "$ANDROID_SDK_ROOT/build-tools" | sort -V | tail -1)
+          "$ANDROID_SDK_ROOT/build-tools/$BT/zipalign" -f 4 "$APK" /tmp/genio-aligned.apk
+          "$ANDROID_SDK_ROOT/build-tools/$BT/apksigner" sign --ks /tmp/release.keystore \
+            --ks-pass "pass:${ANDROID_KEYSTORE_PASSWORD}" --ks-key-alias "${ANDROID_KEY_ALIAS:-genio}" \
+            --out "${APK%-unsigned.apk}-release.apk" /tmp/genio-aligned.apk
+          rm -f /tmp/release.keystore /tmp/genio-aligned.apk
+          find genio_client -name "*.apk" | head -20
+      - name: Checksum artifacts
+        run: |
+          find genio_client -name "*.apk" -o -name "*.aab" | grep -v unaligned > /tmp/apks.txt
+          cat /tmp/apks.txt
+          (cd genio_client && sha256sum $(cat /tmp/apks.txt | sed 's|genio_client/||') > ANDROID_SHA256SUMS.txt)
       - name: Upload APK to Release
         uses: softprops/action-gh-release@v2
         with:
@@ -205,19 +215,21 @@ jobs:
             genio_client/src-tauri/gen/android/**/*.aab
             genio_client/android/app/build/outputs/bundle/**/*.aab
             genio_client/android/**/*.aab
-          fail_on_unmatched_files: false
+            genio_client/ANDROID_SHA256SUMS.txt
+          fail_on_unmatched_files: true
           generate_release_notes: false
       - name: Upload Web Bundle to Release
         run: |
           cd genio_client
-          zip -r ../Genio-Web-${{ github.ref_name }}.zip dist 2>&1 | tail -5
-          ls -lh ../Genio-Web-*.zip 2>&1 | head -5
-        # upload web bundle via same release
+          zip -r ../Genio-Web-${{ github.ref_name }}.zip dist
+          ls -lh ../Genio-Web-*.zip
+          sha256sum ../Genio-Web-*.zip > ../Genio-Web-${{ github.ref_name }}.zip.sha256
       - name: Upload Web Bundle Artifact to Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
           files: |
             Genio-Web-*.zip
-          fail_on_unmatched_files: false
+            Genio-Web-*.zip.sha256
+          fail_on_unmatched_files: true
           generate_release_notes: false

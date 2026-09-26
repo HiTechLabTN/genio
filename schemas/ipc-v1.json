@@ -1,0 +1,63 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/HiTechLabTN/genio/schemas/ipc-v1.json",
+  "title": "Genio IPC v1.x envelope",
+  "description": "Authoritative contract: docs/ipc/IPC_V1.md. Code: genio/integrations/hitechos/.",
+  "type": "object",
+  "required": ["request_id"],
+  "properties": {
+    "method": {"type": "string", "enum": ["hello", "capabilities", "infer", "goodbye"]},
+    "request_id": {"type": "string", "minLength": 1, "maxLength": 128},
+    "ts": {"type": "number"},
+    "proto_min": {"type": "string", "pattern": "^[0-9]+\\.[0-9]+$"},
+    "proto_max": {"type": "string", "pattern": "^[0-9]+\\.[0-9]+$"},
+    "instance_id": {"type": "string", "minLength": 1},
+    "product": {"type": "string"},
+    "product_version": {"type": "string"},
+    "model": {"type": "string"},
+    "prompt": {"type": "string", "maxLength": 262144},
+    "context": {"type": "object"},
+    "max_tokens": {"type": "integer", "minimum": 1, "maximum": 8192},
+    "temperature": {"type": "number", "minimum": 0.0, "maximum": 2.0},
+    "protocol_version": {"type": "string"}
+  },
+  "definitions": {
+    "error": {
+      "type": "object",
+      "required": ["status", "error"],
+      "properties": {
+        "status": {"const": "error"},
+        "request_id": {"type": ["string", "null"]},
+        "protocol_version": {"type": "string"},
+        "error": {
+          "type": "object",
+          "required": ["code", "message"],
+          "properties": {
+            "code": {"enum": ["UNSUPPORTED_PROTOCOL", "MALFORMED", "UNAUTHORIZED", "EXPIRED", "TIMEOUT", "CANCELLED", "OVERSIZED", "DUPLICATE", "UNAVAILABLE", "POLICY_DENY", "NOT_CONFIGURED", "INTERNAL"]},
+            "message": {"type": "string", "maxLength": 500}
+          }
+        }
+      }
+    },
+    "capability": {
+      "type": "object",
+      "required": ["capability", "available", "version", "detail"],
+      "properties": {
+        "capability": {"type": "string"},
+        "available": {"type": "boolean"},
+        "version": {"type": ["string", "null"]},
+        "detail": {"type": "string"}
+      }
+    },
+    "event": {
+      "type": "object",
+      "required": ["event", "event_version", "ts", "payload"],
+      "properties": {
+        "event": {"enum": ["genio.ready", "genio.degraded", "genio.request", "genio.shutdown"]},
+        "event_version": {"const": "1.0"},
+        "ts": {"type": "number"},
+        "payload": {"type": "object"}
+      }
+    }
+  }
+}

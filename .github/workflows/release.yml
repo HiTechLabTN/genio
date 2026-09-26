@@ -95,20 +95,22 @@ jobs:
       - name: Build Android APK
         working-directory: ./genio_client
         run: npx tauri android build --apk --target aarch64
-      - name: Sign APK with generated keystore
+      - name: Sign APK with release keystore (required)
         run: |
           set -e
           APK=$(find genio_client/src-tauri/gen/android -path "*release*" -name "*.apk" | head -1)
-          if [ -z "$APK" ]; then echo "no apk found"; exit 0; fi
+          if [ -z "$APK" ]; then echo "ERROR: no apk found to sign"; exit 1; fi
+          if [ -z "${ANDROID_KEYSTORE_BASE64:-}" ]; then
+            echo "ERROR: ANDROID_KEYSTORE_BASE64 secret not configured. Refusing debug-key signing."
+            exit 1
+          fi
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > /tmp/release.keystore
           BT=$(ls "$ANDROID_SDK_ROOT/build-tools" | sort -V | tail -1)
-          keytool -genkey -v -keystore /tmp/genio.keystore -storepass genio2026 \
-            -keypass genio2026 -alias genio -dname "CN=Genio,O=HiTechLab,C=TN" \
-            -keyalg RSA -keysize 2048 -validity 10000
           "$ANDROID_SDK_ROOT/build-tools/$BT/zipalign" -f 4 "$APK" /tmp/genio-aligned.apk
-          "$ANDROID_SDK_ROOT/build-tools/$BT/apksigner" sign --ks /tmp/genio.keystore \
-            --ks-pass pass:genio2026 --key-pass pass:genio2026 --ks-key-alias genio \
+          "$ANDROID_SDK_ROOT/build-tools/$BT/apksigner" sign --ks /tmp/release.keystore \
+            --ks-pass "pass:${ANDROID_KEYSTORE_PASSWORD}" --ks-key-alias "${ANDROID_KEY_ALIAS:-genio}" \
             --out "${APK%-unsigned.apk}.apk" /tmp/genio-aligned.apk
-          rm -f "$APK"
+          rm -f /tmp/release.keystore "$APK"
           echo "signed APK ready: ${APK%-unsigned.apk}.apk"
       - name: Derive app version
         id: ver
@@ -116,7 +118,10 @@ jobs:
           VER=$(node -p "require('./genio_client/package.json').version")
           echo "APP_VERSION=${VER}" >> "$GITHUB_OUTPUT"
       - name: List APK outputs
-        run: find genio_client/src-tauri/gen/android -name "*.apk" 2>/dev/null || true
+        run: |
+          found=$(find genio_client/src-tauri/gen/android -name "*.apk" 2>/dev/null | head -5)
+          if [ -z "$found" ]; then echo "ERROR: no APK outputs"; exit 1; fi
+          echo "$found"
       - name: Upload APK to Android release
         uses: softprops/action-gh-release@v2
         with:
