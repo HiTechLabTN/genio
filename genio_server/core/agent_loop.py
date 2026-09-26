@@ -30,7 +30,7 @@ import os
 import re
 import threading
 import time
-from typing import TYPE_CHECKING, AsyncIterator, Callable, Dict, List, Optional, Tuple
+from typing import TYPE_CHECKING, Any, AsyncIterator, Dict, List, Optional, Tuple
 
 import httpx
 
@@ -395,7 +395,6 @@ async def summarize_session_batch(conversation_text: str,
     lines = [ln for ln in (conversation_text or "").splitlines() if ln.strip()]
     if not lines:
         return ""
-    snippet = "\n".join(lines[:3] + ["…"] + lines[-3:])
     summary = (f"[conversation summary — {len(lines)} turns] "
                f"earlier: {lines[0][:140]} … later: {lines[-1][:140]}")
     return summary[:max_chars]
@@ -745,7 +744,7 @@ class AgentLoop:
         # stored history and as the new turn).
         resumed = await self._build_initial_messages()
         # Phase 11 : requête opérateur étiquetée TRUSTED_USER (jamais brute).
-        from genio_server.core.trust import Trust, guard_block, label_block
+        from genio_server.core.trust import Trust, label_block
         trusted_user = label_block(Trust.USER, user_input)
         if resumed is not None:
             messages = resumed + [{"role": "user", "content": trusted_user}]
@@ -821,7 +820,22 @@ class AgentLoop:
                     self._tel("agent.completed", self.session_id)
                     yield {"type": "answer", "text": final_answer}
                     return
-                assistant, eval_count, tok_per_s = await self._chat(client, messages)
+                try:
+                    assistant, eval_count, tok_per_s = await self._chat(
+                        client, messages)
+                except OllamaConnectionError as exc:
+                    # Phase 24 : modèle injoignable → event structuré + réponse
+                    # gracieuse (jamais d'exception échappée au client).
+                    self._tel("agent.failed", self.session_id,
+                              result="model-unreachable")
+                    yield {"type": "error",
+                           "message": f"model unreachable: {exc}"}
+                    final_answer = sanitize_for_client(
+                        "المودال ما يردش توة (السيرفر طايح ولا مشغول). "
+                        "عاود جرّب بعد شوية.")
+                    await self._save_message("assistant", final_answer)
+                    yield {"type": "answer", "text": final_answer}
+                    return
                 if eval_count:
                     yield {"type": "stats", "tokens": eval_count, "tok_per_s": tok_per_s}
                 narration, call = await asyncio.to_thread(_split_narration, assistant)
