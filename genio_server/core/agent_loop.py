@@ -799,12 +799,29 @@ class AgentLoop:
         # Phase 3: loop guard (répétition + retry budget) + deadline du tour.
         guard = LoopGuard()
         turn_deadline = time.monotonic() + TURN_BUDGET_SECONDS
+        # Phase 26 : tracker de budgets (itérations, tools, tokens, runtime).
+        from genio_server.core.budgets import BudgetTracker
+        budget = BudgetTracker()
+
+        async def _budget_exceeded() -> Optional[str]:
+            bad = budget.violations()
+            if not bad:
+                return None
+            final = self._quota_synthesis(
+                trajectory, prefix="[quota dépassé] ")
+            await self._save_message("assistant", final)
+            return final
 
         async with httpx.AsyncClient(base_url=self.ollama_url) as client:
             for _ in range(self.max_iterations):
                 # Yield to the event loop each iteration so surrounding tasks
                 # (WebSocket telemetry, SSE stream, kill handling) can run.
                 await asyncio.sleep(0)
+                budget.note_iteration()
+                over = await _budget_exceeded()
+                if over is not None:
+                    yield {"type": "answer", "text": over}
+                    return
                 if self.cancelled():
                     self._tel("kill_switch.triggered", self.session_id)
                     self._tel("agent.failed", self.session_id, result="halted")
@@ -893,6 +910,11 @@ class AgentLoop:
                     await self._save_message("user", feedback)
                     continue
                 yield {"type": "tool_call", "command": command}
+                budget.note_tool_call()
+                over = await _budget_exceeded()
+                if over is not None:
+                    yield {"type": "answer", "text": over}
+                    return
 
                 # Phase 4: interception capability — le LLM ne s'autorise plus
                 # lui-même. Descripteur extrait (nom seul), event télémétrique
