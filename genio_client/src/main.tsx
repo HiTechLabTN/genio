@@ -5,6 +5,7 @@ import RootErrorBoundary from "./components/RootErrorBoundary";
 import { ThemeProvider } from "./lib/theme";
 import { trackPageView } from "./lib/analytics";
 import "./index.css";
+import "./design/tokens.css";
 
 function Analytics() {
   const loc = useLocation();

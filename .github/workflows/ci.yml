@@ -160,6 +160,8 @@ jobs:
         run: npm ci
       - name: Typecheck (blocking)
         run: npx tsc --noEmit
+      - name: Product-data freshness (docs-as-contract, no drift)
+        run: node scripts/gen-product-data.mjs --check
       - name: Frontend tests
         run: npx vitest run
       - name: Audit runtime deps (high/critical fail)

@@ -1,0 +1,91 @@
+{
+  "generated_from": "authoritative repo sources (see scripts/gen-product-data.mjs)",
+  "product": "genio",
+  "version": "4.1.0",
+  "installer_version": "1.0.0",
+  "client_version": "4.3.0",
+  "ipc_protocol": "1.0",
+  "api_routes": 17,
+  "ipc_error_codes": [
+    "UNSUPPORTED_PROTOCOL",
+    "MALFORMED",
+    "UNAUTHORIZED",
+    "EXPIRED",
+    "TIMEOUT",
+    "CANCELLED",
+    "OVERSIZED",
+    "DUPLICATE",
+    "UNAVAILABLE",
+    "POLICY_DENY",
+    "NOT_CONFIGURED",
+    "INTERNAL"
+  ],
+  "ipc_events": [
+    "genio.ready",
+    "genio.degraded",
+    "genio.request",
+    "genio.shutdown"
+  ],
+  "capabilities": [
+    "agent",
+    "planning",
+    "memory",
+    "tools",
+    "sandbox",
+    "browser",
+    "computer",
+    "voice",
+    "models",
+    "automation",
+    "filesystem",
+    "hitechos-integration"
+  ],
+  "capabilities_unavailable": [
+    "vision"
+  ],
+  "artifacts": {
+    "base": "https://github.com/HiTechLabTN/genio/releases/tag/v4.1.0",
+    "archive": "https://github.com/HiTechLabTN/genio/releases/download/v4.1.0/genio-4.1.0.tar.gz",
+    "checksum": "https://github.com/HiTechLabTN/genio/releases/download/v4.1.0/genio-4.1.0.tar.gz.sha256",
+    "manifest": "https://github.com/HiTechLabTN/genio/releases/download/v4.1.0/genio-4.1.0.release.json",
+    "sbom": "https://github.com/HiTechLabTN/genio/releases/download/v4.1.0/sbom.json",
+    "docker": "ghcr.io/hitechlabtn/genio:4.1.0"
+  },
+  "platforms": {
+    "linux": {
+      "status": "supported",
+      "arch": [
+        "x86_64",
+        "aarch64"
+      ],
+      "method": "release archive + installer"
+    },
+    "docker": {
+      "status": "supported",
+      "image": "ghcr.io/hitechlabtn/genio:4.1.0"
+    },
+    "windows": {
+      "status": "unavailable",
+      "reason": "No signed EXE published for this release"
+    },
+    "macos": {
+      "status": "unavailable",
+      "reason": "No signed DMG published for this release"
+    },
+    "android": {
+      "status": "unavailable",
+      "reason": "APK requires release signing secrets (external)"
+    }
+  },
+  "release_notes": "- Smart installer (`installer/genio`): install/doctor/status/repair/\n  update/rollback/uninstall, manifests, backups, port detection.\n- Release archives `.tar.g\n\n- VODER `language=\"ar\"` 500 → default `auto` + explicit 422.\n- Strict-mode keyless boot refused (boot guard + tests).\n- CI: pinned ruff, portable test paths, Playwright browsers, missing\n  PWA asset, sibling-path guard.\n- Docker context: secrets/weights excluded (proven).",
+  "known_limitations": [
+    "1. No installable Python package (CWD pinned per launch vector).",
+    "2. Voice/systemd clean-room partial (optional/shared host).",
+    "3. Sandbox-in-Docker needs socket mount (documented, fail-closed w/o).",
+    "4. Network required for pip/npm.",
+    "5. Non-git update = file swap.",
+    "6. `release-binaries.yml` hardened, Android build needs secrets.",
+    "7. No Docker registry push (no infra) — build locally, digest recorded.",
+    "8. Desktop/mobile apps consume HTTP API+WS only (no builds here)."
+  ]
+}

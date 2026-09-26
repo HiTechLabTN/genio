@@ -1,0 +1,65 @@
+/* Genio 5 design tokens — SINGLE source for portal visuals (§27 charter, G1-B).
+ * Existing app keeps its Tailwind theme; new portal code uses ONLY these vars.
+ * Values mirror tailwind.config.js (void/carbon/neon/danger/ok) — no restyle.
+ */
+:root {
+  --g5-void: #020617;
+  --g5-carbon: #0f172a;
+  --g5-glass: rgba(15, 23, 42, 0.55);
+  --g5-neon: #22d3ee;
+  --g5-neon-soft: #67e8f9;
+  --g5-neon-deep: #0e7490;
+  --g5-neon-glow: rgba(34, 211, 238, 0.35);
+  --g5-danger: #f43f5e;
+  --g5-ok: #34d399;
+  --g5-warn: #fbbf24;
+  --g5-ink: #e2e8f0;
+  --g5-ink-dim: rgba(226, 232, 240, 0.6);
+  --g5-font-display: "Space Grotesk", "Inter", system-ui, sans-serif;
+  --g5-font-mono: "JetBrains Mono", "Fira Code", ui-monospace, monospace;
+  --g5-space-1: 0.25rem;
+  --g5-space-2: 0.5rem;
+  --g5-space-3: 0.75rem;
+  --g5-space-4: 1rem;
+  --g5-space-6: 1.5rem;
+  --g5-space-8: 2rem;
+  --g5-radius-s: 0.375rem;
+  --g5-radius-m: 0.75rem;
+  --g5-radius-l: 1rem;
+  --g5-elev-1: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --g5-elev-2: 0 8px 24px rgba(0, 0, 0, 0.45);
+  --g5-border: rgba(148, 163, 184, 0.16);
+  --g5-focus-ring: 0 0 0 3px rgba(34, 211, 238, 0.55);
+  --g5-motion: 180ms ease;
+}
+
+html.light {
+  --g5-void: #eef2f7;
+  --g5-carbon: #ffffff;
+  --g5-glass: rgba(255, 255, 255, 0.7);
+  --g5-ink: #0f172a;
+  --g5-ink-dim: rgba(15, 23, 42, 0.62);
+  --g5-border: rgba(15, 23, 42, 0.12);
+}
+
+/* Accessibility states (G1-G): visible focus everywhere in portal. */
+.g5-focusable:focus-visible {
+  outline: none;
+  box-shadow: var(--g5-focus-ring);
+  border-radius: var(--g5-radius-s);
+}
+
+/* Reduced motion: animations communicate state, never decorate (G1-G). */
+@media (prefers-reduced-motion: reduce) {
+  .g5-animated, .g5-animated * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Status indicators (severity vocabulary shared with installer states). */
+.g5-status[data-severity="ok"] { color: var(--g5-ok); }
+.g5-status[data-severity="warn"] { color: var(--g5-warn); }
+.g5-status[data-severity="error"] { color: var(--g5-danger); }
+.g5-status[data-severity="info"] { color: var(--g5-neon-soft); }
