@@ -13,6 +13,15 @@ COPY . .
 
 ENV PYTHONPATH=/app
 
+# Production hardening (§12) : non-root + HEALTHCHECK. L'API écoute 8080
+# (>1024, pas de privilège requis) et n'écrit rien (lecture /proc + env).
+RUN useradd -r -u 10001 -m -d /home/genio -s /usr/sbin/nologin genio \
+    && chown -R genio:genio /app
+USER genio
+
 EXPOSE 8080
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
+  CMD curl -fsS http://127.0.0.1:8080/health || exit 1
 
 CMD ["uvicorn", "web.server:app", "--host", "0.0.0.0", "--port", "8080", "--workers", "2"]

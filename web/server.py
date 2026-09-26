@@ -193,6 +193,12 @@ async def get_manifest():
     p = BASE_DIR / "manifest.json"
     return FileResponse(p, media_type="application/json") if p.exists() else {"name": "Genio"}
 
+
+@app.get("/health")
+async def get_health():
+    """Liveness probe (Docker HEALTHCHECK, load-balancers). No auth, no data."""
+    return {"status": "ok", "service": "genio-web"}
+
 @app.get("/sw.js")
 async def get_sw():
     p = BASE_DIR / "sw.js"
