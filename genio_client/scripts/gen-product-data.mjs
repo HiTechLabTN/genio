@@ -71,10 +71,16 @@ const data = {
 
 const prev = existsSync(OUT) ? readFileSync(OUT, "utf8") : null;
 const next = JSON.stringify(data, null, 2) + "\n";
+// Bundle the OpenAPI schema for the read-only API explorer (single truth).
+const openapiDest = join(ROOT, "genio_client", "src", "schemas-openapi.json");
+const openapiSrc = JSON.stringify(openapi);
 if (process.argv.includes("--check")) {
   if (prev !== next) { console.error("product-data.json drifted — regenerate"); process.exit(1); }
+  const curOpenapi = existsSync(openapiDest) ? readFileSync(openapiDest, "utf8") : null;
+  if (curOpenapi !== openapiSrc) { console.error("schemas-openapi.json drifted — regenerate"); process.exit(1); }
   console.log("product-data.json fresh");
 } else {
   writeFileSync(OUT, next);
+  writeFileSync(openapiDest, openapiSrc);
   console.log(`wrote ${OUT} (v${version})`);
 }

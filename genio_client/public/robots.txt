@@ -1,4 +1,6 @@
 User-agent: *
 Allow: /
 Disallow: /genio/admin
+Disallow: /app
+
 Sitemap: https://genio.hitech.tn/sitemap.xml

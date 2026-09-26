@@ -17,6 +17,13 @@ const App = lazy(() => import("./App"));
 const Landing = lazy(() => import("./pages/Landing"));
 const About = lazy(() => import("./pages/About"));
 const Admin = lazy(() => import("./pages/Admin"));
+const DownloadCenter = lazy(() => import("./portal/pages/DownloadCenter"));
+const DocsViewerIndex = lazy(() => import("./portal/pages/DocsViewer").then((m) => ({ default: m.DocsIndex })));
+const DocPage = lazy(() => import("./portal/pages/DocsViewer").then((m) => ({ default: m.DocPage })));
+const ArchitectureExplorer = lazy(() => import("./portal/pages/ArchitectureExplorer"));
+const SecurityCenter = lazy(() => import("./portal/pages/SecurityCenter"));
+const ApiExplorer = lazy(() => import("./portal/pages/ApiExplorer"));
+const InstallAssistant = lazy(() => import("./portal/pages/InstallAssistant"));
 
 function LoadingFallback() {
   return (
@@ -41,6 +48,13 @@ ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
               <Route path="/app" element={<App />} />
               <Route path="/about" element={<About />} />
               <Route path="/genio/admin" element={<Admin />} />
+              <Route path="/download" element={<DownloadCenter />} />
+              <Route path="/docs" element={<DocsViewerIndex />} />
+              <Route path="/docs/:slug" element={<DocPage />} />
+              <Route path="/explore" element={<ArchitectureExplorer />} />
+              <Route path="/security" element={<SecurityCenter />} />
+              <Route path="/api" element={<ApiExplorer />} />
+              <Route path="/install" element={<InstallAssistant />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </Suspense>

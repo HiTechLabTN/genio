@@ -1,0 +1,92 @@
+[
+  {
+    "slug": "getting-started",
+    "title": "Getting Started",
+    "source": "docs/install/INSTALLATION.md"
+  },
+  {
+    "slug": "installation",
+    "title": "Installation",
+    "source": "docs/install/PRODUCTION_INSTALLATION.md"
+  },
+  {
+    "slug": "recovery",
+    "title": "Recovery",
+    "source": "docs/install/RECOVERY.md"
+  },
+  {
+    "slug": "troubleshooting",
+    "title": "Troubleshooting",
+    "source": "docs/install/TROUBLESHOOTING.md"
+  },
+  {
+    "slug": "updates",
+    "title": "Updates & Rollback",
+    "source": "docs/install/UPGRADE_AND_ROLLBACK.md"
+  },
+  {
+    "slug": "architecture",
+    "title": "Architecture",
+    "source": "docs/ARCHITECTURE.md"
+  },
+  {
+    "slug": "security",
+    "title": "Security",
+    "source": "docs/SECURITY.md"
+  },
+  {
+    "slug": "sandbox",
+    "title": "Sandbox",
+    "source": "docs/SANDBOX.md"
+  },
+  {
+    "slug": "memory",
+    "title": "Memory",
+    "source": "docs/MEMORY.md"
+  },
+  {
+    "slug": "models",
+    "title": "Model routing",
+    "source": "docs/MODEL_ROUTING.md"
+  },
+  {
+    "slug": "api",
+    "title": "API",
+    "source": "docs/API.md"
+  },
+  {
+    "slug": "ipc",
+    "title": "IPC v1.x",
+    "source": "docs/ipc/IPC_V1.md"
+  },
+  {
+    "slug": "hitechos",
+    "title": "HiTech-OS",
+    "source": "docs/integration/HITECH_OS_INTEGRATION.md"
+  },
+  {
+    "slug": "capabilities",
+    "title": "Capabilities",
+    "source": "docs/integration/CAPABILITIES.md"
+  },
+  {
+    "slug": "operations",
+    "title": "Operations",
+    "source": "docs/operations/OPERATIONS.md"
+  },
+  {
+    "slug": "changelog",
+    "title": "Changelog",
+    "source": "docs/release/RELEASE_NOTES_4.1.0.md"
+  },
+  {
+    "slug": "migration",
+    "title": "Migration",
+    "source": "docs/releases/GENIO_5_MIGRATION.md"
+  },
+  {
+    "slug": "boundary",
+    "title": "Security boundary",
+    "source": "docs/security/SECURITY_BOUNDARY.md"
+  }
+]

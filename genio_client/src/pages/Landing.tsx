@@ -54,6 +54,13 @@ export default function Landing() {
                 كيفاش يخدم؟
               </a>
             </div>
+            <nav aria-label="Product" className="mt-4 flex flex-wrap gap-x-4 gap-y-2 text-[12px]">
+              <Link to="/explore" className="text-cyan-300/90 hover:text-cyan-200">Explore</Link>
+              <Link to="/download" className="text-cyan-300/90 hover:text-cyan-200">Download</Link>
+              <Link to="/install" className="text-cyan-300/90 hover:text-cyan-200">Install</Link>
+              <Link to="/docs" className="text-cyan-300/90 hover:text-cyan-200">Docs</Link>
+              <Link to="/security" className="text-cyan-300/90 hover:text-cyan-200">Security</Link>
+            </nav>
             <p className="mt-3 font-mono text-[11px] text-white/40">لا API key في المتصفح • يعمل أوفلاين Tier A • صوت و صورة</p>
           </motion.div>
 
