@@ -24,7 +24,12 @@ from genio_executive_core import SelfHealingExecutor as _SelfHealingExecutorBase
 
 # ── Re-export legacy modules for backward compatibility ── #
 sys.path.insert(0, str(GENIO_DIR))
-sys.path.insert(0, str(GENIO_DIR.parent / "webapp" / "backend"))
+# RC-fix CI : le sibling webapp/backend n'existe que sur le poste de dev
+# (module legacy darija_rewriter/llm_utils/media_steps/ghost_utils).
+# Insertion conditionnelle : clones frais / CI restent portables.
+_webapp_backend = GENIO_DIR.parent / "webapp" / "backend"
+if _webapp_backend.is_dir():
+    sys.path.insert(0, str(_webapp_backend))
 
 
 # ── DAG Node Types ── #
