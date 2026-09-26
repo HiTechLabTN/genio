@@ -11,11 +11,9 @@ quarantaine anti-empoisonnement ; purge à expiration.
 from __future__ import annotations
 
 import json
-import os
 import time
-import uuid
 from collections import deque
-from dataclasses import asdict, dataclass, field
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 

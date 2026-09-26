@@ -24,7 +24,7 @@ import shutil
 import subprocess
 import time
 from pathlib import Path
-from typing import Dict, Optional
+from typing import Dict
 
 from genio_server.tools.bash_tool import MAX_OUTPUT, TRUNCATE_MARKER
 

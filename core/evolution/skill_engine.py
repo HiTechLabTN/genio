@@ -10,7 +10,7 @@ import sys
 import traceback
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Callable, Dict
+from typing import Callable, Dict
 
 logger = logging.getLogger("genio.evolution.skills")
 SKILLS_DIR = Path("/data/ai_tools/genio/core/skills")

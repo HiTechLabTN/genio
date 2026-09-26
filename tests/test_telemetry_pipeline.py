@@ -5,11 +5,10 @@ Aucun réseau/modèle.
 """
 import json
 import sys
-from pathlib import Path
 
 sys.path.insert(0, "/data/ai_tools/genio")
 
-from genio_server.core.telemetry import Telemetry, get_telemetry, scrub_text
+from genio_server.core.telemetry import Telemetry, get_telemetry
 
 
 def _tel(tmp_path):

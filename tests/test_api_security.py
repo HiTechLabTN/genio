@@ -4,7 +4,6 @@ Auth (401 sans crédents quand clé configurée), Bearer éphémère mint+usage,
 rate-limit 429, taille 413, nonce approve validé, erreurs assainies.
 Serveur FastAPI réel via TestClient (pas de réseau externe).
 """
-import os
 import sys
 
 sys.path.insert(0, "/data/ai_tools/genio")

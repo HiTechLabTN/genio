@@ -2,7 +2,6 @@
 
 Run: pytest test_phase_B_tool_forge_container.py -v
 """
-import tempfile
 from pathlib import Path
 from unittest import mock
 

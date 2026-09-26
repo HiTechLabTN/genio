@@ -2,10 +2,9 @@
 
 Run: pytest test_phase5_sandbox.py -v
 """
-import os
 
 from genio_server.tools.bash_tool import run_command
-from genio_server.tools.session_container import _container_name, exec_in_container
+from genio_server.tools.session_container import _container_name
 
 
 def test_local_mode_still_works(monkeypatch):

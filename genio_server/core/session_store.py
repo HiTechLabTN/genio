@@ -17,11 +17,10 @@ without bound.
 """
 from __future__ import annotations
 
-import json
 import time
 import uuid
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, Optional
 
 import aiosqlite
 
@@ -203,7 +202,7 @@ class SessionStore:
             return await summarize_session_batch(old_text)
         except Exception:
             # Fallback: heuristic extractive summary (first/last lines).
-            lines = [l for l in old_text.splitlines() if l.strip()]
+            lines = [ln for ln in old_text.splitlines() if ln.strip()]
             snippet = "\n".join(lines[:2] + ["…"] + lines[-2:])
             return f"[truncated conversation, {len(lines)} lines]: {snippet[:400]}"
 

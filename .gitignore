@@ -53,3 +53,6 @@ venv_voder/
 **/*.pem
 **/*.key
 .env.*
+
+# Phase 30 : workdirs de session éphémères (tests/conteneurs)
+state/session_workdirs/

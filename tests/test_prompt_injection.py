@@ -7,7 +7,6 @@ import sys
 
 sys.path.insert(0, "/data/ai_tools/genio")
 
-from genio_server.core import trust
 from genio_server.core.trust import (
     Trust,
     detect_override_attempt,
@@ -64,7 +63,6 @@ def test_build_instructions_labeled():
 
 
 def test_feedback_wrapped_untrusted():
-    import asyncio
     from genio_server.core.agent_loop import _feedback_for
     fb = _feedback_for({"stdout": "hi", "returncode": 0}, "narr")
     wrapped = guard_block(Trust.TOOL_OUTPUT, fb)

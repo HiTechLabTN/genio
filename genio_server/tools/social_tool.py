@@ -37,7 +37,7 @@ def _hook(content_type: str) -> str:
         "article": f"🟢 {tag} جديد من HighTechLab اللي فمختبرنا:",
         "rt2r_video": f"🎬 {tag} جديد من RT2R — نكملو رحلة تشغيل المختبر بنفسنا:",
         "auto": f"🟢 {tag} جديد من فرق HighTechLab:",
-        "update": f"⚡ تحديث سريع من HighTechLab:",
+        "update": "⚡ تحديث سريع من HighTechLab:",
     }
     return hooks.get(ct, hooks["auto"])
 
@@ -89,7 +89,7 @@ def format_social_media_post(
     if content_type not in _CT_LABEL:
         content_type = "auto"
 
-    limit = PLATFORM_LIMITS[platform]
+    _limit = PLATFORM_LIMITS[platform]
     tags = _hashtags(platform, content_type)
     tag_line = " ".join(tags)
 

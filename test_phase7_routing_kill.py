@@ -43,7 +43,6 @@ async def test_router_cancel_propagates_midway(monkeypatch):
 
 
 def test_agent_loop_cancelled_check():
-    import asyncio as aio
     from genio_server.core.agent_loop import AgentLoop
 
     ev = threading.Event()

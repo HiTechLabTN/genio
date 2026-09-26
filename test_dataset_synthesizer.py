@@ -90,4 +90,4 @@ def test_cli_main(tmp_path):
     assert Path(path).exists()
     lines = out.read_text(encoding="utf-8").splitlines()
     assert len(lines) == 10
-    assert all("instruction" in json.loads(l) for l in lines)
+    assert all("instruction" in json.loads(ln) for ln in lines)

@@ -258,9 +258,14 @@ def classify(command: str) -> Dict[str, Any]:
         if prog in _INTERPRETERS and any(
                 a in ("-c", "-e", "-E") for a in args):
             payload = " ".join(args).lower()
-            if ("os.system" in payload or "subprocess" in payload
-                    or "socket" in payload or "urllib" in payload
-                    or "__import__" in payload or "child_process" in payload):
+            # urllib seul (fetch simple) reste permis ; on bloque l'évasion
+            # réelle (exécution process, sockets bruts, imports dynamiques).
+            if ("os.system" in payload or "os.popen" in payload
+                    or "os.exec" in payload or "os.spawn" in payload
+                    or "os.fork" in payload or "os.kill" in payload
+                    or "subprocess" in payload or "socket" in payload
+                    or "__import__" in payload or "child_process" in payload
+                    or "pty" in payload or "ctypes" in payload):
                 reasons.append(f"interpreter escape payload ({prog} -c)")
             else:
                 flags.append(f"interpreter-exec:{prog}")

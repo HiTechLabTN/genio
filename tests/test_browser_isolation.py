@@ -45,7 +45,6 @@ def test_session_cookie_isolation():
     # runnante dans le thread appelant, ce qui empoisonnerait asyncio.run()
     # des autres tests du même worker pytest.
     import json
-    import subprocess
     code = (
         "import json, sys; sys.path.insert(0, '/data/ai_tools/genio');"
         "from genio_server.tools import browser_tool as bt;"

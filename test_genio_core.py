@@ -34,7 +34,7 @@ from genio_executive_core import (  # noqa: E402
 
 
 def run(coro):
-    return asyncio.run(corr := coro)  # noqa: E999 — placeholder replaced below
+    return asyncio.run(_corr := coro)  # noqa: E999 — placeholder replaced below
 
 
 def run(coro):  # noqa: F811 — real runner
@@ -345,8 +345,8 @@ class TestHardenedAuditor:
         assert "invalid_svg" in (res.error or "")
 
     def test_low_code_density_penalized(self):
-        thin = "\n".join(l for l in GOLD_TUTORIAL.splitlines()
-                         if "```" not in l) + f"\n{SVG_BLOCK}\n"
+        thin = "\n".join(ln for ln in GOLD_TUTORIAL.splitlines()
+                         if "```" not in ln) + f"\n{SVG_BLOCK}\n"
         res = run(_audit(thin))
         assert "low_code_density" in (res.error or "")
 
@@ -355,7 +355,7 @@ class TestHardenedAuditor:
                         "works with plenty of random english vocabulary thrown in, "
                         "talking about packets moving across interfaces quickly.")
         res = run(_audit(english_dump))
-        sec_ok = res.ok
+        _sec_ok = res.ok
         flagged = "high_latin_ratio" in (res.error or "") \
             or "latin_prose" in (res.output or "")
         assert flagged
@@ -594,8 +594,8 @@ class TestV23Gates:
 
     def test_missing_table_fails_hard(self):
         no_table = "\n".join(
-            l for l in GOLD_TUTORIAL.splitlines()
-            if not l.strip().startswith("|"))
+            ln for ln in GOLD_TUTORIAL.splitlines()
+            if not ln.strip().startswith("|"))
         res = run(_audit(no_table))
         assert not res.ok
         assert "regen:missing_table" in (res.error or "")

@@ -10,17 +10,16 @@ import argparse
 import sys
 import time
 from dataclasses import dataclass, field
-from enum import Enum
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Tuple, Awaitable
+from typing import Any, Dict, List, Optional, Tuple
 
 from loguru import logger
 
 import sys as _sys
 _sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from config import get_config, GENIO_DIR, REPORTS_DIR
-from genio_executive_core import Remediation, SelfHealingExecutor as _SelfHealingExecutorBase  # noqa: E402  (canonical impl)
+from config import GENIO_DIR, REPORTS_DIR
+from genio_executive_core import SelfHealingExecutor as _SelfHealingExecutorBase  # noqa: E402  (canonical impl)
 
 
 # ── Re-export legacy modules for backward compatibility ── #
@@ -155,8 +154,6 @@ def build_autonomous_plan(topic: str) -> ExecutionPlan:
 # ── Dispatcher ── #
 
 def dispatch(agent_name: str) -> BaseAgent:
-    from core.model_router import ModelRouter
-    from core.memory_engine import get_memory
 
     if agent_name == "sandbox":
         from sandbox.node_manager import NodeManagerAgent
@@ -193,7 +190,7 @@ class ReportGenerator:
         ru = resource.getrusage(resource.RUSAGE_SELF)
         audit = ctx.scratch.get("audit", {})
         lines = [
-            f"# 🤖 Genio Autonomous Report",
+            "# 🤖 Genio Autonomous Report",
             f"**Goal**: {plan.goal}",
             f"**Planner**: {plan.planner}",
             f"**Wall time**: {wall_time:.0f}s",

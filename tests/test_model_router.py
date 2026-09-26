@@ -6,7 +6,6 @@ _call_chat_endpoint comme les tests existants) ; un seul test d'inventaire
 touche la config réelle en lecture seule.
 """
 import asyncio
-import os
 import sys
 import time
 

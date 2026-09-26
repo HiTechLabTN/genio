@@ -13,13 +13,11 @@ Run: pytest test_phase_A_reflex_bypass.py -v
 """
 import threading
 import time
-import tempfile
-from pathlib import Path
 from unittest import mock
 
 import pytest
 
-from genio_server.core.reflex_engine import ReflexEngine, _fastpath_enabled, get_reflex_engine
+from genio_server.core.reflex_engine import ReflexEngine
 from genio_server.tools.bash_tool import is_dangerous
 
 
@@ -106,7 +104,6 @@ def test_audit_proof_related_prompt_also_blocked(tmp_path, engine):
 
 def test_kill_switch_blocks_reflex(monkeypatch, engine):
     """Armed kill-switch must prevent ANY reflex execution (mock invoke)."""
-    import genio_server.core.agent_loop as loop_mod
     from genio_server.core.agent_loop import AgentLoop
 
     # Ensure a skill exists that would otherwise match

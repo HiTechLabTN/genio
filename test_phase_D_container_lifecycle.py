@@ -3,7 +3,6 @@
 Run: pytest test_phase_D_container_lifecycle.py -v
 Q3: timeout 30 min (1800s) via GENIO_SESSION_CONTAINER_IDLE_TIMEOUT
 """
-import asyncio
 import time
 import uuid
 from unittest import mock
@@ -22,7 +21,7 @@ def test_ws_close_cleans_container(monkeypatch):
         with mock.patch("shutil.which", return_value="/usr/bin/docker"):
             # Simulate that container exists and is running, then cleanup should be called
             # Directly test cleanup_container
-            res = cleanup_container(sid)
+            _res = cleanup_container(sid)
             # cleanup calls docker rm -f, we mocked run, so should return True
             assert m_run.called
             # Check that docker rm was called with correct name
@@ -48,7 +47,6 @@ def test_idle_timeout_cleans(monkeypatch):
     from genio_server.server.main import _idle_timeout
     assert _idle_timeout() == 1800
     # Simulate periodic check
-    import shutil
     with mock.patch("shutil.which", return_value="/usr/bin/docker"):
         with mock.patch("subprocess.run", side_effect=fake_run):
             # Manually trigger the logic that periodic task does
@@ -72,7 +70,6 @@ def test_kill_cleans_immediately(monkeypatch):
     with mock.patch("genio_server.tools.session_container.cleanup_container") as m_clean:
         m_clean.return_value = True
         # Simulate kill handler: it should call cleanup_container for sid
-        from genio_server.tools.session_container import cleanup_container as real_clean
         # Directly test that kill path calls cleanup
         # We mock the kill handler's cleanup call
         # For this test, we just verify that cleanup is callable and removes tracking

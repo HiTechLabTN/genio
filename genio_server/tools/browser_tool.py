@@ -16,11 +16,7 @@ import time
 from typing import Any, Dict, Optional
 
 import ipaddress
-import json
 import socket
-import threading
-import time
-from typing import Any, Dict, Optional
 from urllib.parse import urlparse
 
 from genio_server.tools.safety import SAFETY

@@ -8,7 +8,7 @@ import sys
 
 sys.path.insert(0, "/data/ai_tools/genio")
 
-from genio_server.core.dag import DagResult, PlanNode, execute, order, validate
+from genio_server.core.dag import PlanNode, execute, order, validate
 
 
 def _ok_plan():

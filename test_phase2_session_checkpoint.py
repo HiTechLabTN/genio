@@ -11,7 +11,6 @@ Run:  pytest test_phase2_session_checkpoint.py -v
 """
 from __future__ import annotations
 
-import asyncio
 import tempfile
 from pathlib import Path
 

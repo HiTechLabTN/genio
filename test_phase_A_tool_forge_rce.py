@@ -4,7 +4,6 @@ Reproduit LITTÉRALEMENT le payload d'audit via forge.create_tool + forge.invoke
 vérifie PAS de uid= / shell, soit erreur sandbox exec disabled.
 Run: pytest test_phase_A_tool_forge_rce.py -v
 """
-import tempfile
 from pathlib import Path
 from unittest import mock
 
@@ -76,7 +75,7 @@ def test_legitimate_tool_still_works_when_enabled(tmp_path, monkeypatch):
 def test_tool_forge_via_invoke_disabled_by_default(monkeypatch):
     monkeypatch.delenv("GENIO_TOOL_FORGE", raising=False)
     from genio_server.tools import invoke
-    res = invoke("tool_forge", {"action": "list"})
+    _res = invoke("tool_forge", {"action": "list"})
     # When disabled, should not reach exec, should return disabled or empty list?
     # The invoke path checks _enabled before forged lookup, so tool_forge itself should still be callable but create should be disabled
     # For list, it should still work but create should fail

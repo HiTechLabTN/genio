@@ -8,6 +8,7 @@ Run:  pytest test_bash_tool_safety.py -v
 from __future__ import annotations
 
 import pytest
+import subprocess
 
 from genio_server.tools.bash_tool import is_dangerous, run_command
 
@@ -94,7 +95,9 @@ def test_refused_run_command_returns_126():
 # Phase 0 — ambient hardening (GENIO_ENV guard + CORS allow-list)
 # --------------------------------------------------------------------------- #
 def _sub_import(env: dict) -> "subprocess.CompletedProcess":
-    import subprocess, sys, os
+    import subprocess
+    import sys
+    import os
     code = "import genio_server.server.main  # triggers module-level init"
     full_env = dict(os.environ)
     full_env.update(env)
@@ -117,15 +120,17 @@ def test_prod_with_key_starts():
 
 
 def test_cors_default_localhost():
-    proc = _sub_import({"GENIO_CORS_ORIGINS": ""})
+    _proc = _sub_import({"GENIO_CORS_ORIGINS": ""})
     from genio_server.server import main as m
     assert any("1420" in o for o in m.CORS_ORIGINS)
 
 
 def test_cors_from_env():
-    proc = _sub_import({"GENIO_CORS_ORIGINS": "http://localhost:1420,https://lab.hitech.tn"})
+    _proc = _sub_import({"GENIO_CORS_ORIGINS": "http://localhost:1420,https://lab.hitech.tn"})
     # Confirm the env reached the module by echoing CORS in a subprocess too.
-    import subprocess, sys, os
+    import subprocess
+    import sys
+    import os
     env = dict(os.environ)
     env["GENIO_CORS_ORIGINS"] = "http://localhost:1420,https://lab.hitech.tn"
     out = subprocess.run(
