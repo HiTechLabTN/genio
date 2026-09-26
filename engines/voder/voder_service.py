@@ -44,7 +44,18 @@ _last_used = 0.0
 class SynthReq(BaseModel):
     text: str
     speaker_wav: str = ""
-    language: str = "ar"
+    # RC-gate : "ar" n'est PAS supporté par Qwen3-TTS (supportés : auto,
+    # chinese, english, french, german, italian, japanese, korean,
+    # portuguese, russian, spanish). Défaut "auto" (détection multilingue,
+    # couvre l'arabe) ; toute autre valeur non supportée -> 422 explicite
+    # au lieu d'un 500 après échec.
+    language: str = "auto"
+
+
+SUPPORTED_LANGUAGES = frozenset({
+    "auto", "chinese", "english", "french", "german", "italian",
+    "japanese", "korean", "portuguese", "russian", "spanish",
+})
 
 
 # Voix masculine souveraine par défaut (145.5Hz médian mesuré — profil grave
@@ -123,6 +134,11 @@ def health():
 def synthesize(req: SynthReq):
     if not req.text or not req.text.strip():
         raise HTTPException(400, "text vide")
+    lang = (req.language or "auto").strip().lower()
+    if lang not in SUPPORTED_LANGUAGES:
+        raise HTTPException(
+            422, f"langue non supportée: {req.language!r} "
+                 f"(supportées: {sorted(SUPPORTED_LANGUAGES)})")
     try:
         tts = _get_tts()
     except RuntimeError as e:
@@ -139,8 +155,7 @@ def synthesize(req: SynthReq):
                                      "en cache — fournissez un wav de référence")
         tmp = tempfile.NamedTemporaryFile(suffix=".wav", delete=False)
         tmp.close()
-        ok = tts.synthesize(req.text.strip(), tmp.name,
-                            language=req.language or "ar")
+        ok = tts.synthesize(req.text.strip(), tmp.name, language=lang)
     _maybe_unload()
     if not ok:
         raise HTTPException(500, "synthèse TTS échouée")
