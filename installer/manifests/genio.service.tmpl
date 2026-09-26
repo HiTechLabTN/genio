@@ -1,0 +1,21 @@
+[Unit]
+Description=Genio AI Agent Server (%i)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=%USER%
+WorkingDirectory=%REPO%
+EnvironmentFile=%ENV_FILE%
+ExecStart=%VENV%/bin/uvicorn genio_server.server.main:app --host 0.0.0.0 --port %PORT%
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=%PREFIX%/data %PREFIX%/logs %PREFIX%/tmp %PREFIX%/cache
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,233 @@
+#!/usr/bin/env python3
+"""genio — smart installer CLI (stdlib only, deterministic exit codes)."""
+import argparse
+import json
+import os
+import sys
+
+sys.path.insert(0, str(__import__("pathlib").Path(__file__).resolve().parents[1]))
+
+from installer import INSTALLER_VERSION  # noqa: E402
+from installer.core.errors import (  # noqa: E402
+    EXIT_OK, EXIT_USER_ABORT, InstallerError,
+    EXIT_ALREADY_INSTALLED, EXIT_AMBIGUOUS_INSTALLS,
+)
+from installer.core.paths import default_prefix, layout  # noqa: E402
+from installer.core.runner import Runner  # noqa: E402
+
+
+def _runner(prefix):
+    return Runner(log_path=layout(prefix)["log"] if prefix else None)
+
+
+def cmd_version(_args):
+    print(f"genio installer {INSTALLER_VERSION}")
+    return EXIT_OK
+
+
+def cmd_install(args):
+    from installer.detectors import software
+    from installer.detectors.system import detect_ports
+    from installer.discovery import find as discovery
+    from installer.core.paths import DEFAULT_PORTS
+    prefix = args.prefix or str(default_prefix())
+    runner = _runner(prefix)
+    installs = discovery.discover(runner, prefix,
+                                  extra_checkout=args.existing_checkout)
+    plan = discovery.summarize(installs)
+    if plan["action"] == "already-installed" and not args.prefix:
+        print(plan["message"])
+        print("Refusing to create a second installation (exit 11).")
+        return EXIT_ALREADY_INSTALLED
+    if plan["action"] == "reconcile" and not args.prefix and not args.yes:
+        print(plan["message"])
+        return EXIT_AMBIGUOUS_INSTALLS
+    if args.check:
+        print(plan["message"])
+        return EXIT_OK
+    sw = software.detect(runner)
+    if not sw["ok"]:
+        print(f"Missing required tools: {sw['missing_required']}")
+        return 13
+    ports = dict(DEFAULT_PORTS)
+    if args.api_port:
+        ports["api"] = args.api_port
+    if args.web_port:
+        ports["web"] = args.web_port
+    for name, info in detect_ports(runner, ports).items():
+        if not info["free"]:
+            o = info["owner"]
+            print(f"WARN port {name}={info['port']} held by "
+                  f"pid={o.get('pid')} {o.get('process')} svc={o.get('service')}")
+    if not args.yes and not args.check:
+        ans = input(f"Install Genio into {prefix}? [y/N] ")
+        if ans.strip().lower() != "y":
+            return EXIT_USER_ABORT
+    from installer.installers import standalone
+    try:
+        man = standalone.install(
+            runner, prefix, args.source, args.version or "standalone",
+            {"ports": ports, "api_key": args.api_key or "",
+             "npm_ok": sw["tools"]["npm"]["present"] and sw["tools"]["node"]["present"]})
+    except InstallerError as e:
+        print(f"INSTALL FAILED: {e} {e.hint}")
+        return e.code
+    print(f"Installed {man['installation_id'][:8]} commit={man['commit']} "
+          f"frontend={man.get('_frontend', {}).get('status')}")
+    if args.with_services:
+        from installer.services import systemd
+        lay = layout(prefix)
+        try:
+            text = systemd.unit_text(prefix, lay["repo"], lay["venv"],
+                                     lay["env_file"], ports.get("api", 8000))
+            dest = systemd.install_unit(runner, "genio-standalone.service", text)
+            print(f"Unit installed: {dest} (enable/start explicitly with systemctl)")
+        except InstallerError as e:
+            print(f"Service install skipped: {e} {e.hint}")
+    return EXIT_OK
+
+
+def cmd_doctor(args):
+    from installer.health import doctor as doc
+    res = doc.doctor(_runner(args.prefix), prefix=args.prefix, deep=args.deep)
+    for c in res["checks"]:
+        print(f"[{c['status']:>14}] {c['name']}: {c['detail']}")
+    print(f"verdict: {res['verdict']} ({res['fail']} FAIL)")
+    if args.json:
+        print(json.dumps(res, indent=2))
+    return EXIT_OK if not res["fail"] else 17
+
+
+def cmd_status(args):
+    from installer.core.manifest import read_manifest
+    from installer.discovery import find as discovery
+    prefix = args.prefix or str(default_prefix())
+    runner = _runner(prefix)
+    installs = discovery.discover(runner, prefix)
+    man = read_manifest(layout(prefix)["manifest"])
+    if man:
+        print(json.dumps({k: man.get(k) for k in
+                          ("installation_id", "version", "commit", "install_root",
+                           "install_mode", "health", "ports", "updated_at")}, indent=2))
+    for i in installs:
+        if i["kind"] != "prefix":
+            print(f"[{i['kind']}] {i['location']} state={i['state']}")
+    return EXIT_OK
+
+
+def cmd_repair(args):
+    from installer.repair.fix import diagnose, repair
+    prefix = args.prefix or str(default_prefix())
+    runner = _runner(prefix)
+    print(f"diagnosis: {diagnose(prefix, runner)['state']}")
+    try:
+        res = repair(runner, prefix)
+    except InstallerError as e:
+        print(f"REPAIR FAILED: {e} {e.hint}")
+        return e.code
+    print(f"repaired: {res['fixed'] or 'nothing-to-fix'} (backup {res['backup']})")
+    return EXIT_OK
+
+
+def cmd_update(args):
+    from installer.repair.fix import update
+    prefix = args.prefix or str(default_prefix())
+    try:
+        res = update(_runner(prefix), prefix, ref=args.to or "HEAD")
+    except InstallerError as e:
+        print(f"UPDATE FAILED (rolled back): {e} {e.hint}")
+        return e.code
+    print(f"updated {res['old']} -> {res['new']}")
+    return EXIT_OK
+
+
+def cmd_rollback(args):
+    from installer.repair.fix import rollback
+    prefix = args.prefix or str(default_prefix())
+    try:
+        man = rollback(_runner(prefix), prefix, which=args.backup)
+    except InstallerError as e:
+        print(f"ROLLBACK FAILED: {e} {e.hint}")
+        return e.code
+    print(f"rolled back, commit={man.get('commit')}")
+    return EXIT_OK
+
+
+def cmd_uninstall(args):
+    import shutil
+    from installer.core.manifest import read_manifest
+    prefix = args.prefix or str(default_prefix())
+    lay = layout(prefix)
+    man = read_manifest(lay["manifest"])
+    if man is None and not lay["prefix"].exists():
+        print("Nothing installed at prefix.")
+        return EXIT_OK
+    if not args.yes:
+        ans = input(f"Remove installation at {prefix}? "
+                    f"{'(data/ PRESERVED)' if not args.purge_data else '(INCLUDING data/)'} [y/N] ")
+        if ans.strip().lower() != "y":
+            return EXIT_USER_ABORT
+    keep = []
+    for child in lay["prefix"].iterdir():
+        if child.name == "data" and not args.purge_data:
+            keep.append(str(child))
+            continue
+        if child.is_dir() and not child.is_symlink():
+            shutil.rmtree(child, ignore_errors=True)
+        else:
+            child.unlink(missing_ok=True)
+    print(f"uninstalled {prefix} (preserved: {keep or 'nothing'})")
+    return EXIT_OK
+
+
+def build_parser():
+    p = argparse.ArgumentParser(prog="genio", description="Genio smart installer")
+    sub = p.add_subparsers(dest="cmd", required=True)
+    sub.add_parser("version").set_defaults(fn=cmd_version)
+    i = sub.add_parser("install")
+    i.add_argument("--prefix", default="")
+    i.add_argument("--source", default="https://github.com/HiTechLabTN/genio.git")
+    i.add_argument("--version", default="")
+    i.add_argument("--yes", action="store_true")
+    i.add_argument("--check", action="store_true")
+    i.add_argument("--interactive", action="store_true")
+    i.add_argument("--api-key", default="")
+    i.add_argument("--api-port", type=int, default=0)
+    i.add_argument("--web-port", type=int, default=0)
+    i.add_argument("--with-services", action="store_true")
+    i.add_argument("--existing-checkout", default="")
+    i.set_defaults(fn=cmd_install)
+    d = sub.add_parser("doctor")
+    d.add_argument("--prefix", default="")
+    d.add_argument("--deep", action="store_true")
+    d.add_argument("--json", action="store_true")
+    d.set_defaults(fn=cmd_doctor)
+    s = sub.add_parser("status")
+    s.add_argument("--prefix", default="")
+    s.set_defaults(fn=cmd_status)
+    for name, fn in (("repair", cmd_repair), ("update", cmd_update),
+                     ("rollback", cmd_rollback), ("uninstall", cmd_uninstall)):
+        q = sub.add_parser(name)
+        q.add_argument("--prefix", default="")
+        if name == "update":
+            q.add_argument("--to", default="HEAD")
+        if name == "rollback":
+            q.add_argument("--backup", default="")
+        if name in ("uninstall",):
+            q.add_argument("--yes", action="store_true")
+            q.add_argument("--purge-data", action="store_true")
+        q.set_defaults(fn=fn)
+    return p
+
+
+def main(argv=None):
+    args = build_parser().parse_args(argv)
+    try:
+        return args.fn(args)
+    except InstallerError as e:
+        print(f"ERROR: {e} {e.hint}")
+        return e.code
+
+
+if __name__ == "__main__":
+    sys.exit(main())
