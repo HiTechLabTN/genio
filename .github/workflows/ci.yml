@@ -9,37 +9,57 @@ on:
 permissions:
   contents: read
 
+# Phase 23 : aucun opérateur masquant (|| true / || echo / warnings-only)
+# n'est autorisé dans ce pipeline. Tout échec critique fait échouer le CI.
 jobs:
-  backend:
+  lint:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-python@v6
         with:
           python-version: "3.11"
+      - name: Ruff (blocking)
+        run: |
+          pip install ruff -q
+          python -m ruff check genio_server/ core/ config.py tests/test_*.py test_*.py
+
+  backend:
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
           cache: pip
-      - name: Install dependencies
+      - name: Install dependencies (pinned lockfile)
         run: |
           python -m pip install --upgrade pip
-          pip install aiosqlite psutil fastapi uvicorn httpx pytest pytest-asyncio loguru ruff python-multipart
-          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-      - name: Run backend tests
+          if [ -f requirements.lock ]; then pip install -r requirements.lock; else pip install -r requirements.txt; fi
+          pip install pytest pytest-asyncio
+      - name: Unit + security + sandbox tests
         env:
           GENIO_ENV: dev
           GENIO_ALLOW_SUDO: "0"
           GENIO_GENERIC_HEAL: "1"
           GENIO_TOOL_FORGE: "1"
         run: |
-          pytest test_bash_tool_safety.py test_phase1_memory_agent.py test_phase2_session_checkpoint.py test_phase3_generic_healer.py test_phase4_tool_forge.py test_phase5_sandbox.py test_phase6_tolerant_ws.py test_phase7_routing_kill.py test_phase_A_tool_forge_rce.py test_phase_B_tool_forge_container.py test_phase_C_session_volume.py test_phase_D_container_lifecycle.py test_phase_E_model_routing.py test_dataset_synthesizer.py test_motion_storyboard.py -v --tb=short
-          # Phase F: test_genio_core has 2 pre-existing environmental failures (services down) + 12 that need ffmpeg/darija — exclude them in CI to keep green, but still exercise the file
-          pytest test_genio_core.py -v --tb=short -k "not test_pipeline_dispatch and not test_parse_plan_injects_auditor and not test_dispatch_returns_correct_agent and not test_recovers_after_transient_failures and not test_gold_tutorial and not test_missing_svg and not test_invalid_svg and not test_low_code_density and not test_english_prose and not test_secret_leak and not test_placeholder_blocks and not test_auditor_triggers and not test_missing_table and not test_single_callout and not test_literal_translation and not test_content_agent" || echo "test_genio_core: some tests require ffmpeg/darija — OK in CI (excluded)"
-      - name: Lint (ruff)
+          python -m pytest tests/ test_bash_tool_safety.py test_phase1_memory_agent.py test_phase2_session_checkpoint.py test_phase3_generic_healer.py test_phase4_tool_forge.py test_phase5_sandbox.py test_phase6_tolerant_ws.py test_phase7_routing_kill.py test_phase_A_tool_forge_rce.py test_phase_B_tool_forge_container.py test_phase_C_session_volume.py test_phase_D_container_lifecycle.py test_phase_E_model_routing.py test_dataset_synthesizer.py test_motion_storyboard.py -q
+      - name: Env-dependent suites (explicit deselects, documented)
+        # 2 known failures in legacy test_genio_core (module
+        # genio_executive_core, API OllamaConfig driftée + services down).
+        # Deselects nominatifs ici — jamais silencieux, jamais masqués.
+        # Suivi : GENIO_FEATURE_MATRIX.md (legacy, hors runtime souverain).
         run: |
-          python -m pip install ruff -q || pip install ruff -q
-          python -m ruff check . --exclude .venv,genio_client,__pycache__ || echo "ruff check completed (warnings only)"
+          python -m pytest test_genio_core.py -q --deselect test_genio_core.py::TestPlanning::test_parse_plan_injects_auditor --deselect test_genio_core.py::TestEndToEndDryRun::test_pipeline_dispatch
+      - name: Lockfile consistency
+        run: |
+          python -m pytest tests/test_dependency_audit.py -q
 
   frontend:
     runs-on: ubuntu-latest
+    needs: lint
     defaults:
       run:
         working-directory: genio_client
@@ -50,29 +70,18 @@ jobs:
           node-version: 22
           cache: npm
           cache-dependency-path: genio_client/package-lock.json
-      - name: Install frontend deps
+      - name: Install frontend deps (locked)
         run: npm ci
-      - name: Typecheck
+      - name: Typecheck (blocking)
         run: npx tsc --noEmit
-      - name: Build
-        run: npm run build || npm run build:client || echo "no build script"
-
-  security:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-python@v6
-        with:
-          python-version: "3.11"
-          cache: pip
-      - name: Install dependencies
+      - name: Frontend tests
+        run: npx vitest run
+      - name: Audit runtime deps (high/critical fail)
         run: |
-          python -m pip install --upgrade pip
-          pip install aiosqlite psutil fastapi uvicorn httpx pytest pytest-asyncio loguru python-multipart
-          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-      - name: Bash safety audit
+          npm audit --omit=dev --audit-level=high
+      - name: Build (blocking)
+        run: npm run build
+      - name: Smoke static bundle
         run: |
-          python -m pytest test_bash_tool_safety.py test_phase_A_tool_forge_rce.py test_phase_B_tool_forge_container.py test_phase_C_session_volume.py test_phase_D_container_lifecycle.py test_phase_E_model_routing.py -v
-      - name: Check GENIO_ENV guard
-        run: |
-          GENIO_ENV=prod GENIO_API_KEY= python -c "import genio_server.server.main" && echo "should have failed" && exit 1 || echo "prod guard OK"
+          test -f dist/index.html
+          test -f dist/sw.js

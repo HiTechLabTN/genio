@@ -5,12 +5,16 @@ Q2: Allow-list registries, workdir isolé state/session_workdirs/<session_id>/, 
 """
 import os
 import uuid
-import pathlib
 import pytest
 
 from genio_server.tools.session_container import _host_workdir, exec_in_container, cleanup_container, _CWD_MAP, _LAST_USED
 
-os.environ["GENIO_SANDBOX_MODE"] = "container"
+
+@pytest.fixture(autouse=True)
+def _container_mode(monkeypatch):
+    # Portée fixture (jamais au niveau module) : pas d'empoisonnement
+    # inter-fichiers à la collecte pytest.
+    monkeypatch.setenv("GENIO_SANDBOX_MODE", "container")
 
 def _sid(prefix="testC"):
     return f"{prefix}_{uuid.uuid4().hex[:6]}"
@@ -76,7 +80,7 @@ def test_workdir_isolated_per_session():
     assert wd1 != wd2
     # _host_workdir strips non-alnum, so iso1_xxx -> iso1xxx
     alnum1 = "".join(c for c in sid1 if c.isalnum())
-    alnum2 = "".join(c for c in sid2 if c.isalnum())
+    _alnum2 = "".join(c for c in sid2 if c.isalnum())
     assert alnum1 in str(wd1) or sid1.replace("_","") in str(wd1)
     # Create file in sid1, ensure not in sid2
     exec_in_container(sid1, "echo s1 > /work/s1.txt", timeout=10)
