@@ -7,10 +7,38 @@ from installer.core.manifest import new_manifest, record_event, write_manifest
 from installer.core.paths import layout
 
 
-def _copy_source(runner, source, dest):
-    """Obtain code: git clone (URL or local path) or plain copy."""
+def _copy_source(runner, source, dest, checksum=None):
+    """Obtain code: git clone, release archive (.tar.gz + sha256), or copy."""
     from pathlib import Path
     src = str(source)
+    if src.endswith(".tar.gz") and Path(src).is_file():
+        from installer.core.errors import EXIT_INTEGRITY_FAIL, InstallerError
+        from installer.dist.make_release import verify_archive
+        try:
+            digest = verify_archive(src, checksum_file=checksum)
+        except SystemExit as e:
+            raise InstallerError(str(e), EXIT_INTEGRITY_FAIL)
+        import tarfile
+        with tarfile.open(src, "r:gz") as tar:
+            members = tar.getmembers()
+            top = (members[0].name.split("/")[0] + "/") if members else ""
+            tar.extractall(dest.parent / "_archive_tmp")
+        tmp = dest.parent / "_archive_tmp"
+        inner = tmp / top.strip("/") if top else tmp
+        if dest.exists():
+            shutil.rmtree(dest)
+        shutil.move(str(inner), str(dest))
+        shutil.rmtree(tmp, ignore_errors=True)
+        # release manifest travels inside the archive when built properly
+        rel = list(dest.glob("*.release.json"))
+        commit = "archive"
+        if rel:
+            try:
+                import json
+                commit = json.loads(rel[0].read_text()).get("commit", "archive")
+            except (OSError, ValueError):
+                pass
+        return f"archive:{digest[:12]}", commit
     if (Path(src) / ".git").is_dir() or src.startswith(("http://", "https://", "git@")):
         r = runner.run(["git", "clone", src, str(dest)], timeout=600)
         if not r["ok"]:
@@ -96,8 +124,22 @@ def install(runner, prefix, source, version, opts):
     lay = layout(prefix)
     for d in ("meta", "repo", "config", "data", "cache", "logs", "tmp"):
         lay[d].mkdir(parents=True, exist_ok=True)
-    mode = _copy_source(runner, source, lay["repo"])
-    commit = _head_commit(lay["repo"]) if mode == "git" else "copy"
+    if opts.get("force"):
+        import shutil as _sh
+        if any(lay["repo"].iterdir()):
+            trash = lay["backups"] / f"repo-before-force-{lay['repo'].stat().st_mtime_ns}"
+            lay["backups"].mkdir(parents=True, exist_ok=True)
+            _sh.move(str(lay["repo"]), str(trash))
+        else:
+            lay["repo"].rmdir()  # clone/copytree exigent une destination absente
+        # pas de mkdir : clone/copytree créent la destination eux-mêmes
+    obtained = _copy_source(runner, source, lay["repo"],
+                            checksum=opts.get("checksum"))
+    if isinstance(obtained, tuple):
+        mode, commit = obtained
+    else:
+        mode = obtained
+        commit = _head_commit(lay["repo"]) if mode == "git" else "copy"
     _make_venv(runner, lay["venv"], runner.log_path)
     _install_deps(runner, lay["venv"], lay["repo"])
     fe = _build_frontend(runner, lay["repo"], opts.get("npm_ok", False))
@@ -105,7 +147,8 @@ def install(runner, prefix, source, version, opts):
     lay["ports_file"].write_text(json.dumps(ports, indent=2, sort_keys=True))
     _write_env(lay["env_file"], opts.get("api_key", ""), opts.get("env_extra"))
     man = new_manifest(lay["prefix"], version, commit,
-                       "standalone" if mode == "git" else "standalone-copy")
+                       "standalone-archive" if mode.startswith("archive")
+                       else ("standalone" if mode == "git" else "standalone-copy"))
     man["ports"] = ports
     record_event(man, "install", f"source={mode} frontend={fe['status']}")
     write_manifest(lay["manifest"], man)

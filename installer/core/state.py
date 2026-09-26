@@ -44,10 +44,29 @@ def create_backup(runner, prefix):
         r = runner.run(["git", "-C", str(repo), "rev-parse", "HEAD"], timeout=30)
         head = r["out"].strip() if r["ok"] else None
     (dest / "repo_head.txt").write_text((head or "nongit") + "\n")
+    # Non-git repos: file-level code backup (excludes heavy/generated dirs)
+    # so update-from-archive can roll back without git.
+    if not head or head == "nongit":
+        _backup_tree(repo, dest / "repo_files.tar.gz")
     meta = {"created": now_iso(), "commit": man.get("commit"),
             "version": man.get("version"), "repo_head": head}
     (dest / "backup.json").write_text(json.dumps(meta, indent=2))
     return dest
+
+
+def _backup_tree(repo, dest_tar):
+    """Tar repo excluding heavy/generated dirs (venv, node_modules, caches)."""
+    import tarfile
+    skip = {".git", "__pycache__", "node_modules", ".venv", "venv",
+            "dist", ".pytest_cache", ".genio", "*.db", "*.db-journal"}
+    with tarfile.open(dest_tar, "w:gz") as tar:
+        for root, dirs, files in os.walk(repo):
+            dirs[:] = [d for d in dirs if d not in skip and not d.endswith(".egg-info")]
+            for f in files:
+                if f.endswith((".db", ".db-journal", ".pyc")):
+                    continue
+                full = os.path.join(root, f)
+                tar.add(full, arcname=os.path.relpath(full, repo))
 
 
 def list_backups(prefix):
@@ -67,11 +86,15 @@ def restore_backup(runner, prefix, backup_dir):
     if not (backup_dir / "backup.json").is_file():
         raise InstallerError(f"not a backup: {backup_dir}", EXIT_ROLLBACK_FAIL)
     meta = json.loads((backup_dir / "backup.json").read_text())
-    # 1. code checkout
+    # 1. code checkout (git) or file restore (archive installs)
     if meta.get("repo_head") and meta["repo_head"] != "nongit" and (lay["repo"] / ".git").is_dir():
         r = runner.run(["git", "-C", str(lay["repo"]), "checkout", meta["repo_head"]], timeout=120)
         if not r["ok"]:
             raise InstallerError(f"code rollback failed: {r['err'][-300:]}", EXIT_ROLLBACK_FAIL)
+    elif (backup_dir / "repo_files.tar.gz").is_file():
+        import tarfile
+        with tarfile.open(backup_dir / "repo_files.tar.gz", "r:gz") as tar:
+            tar.extractall(lay["repo"])
     # 2. config files
     for name, dest in ((".env", lay["env_file"]), ("ports.json", lay["ports_file"])):
         src = backup_dir / name

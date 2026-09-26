@@ -39,6 +39,11 @@ def cmd_install(args):
         print(plan["message"])
         print("Refusing to create a second installation (exit 11).")
         return EXIT_ALREADY_INSTALLED
+    if plan["action"] == "repair-or-update" and not args.force:
+        print(plan["message"])
+        print("Refusing to overwrite a partial installation. "
+              "Use repair/update, or --force to reinstall (backup first).")
+        return EXIT_ALREADY_INSTALLED
     if plan["action"] == "reconcile" and not args.prefix and not args.yes:
         print(plan["message"])
         return EXIT_AMBIGUOUS_INSTALLS
@@ -68,6 +73,8 @@ def cmd_install(args):
         man = standalone.install(
             runner, prefix, args.source, args.version or "standalone",
             {"ports": ports, "api_key": args.api_key or "",
+             "checksum": args.checksum or None,
+             "force": args.force,
              "npm_ok": sw["tools"]["npm"]["present"] and sw["tools"]["node"]["present"]})
     except InstallerError as e:
         print(f"INSTALL FAILED: {e} {e.hint}")
@@ -133,7 +140,10 @@ def cmd_update(args):
     from installer.repair.fix import update
     prefix = args.prefix or str(default_prefix())
     try:
-        res = update(_runner(prefix), prefix, ref=args.to or "HEAD")
+        res = update(_runner(prefix), prefix, ref=args.to or "HEAD",
+                     archive=args.archive or None,
+                     checksum=args.checksum or None,
+                     allow_downgrade=args.allow_downgrade)
     except InstallerError as e:
         print(f"UPDATE FAILED (rolled back): {e} {e.hint}")
         return e.code
@@ -163,10 +173,17 @@ def cmd_uninstall(args):
         print("Nothing installed at prefix.")
         return EXIT_OK
     if not args.yes:
-        ans = input(f"Remove installation at {prefix}? "
-                    f"{'(data/ PRESERVED)' if not args.purge_data else '(INCLUDING data/)'} [y/N] ")
-        if ans.strip().lower() != "y":
-            return EXIT_USER_ABORT
+        if args.purge_data:
+            # Données utilisateur : confirmation tapée, jamais un simple y/N.
+            ans = input(f"Type PURGE to delete user data in {prefix}/data: ")
+            if ans.strip() != "PURGE":
+                return EXIT_USER_ABORT
+        else:
+            ans = input(f"Remove installation at {prefix}? (data/ PRESERVED) [y/N] ")
+            if ans.strip().lower() != "y":
+                return EXIT_USER_ABORT
+    elif args.purge_data:
+        print(f"WARNING: --yes --purge-data will delete {prefix}/data (explicit flags)")
     keep = []
     for child in lay["prefix"].iterdir():
         if child.name == "data" and not args.purge_data:
@@ -192,9 +209,11 @@ def build_parser():
     i.add_argument("--check", action="store_true")
     i.add_argument("--interactive", action="store_true")
     i.add_argument("--api-key", default="")
+    i.add_argument("--checksum", default="")
     i.add_argument("--api-port", type=int, default=0)
     i.add_argument("--web-port", type=int, default=0)
     i.add_argument("--with-services", action="store_true")
+    i.add_argument("--force", action="store_true")
     i.add_argument("--existing-checkout", default="")
     i.set_defaults(fn=cmd_install)
     d = sub.add_parser("doctor")
@@ -211,6 +230,9 @@ def build_parser():
         q.add_argument("--prefix", default="")
         if name == "update":
             q.add_argument("--to", default="HEAD")
+            q.add_argument("--archive", default="")
+            q.add_argument("--checksum", default="")
+            q.add_argument("--allow-downgrade", action="store_true")
         if name == "rollback":
             q.add_argument("--backup", default="")
         if name in ("uninstall",):
