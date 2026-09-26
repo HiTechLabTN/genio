@@ -29,8 +29,14 @@ def _copy_source(runner, source, dest, checksum=None):
             shutil.rmtree(dest)
         shutil.move(str(inner), str(dest))
         shutil.rmtree(tmp, ignore_errors=True)
-        # release manifest travels inside the archive when built properly
+        # release manifest travels inside the archive when built properly,
+        # else alongside it as genio-<v>.release.json (make_release layout).
         rel = list(dest.glob("*.release.json"))
+        if not rel:
+            sib = Path(src).parent / (Path(src).name[:-7] + ".release.json"
+                                      if src.endswith(".tar.gz") else "")
+            if sib.is_file():
+                rel = [sib]
         commit = "archive"
         if rel:
             try:
