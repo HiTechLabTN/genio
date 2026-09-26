@@ -20,9 +20,13 @@ jobs:
         with:
           python-version: "3.11"
       - name: Ruff (blocking)
+        # RC-fix : ruff est PINNÉ (0.15.16) avec --select explicite.
+        # Cause du rouge : ruff non pinné -> 0.16.x a élargi les règles
+        # par défaut (753 erreurs UP/I/TRY...), CI non reproductible.
+        # Politique lockfile (Phase 22) : aucun outil non pinné en CI.
         run: |
-          pip install ruff -q
-          python -m ruff check genio_server/ core/ config.py tests/test_*.py test_*.py
+          pip install "ruff==0.15.16" -q
+          python -m ruff check --select E4,E7,E9,F genio_server/ core/ config.py tests/test_*.py test_*.py
 
   backend:
     runs-on: ubuntu-latest
