@@ -12,7 +12,6 @@ Real clients must re-implement this flow in their own stack.
 from __future__ import annotations
 
 import time
-from typing import Any, Dict, Optional
 
 
 class ClientState:

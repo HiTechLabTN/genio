@@ -3,7 +3,6 @@ import json
 import sys
 from pathlib import Path
 
-import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
@@ -18,7 +17,6 @@ def _load(name):
 
 
 def test_ipc_schema_exists_and_closed_codes():
-    import jsonschema
     schema = _load("ipc-v1.json")
     codes = schema["definitions"]["error"]["properties"]["error"]["properties"]["code"]["enum"]
     from genio.integrations.hitechos.envelope import ERROR_CODES
