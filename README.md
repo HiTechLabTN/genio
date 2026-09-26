@@ -56,7 +56,7 @@ pip install -r requirements.lock
 
 
 # 3. تشغيل الخادم والواجهة
-python3 -m genio_server.main &
+python3 genio_server.py &
 cd genio_client && npm ci && npm run build && npm run preview -- --port 8098 --host 0.0.0.0
 
 

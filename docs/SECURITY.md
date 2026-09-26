@@ -19,6 +19,9 @@
   0o600. Tests : `test_upload_security.py`.
 - **API/WS** : Bearer 15min (HMAC), rate-limit IP, corps 10MB, nonces
   `[0-9a-f]{32}`, erreurs assainies. Tests : `test_api_security.py`.
+- **Garde de démarrage** : `GENIO_ENV=prod` ou `GENIO_SECURITY_MODE=strict`
+  + `GENIO_API_KEY` vide = refus de démarrage (`RuntimeError`, jamais
+  d'ouverture silencieuse). Tests : `tests/test_rc_boot_guard.py`.
 
 ## Limites connues (honnêtes)
 

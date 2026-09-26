@@ -59,3 +59,6 @@ state/session_workdirs/
 
 # RC-fix CI : asset requis par le build (exception ciblée au ban **/*.png)
 !genio_client/src/assets/mascot/mascot_cutout.png
+!genio_client/src/assets/genio-avatar-face.png
+!genio_client/src/assets/mascot/genio-hero.png
+!/.env.example

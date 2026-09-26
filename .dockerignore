@@ -41,3 +41,11 @@ delivery/
 media/
 genio_client/
 livetest_recordings/
+.env
+*.env
+*.pem
+*.key
+**/*token*.txt
+**/*credentials*.json
+**/*TOKEN*.txt
+**/*Token*.txt
