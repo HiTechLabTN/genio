@@ -81,7 +81,7 @@ jobs:
       - name: Checksum artifacts
         shell: bash
         run: |
-          cd genio_client/release-builds && sha256sum * > SHA256SUMS.txt
+          cd genio_client/release-builds && find . -maxdepth 1 -type f -exec sha256sum {} + > SHA256SUMS.txt
           cat SHA256SUMS.txt
       - name: Derive version
         id: ver
@@ -138,6 +138,10 @@ jobs:
           java-version: '17'
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
+        with:
+          # 'tools' package was removed by Google (sdkmanager 404s) —
+          # install only platform-tools here, NDK/platforms explicitly below.
+          packages: 'platform-tools'
       - name: Setup Rust (for Tauri Android)
         uses: dtolnay/rust-toolchain@stable
         with:
