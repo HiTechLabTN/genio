@@ -32,7 +32,15 @@ export function validateOpenUrl(url: string): { ok: boolean; reason?: string } {
   return { ok: true };
 }
 
-/** Typed native command registry (audited surface, no execute/runShell). */
+/** Defense in depth: bodies must never carry secrets even if a caller
+ * passes them (pipeline only sends fixed status strings). Pure, tested. */
+export function sanitizeNotificationText(s: string): string {
+  return s
+    .replace(/sk-[A-Za-z0-9]{8,}/g, "[redacted]")
+    .replace(/ghp_[A-Za-z0-9]{8,}/g, "[redacted]")
+    .replace(/Bearer\s+[A-Za-z0-9._~+/-]{8,}/gi, "Bearer [redacted]")
+    .replace(/(api[_-]?key|token|password|secret)\s*[:=]\s*\S+/gi, "$1=[redacted]");
+}
 export type DesktopCommand =
   | { cmd: "desktop.getInfo" }
   | { cmd: "desktop.openUrl"; url: string }
@@ -82,8 +90,12 @@ export async function runDesktopCommand(c: DesktopCommand): Promise<CommandResul
       if (!c.title.trim() || !c.body.trim()) {
         return { ok: false, code: "INVALID_INPUT", error: "title/body required" };
       }
+      // Defense in depth: bodies must never carry secrets even if a caller
+      // passes them (pipeline only sends fixed status strings).
+      const title = sanitizeNotificationText(c.title).slice(0, 120);
+      const body = sanitizeNotificationText(c.body).slice(0, 300);
       if ("Notification" in window && Notification.permission === "granted") {
-        new Notification(c.title.slice(0, 120), { body: c.body.slice(0, 300) });
+        new Notification(title, { body });
         return { ok: true, code: "OK", data: { via: "web" } };
       }
       return { ok: false, code: "PERMISSION_REQUIRED", error: "notification permission not granted" };

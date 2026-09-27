@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { detectShell, validateOpenUrl, runDesktopCommand } from "./bridge";
+import { detectShell, validateOpenUrl, runDesktopCommand, sanitizeNotificationText } from "./bridge";
 import { lifecycleFromProbes } from "./lifecycle";
 import { lifecycleOf } from "./notifications";
 
@@ -25,6 +25,12 @@ describe("desktop bridge", () => {
   it("notification validates input", async () => {
     const r = await runDesktopCommand({ cmd: "desktop.notification", title: " ", body: "x" });
     expect(r.ok).toBe(false);
+  });
+  it("sanitizes secrets from notification text (plain-text API, no HTML vector)", () => {
+    expect(sanitizeNotificationText("key sk-abcdef1234567890 here")).not.toContain("sk-abcdef");
+    expect(sanitizeNotificationText("Bearer abcdef1234567890 tok")).toContain("Bearer [redacted]");
+    expect(sanitizeNotificationText("api_key=supersecret123")).toContain("api_key=[redacted]");
+    expect(sanitizeNotificationText("Task completed.")).toBe("Task completed.");
   });
 });
 

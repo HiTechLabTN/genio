@@ -43,9 +43,6 @@
       "allow": [
         {
           "path": "$CACHE/**"
-        },
-        {
-          "path": "$TEMP/**"
         }
       ]
     },
@@ -54,9 +51,6 @@
       "allow": [
         {
           "path": "$CACHE/**"
-        },
-        {
-          "path": "$TEMP/**"
         }
       ]
     },
@@ -65,9 +59,6 @@
       "allow": [
         {
           "path": "$CACHE/**"
-        },
-        {
-          "path": "$TEMP/**"
         }
       ]
     }
