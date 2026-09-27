@@ -2,9 +2,10 @@
 import json
 import shutil
 
-from installer.core.errors import InstallerError, EXIT_INSTALL_FAIL, EXIT_VERIFY_FAIL
+from installer.core.errors import InstallerError, EXIT_INSTALL_FAIL, EXIT_VERIFY_FAIL, EXIT_INTEGRITY_FAIL
 from installer.core.manifest import new_manifest, record_event, write_manifest
 from installer.core.paths import layout
+from installer.dist.make_release import verify_archive
 
 
 def _copy_source(runner, source, dest, checksum=None):
@@ -12,8 +13,6 @@ def _copy_source(runner, source, dest, checksum=None):
     from pathlib import Path
     src = str(source)
     if src.endswith(".tar.gz") and Path(src).is_file():
-        from installer.core.errors import EXIT_INTEGRITY_FAIL, InstallerError
-        from installer.dist.make_release import verify_archive
         try:
             digest = verify_archive(src, checksum_file=checksum)
         except SystemExit as e:
