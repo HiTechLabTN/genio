@@ -209,6 +209,7 @@ export default function UnifiedShell(props: UnifiedProps) {
   const [prefs, setPrefs] = useState(loadPrefs);
   const [runStart, setRunStart] = useState<number | null>(null);
   const [now, setNow] = useState(Date.now());
+  const mountRef = useRef(Date.now());
   const wasActive = useRef(false);
 
   const save = (p: typeof prefs) => { setPrefs(p); savePrefs(p); };
@@ -234,7 +235,8 @@ export default function UnifiedShell(props: UnifiedProps) {
     needsInput: props.agentStatusKind === "awaiting_input",
     error: props.error,
     lastOutcome: undefined,
-    sessionAgeMin: 99,
+    // Real client-observed session age (mount time) — greeting shows on fresh loads.
+    sessionAgeMin: (Date.now() - mountRef.current) / 60000,
   });
   const advanced = prefs.density === "advanced";
   const detailed = advanced || prefs.density === "detailed";
@@ -249,8 +251,10 @@ export default function UnifiedShell(props: UnifiedProps) {
       {/* Level 1 — what is happening (live region, single, polite) */}
       <section aria-label="Status" className="rounded-[var(--g5-radius-m)] border border-[var(--g5-border)] bg-[var(--g5-carbon)] p-4">
         <div className="flex items-center gap-3">
-          <PresenceAvatar presence={presence} compact={prefs.mascotSize === "compact"} />
-          <div className="min-w-0">
+          <div className="shrink-0">
+            <PresenceAvatar presence={presence} compact={prefs.mascotSize === "compact"} />
+          </div>
+          <div className="min-w-0 flex-1">
             <p role="status" aria-live="polite" className="text-base font-bold text-white sm:text-lg">
               {LEVEL1[presence.semanticState] ?? "Genio"}
             </p>
