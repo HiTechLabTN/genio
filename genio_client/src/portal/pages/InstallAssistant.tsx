@@ -2,6 +2,7 @@ import { useState } from "react";
 import { PortalLayout } from "../PortalLayout";
 import { Accordion, ActionButton, Card, CodeBlock, Section, StatusBadge } from "../ui";
 import { INSTALL_STATES, type InstallStateId, type Severity } from "../../lib/installStates";
+import { parseEventLog } from "../../lib/installEvents";
 import productData from "../../product-data.json";
 
 function platform(): string {
@@ -26,8 +27,11 @@ const COMMANDS: Record<string, string> = {
 export default function InstallAssistant() {
   const plat = platform();
   const [done, setDone] = useState<Record<string, boolean>>({ detecting: true, checking: true });
+  const [logText, setLogText] = useState("");
+  const [showViz, setShowViz] = useState(false);
   const toggle = (id: string) => setDone((d) => ({ ...d, [id]: !d[id] }));
   const cmd = COMMANDS[plat] ?? COMMANDS.Linux;
+  const parsed = showViz ? parseEventLog(logText) : [];
   return (
     <PortalLayout title="Install" description="Install Genio: detected platform, real commands, honest states. Preview mode." path="/install">
       <Section title="Install Genio" sub="Installer Preview / Documentation Mode: this page guides a real installation — it does not install anything itself. Every state below mirrors the real installer state machine.">
@@ -57,6 +61,56 @@ export default function InstallAssistant() {
               </Card>
             );
           })}
+        </div>
+        <div className="mt-4">
+          <Accordion title="Visualize a real installer log (paste --json-events output)">
+            <p className="text-xs text-white/60">
+              Run <code className="font-mono text-cyan-200">genio install --json-events …</code> in your
+              terminal, paste the output below. States render deterministically from real
+              events — invalid lines are flagged, never hidden.
+            </p>
+            <label htmlFor="event-log" className="sr-only">Installer event log</label>
+            <textarea
+              id="event-log"
+              rows={6}
+              value={logText}
+              onChange={(e) => { setLogText(e.target.value); setShowViz(false); }}
+              placeholder='{"protocol":"genio-installer-events/1","event":"INSTALL_STARTED",…}'
+              className="g5-focusable mt-2 w-full rounded-lg border border-white/15 bg-black/40 p-2 font-mono text-[11px] text-emerald-200"
+            />
+            <button
+              type="button"
+              onClick={() => setShowViz(true)}
+              className="g5-focusable mt-2 rounded-full border border-white/15 px-4 py-1.5 text-xs text-white hover:bg-white/10"
+            >
+              Render timeline
+            </button>
+            {showViz && (
+              <div className="mt-3 grid gap-2" role="log" aria-label="Installer event timeline">
+                {parsed.length === 0 && <p className="text-xs text-white/50">Empty log — nothing rendered (honest).</p>}
+                {parsed.map((p, i) => (
+                  <div key={i} className="rounded-lg border border-[var(--g5-border)] p-2">
+                    {p.invalid ? (
+                      <p role="alert" className="font-mono text-[11px] text-rose-300">INVALID LINE: {p.invalid}</p>
+                    ) : (
+                      <>
+                        <p className="font-mono text-[11px] text-white">
+                          {p.event} → <span className="text-cyan-300">{p.state}</span>
+                        </p>
+                        {p.error && (
+                          <div className="mt-1 text-[11px]">
+                            <p className="font-mono text-rose-300">{p.error.code}: {p.error.message}</p>
+                            {p.error.recovery && <p className="text-white/70">Recovery: {p.error.recovery}</p>}
+                            {p.error.docs && <a href={p.error.docs} className="g5-focusable text-cyan-300">Docs →</a>}
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </Accordion>
         </div>
         <div className="mt-4">
           <Accordion title="Verify, recover, get help (real commands)">

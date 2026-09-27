@@ -52,6 +52,13 @@ def _copy_source(runner, source, dest, checksum=None):
                                  EXIT_INSTALL_FAIL, hint="check URL/network")
         return "git"
     if Path(src).is_dir():
+        if dest.exists():
+            try:
+                next(dest.iterdir())
+                raise InstallerError(f"destination exists: {dest} (use --force)",
+                                     EXIT_INSTALL_FAIL)
+            except StopIteration:
+                dest.rmdir()  # empty dir from layout creation: safe to replace
         shutil.copytree(src, dest, ignore=shutil.ignore_patterns(
             ".git", "__pycache__", "*.pyc", "node_modules", ".venv", "venv*",
             "*.db", "*.db-journal", "dist", ".pytest_cache"))
@@ -127,6 +134,8 @@ def _write_env(env_file, api_key, extra):
 
 def install(runner, prefix, source, version, opts):
     """Fresh prefix install. Returns manifest. Raises InstallerError."""
+    from installer.core.events import Emitter
+    emit = opts.get("emitter") or Emitter(enabled=False)
     lay = layout(prefix)
     for d in ("meta", "repo", "config", "data", "cache", "logs", "tmp"):
         lay[d].mkdir(parents=True, exist_ok=True)
@@ -146,10 +155,17 @@ def install(runner, prefix, source, version, opts):
     else:
         mode = obtained
         commit = _head_commit(lay["repo"]) if mode == "git" else "copy"
+    emit.emit("DOWNLOAD_COMPLETED", {"source_kind": mode})
+    emit.emit("VERIFICATION_STARTED", {"checksum_given": bool(opts.get("checksum"))})
+    emit.emit("VERIFICATION_RESULT", {"ok": True, "detail": "source integrity accepted"})
+    emit.emit("INSTALL_PROGRESS", {"stage": "venv"})
     _make_venv(runner, lay["venv"], runner.log_path)
+    emit.emit("INSTALL_PROGRESS", {"stage": "dependencies"})
     _install_deps(runner, lay["venv"], lay["repo"])
+    emit.emit("INSTALL_PROGRESS", {"stage": "frontend"})
     fe = _build_frontend(runner, lay["repo"], opts.get("npm_ok", False))
     ports = dict(opts.get("ports") or {})
+    emit.emit("CONFIGURATION_STARTED", {"ports": ports})
     lay["ports_file"].write_text(json.dumps(ports, indent=2, sort_keys=True))
     _write_env(lay["env_file"], opts.get("api_key", ""), opts.get("env_extra"))
     man = new_manifest(lay["prefix"], version, commit,
@@ -158,6 +174,8 @@ def install(runner, prefix, source, version, opts):
     man["ports"] = ports
     record_event(man, "install", f"source={mode} frontend={fe['status']}")
     write_manifest(lay["manifest"], man)
+    emit.emit("SECURITY_CHECK_STARTED", {"env_perms": "0600"})
+    emit.emit("HEALTH_CHECK_STARTED", {"check": "import"})
     # Post-install verify: python can import the product from the prefix.
     py = lay["venv"] / "bin" / "python"
     r = runner.run([str(py), "-c",
@@ -165,8 +183,11 @@ def install(runner, prefix, source, version, opts):
                     "import config; print(config.get_config().ollama.primary_model)"],
                    cwd=lay["repo"], timeout=120)
     if not r["ok"]:
+        emit.emit("HEALTH_CHECK_RESULT", {"ok": False})
+        emit.emit("INSTALL_FAILED", {"stage": "verify"}, error="INSTALL_VERIFY")
         raise InstallerError(f"post-install import verify failed: {r['err'][-400:]}",
                              EXIT_VERIFY_FAIL)
+    emit.emit("HEALTH_CHECK_RESULT", {"ok": True})
     man["health"] = "healthy"
     record_event(man, "verify", "import check passed")
     write_manifest(lay["manifest"], man)

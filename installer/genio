@@ -32,6 +32,8 @@ def cmd_install(args):
     from installer.core.paths import DEFAULT_PORTS
     prefix = args.prefix or str(default_prefix())
     runner = _runner(prefix)
+    from installer.core.events import Emitter
+    emitter = Emitter(enabled=args.json_events)
     installs = discovery.discover(runner, prefix,
                                   extra_checkout=args.existing_checkout)
     plan = discovery.summarize(installs)
@@ -43,17 +45,24 @@ def cmd_install(args):
         print(plan["message"])
         print("Refusing to overwrite a partial installation. "
               "Use repair/update, or --force to reinstall (backup first).")
+        emitter.emit("USER_ACTION_REQUIRED", {"reason": plan["action"]})
         return EXIT_ALREADY_INSTALLED
     if plan["action"] == "reconcile" and not args.prefix and not args.yes:
         print(plan["message"])
+        emitter.emit("USER_ACTION_REQUIRED", {"reason": plan["action"]})
         return EXIT_AMBIGUOUS_INSTALLS
     if args.check:
         print(plan["message"])
         return EXIT_OK
+    emitter.emit("INSTALL_STARTED", {"prefix": prefix, "source": args.source})
+    emitter.emit("PREFLIGHT_STARTED", {})
     sw = software.detect(runner)
     if not sw["ok"]:
         print(f"Missing required tools: {sw['missing_required']}")
+        emitter.emit("PREFLIGHT_RESULT", {"ok": False, "missing": sw["missing_required"]})
+        emitter.emit("INSTALL_FAILED", {}, error="INSTALL_DEPS_MISSING")
         return 13
+    emitter.emit("PREFLIGHT_RESULT", {"ok": True})
     ports = dict(DEFAULT_PORTS)
     if args.api_port:
         ports["api"] = args.api_port
@@ -65,20 +74,28 @@ def cmd_install(args):
             print(f"WARN port {name}={info['port']} held by "
                   f"pid={o.get('pid')} {o.get('process')} svc={o.get('service')}")
     if not args.yes and not args.check:
+        emitter.emit("USER_ACTION_REQUIRED", {"reason": "confirm-install"})
         ans = input(f"Install Genio into {prefix}? [y/N] ")
         if ans.strip().lower() != "y":
+            emitter.emit("INSTALL_FAILED", {}, error="INSTALL_CANCELLED")
             return EXIT_USER_ABORT
+    if str(args.source).startswith(("http://", "https://")):
+        emitter.emit("DOWNLOAD_STARTED", {"origin": args.source.split("/")[2]})
     from installer.installers import standalone
     try:
         man = standalone.install(
             runner, prefix, args.source, args.version or "standalone",
             {"ports": ports, "api_key": args.api_key or "",
              "checksum": args.checksum or None,
-             "force": args.force,
+             "force": args.force, "emitter": emitter,
              "npm_ok": sw["tools"]["npm"]["present"] and sw["tools"]["node"]["present"]})
     except InstallerError as e:
         print(f"INSTALL FAILED: {e} {e.hint}")
+        emitter.emit("INSTALL_FAILED", {"detail": str(e)[:200]},
+                     error=_code_for(e.code))
         return e.code
+    emitter.emit("INSTALL_COMPLETED", {"installation_id": man["installation_id"],
+                                       "commit": man["commit"]})
     print(f"Installed {man['installation_id'][:8]} commit={man['commit']} "
           f"frontend={man.get('_frontend', {}).get('status')}")
     if args.with_services:
@@ -137,8 +154,10 @@ def cmd_repair(args):
 
 
 def cmd_update(args):
+    from installer.core.events import Emitter
     from installer.repair.fix import update
     prefix = args.prefix or str(default_prefix())
+    emitter = Emitter(enabled=getattr(args, "json_events", False))
     try:
         res = update(_runner(prefix), prefix, ref=args.to or "HEAD",
                      archive=args.archive or None,
@@ -146,19 +165,24 @@ def cmd_update(args):
                      allow_downgrade=args.allow_downgrade)
     except InstallerError as e:
         print(f"UPDATE FAILED (rolled back): {e} {e.hint}")
+        emitter.emit("ROLLBACK_COMPLETED", {"after": "update-failure"})
         return e.code
     print(f"updated {res['old']} -> {res['new']}")
     return EXIT_OK
 
 
 def cmd_rollback(args):
+    from installer.core.events import Emitter
     from installer.repair.fix import rollback
     prefix = args.prefix or str(default_prefix())
+    emitter = Emitter(enabled=getattr(args, "json_events", False))
+    emitter.emit("ROLLBACK_STARTED", {"prefix": prefix})
     try:
         man = rollback(_runner(prefix), prefix, which=args.backup)
     except InstallerError as e:
         print(f"ROLLBACK FAILED: {e} {e.hint}")
         return e.code
+    emitter.emit("ROLLBACK_COMPLETED", {"commit": man.get("commit")})
     print(f"rolled back, commit={man.get('commit')}")
     return EXIT_OK
 
@@ -214,6 +238,7 @@ def build_parser():
     i.add_argument("--web-port", type=int, default=0)
     i.add_argument("--with-services", action="store_true")
     i.add_argument("--force", action="store_true")
+    i.add_argument("--json-events", action="store_true")
     i.add_argument("--existing-checkout", default="")
     i.set_defaults(fn=cmd_install)
     d = sub.add_parser("doctor")
@@ -233,8 +258,10 @@ def build_parser():
             q.add_argument("--archive", default="")
             q.add_argument("--checksum", default="")
             q.add_argument("--allow-downgrade", action="store_true")
+            q.add_argument("--json-events", action="store_true")
         if name == "rollback":
             q.add_argument("--backup", default="")
+            q.add_argument("--json-events", action="store_true")
         if name in ("uninstall",):
             q.add_argument("--yes", action="store_true")
             q.add_argument("--purge-data", action="store_true")
@@ -242,10 +269,40 @@ def build_parser():
     return p
 
 
+def _code_for(exit_code):
+    from installer.core.errors import (
+        EXIT_DEPS_MISSING, EXIT_DOWNLOAD_FAIL, EXIT_INTEGRITY_FAIL,
+        EXIT_PERMISSION, EXIT_UNSUPPORTED, EXIT_VERIFY_FAIL)
+    return {
+        EXIT_DEPS_MISSING: "INSTALL_DEPS_MISSING",
+        EXIT_DOWNLOAD_FAIL: "INSTALL_DOWNLOAD",
+        EXIT_INTEGRITY_FAIL: "INSTALL_CHECKSUM",
+        EXIT_VERIFY_FAIL: "INSTALL_VERIFY",
+        EXIT_PERMISSION: "INSTALL_PERMISSION",
+        EXIT_UNSUPPORTED: "INSTALL_UNSUPPORTED",
+    }.get(exit_code, "INSTALL_VERIFY")
+
+
 def main(argv=None):
     args = build_parser().parse_args(argv)
     try:
         return args.fn(args)
+    except KeyboardInterrupt:
+        # Real cancellation: no tmp litter, existing install preserved.
+        import shutil
+        from installer.core.paths import layout
+        prefix = getattr(args, "prefix", "") or None
+        if prefix:
+            for tmpname in ("_archive_tmp", "_update_tmp"):
+                shutil.rmtree(str(layout(prefix)["prefix"] / tmpname),
+                              ignore_errors=True)
+        print("CANCELLED by user — partial state left repairable, nothing deleted.")
+        if getattr(args, "json_events", False):
+            from installer.core.events import Emitter
+            Emitter(enabled=True).emit("INSTALL_FAILED", {},
+                                       error="INSTALL_CANCELLED")
+        from installer.core.errors import EXIT_USER_ABORT
+        return EXIT_USER_ABORT
     except InstallerError as e:
         print(f"ERROR: {e} {e.hint}")
         return e.code

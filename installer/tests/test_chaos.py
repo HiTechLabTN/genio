@@ -105,3 +105,35 @@ def test_force_reinstall_preserves_data_moves_code(tmp_path):
     assert not (lay["repo"] / "old.txt").exists()
     assert (lay["data"] / "keep.txt").read_text() == "user-data\n"
     assert man["health"] == "healthy"
+
+
+def test_plain_dir_source_into_fresh_prefix(tmp_path):
+    """Copy branch with pre-created empty repo dir (layout) must not crash."""
+    from installer.core.paths import layout
+    from installer.installers.standalone import _copy_source
+    from installer.core.runner import Runner
+    lay = layout(tmp_path / "prefix")
+    lay["repo"].mkdir(parents=True)
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "config.py").write_text("x = 1\n")
+    mode = _copy_source(Runner(), str(src), lay["repo"])
+    assert mode == "copy"
+    assert (lay["repo"] / "config.py").is_file()
+
+
+def test_copy_refuses_nonempty_dest_without_force(tmp_path):
+    from installer.core.errors import InstallerError
+    from installer.core.paths import layout
+    from installer.installers.standalone import _copy_source
+    from installer.core.runner import Runner
+    lay = layout(tmp_path / "prefix")
+    lay["repo"].mkdir(parents=True)
+    (lay["repo"] / "existing.txt").write_text("do not overwrite\n")
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "config.py").write_text("x = 1\n")
+    import pytest as _pt
+    with _pt.raises(InstallerError):
+        _copy_source(Runner(), str(src), lay["repo"])
+    assert (lay["repo"] / "existing.txt").read_text() == "do not overwrite\n"
