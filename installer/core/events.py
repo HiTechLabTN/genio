@@ -62,51 +62,51 @@ ERRORS = {
     "INSTALL_DISK_SPACE": {
         "message": "Not enough free disk space.",
         "recovery": "Free the required space, then retry.",
-        "docs": "/docs#troubleshooting"},
+        "docs": "/docs/troubleshooting"},
     "INSTALL_PORT_TAKEN": {
         "message": "A required port is already in use.",
         "recovery": "Stop the conflicting service or use --api-port/--web-port.",
-        "docs": "/docs#installation"},
+        "docs": "/docs/installation"},
     "INSTALL_DEPS_MISSING": {
         "message": "Required system tools are missing.",
         "recovery": "Install them with the host package manager, then retry.",
-        "docs": "/docs#installation"},
+        "docs": "/docs/installation"},
     "INSTALL_DOWNLOAD": {
         "message": "Artifact download failed.",
         "recovery": "Check network, then retry (resumable where supported).",
-        "docs": "/docs#troubleshooting"},
+        "docs": "/docs/troubleshooting"},
     "INSTALL_CHECKSUM": {
         "message": "Checksum mismatch — artifact untrusted.",
         "recovery": "Re-download from the official release. Never bypass.",
-        "docs": "/docs#installation"},
+        "docs": "/docs/installation"},
     "INSTALL_VENV": {
         "message": "Python environment creation failed.",
         "recovery": "Install python3-venv (ensurepip) via package manager.",
-        "docs": "/docs#troubleshooting"},
+        "docs": "/docs/troubleshooting"},
     "INSTALL_VERIFY": {
         "message": "Post-install verification failed.",
         "recovery": "Run doctor, then repair. See install log.",
-        "docs": "/docs#recovery"},
+        "docs": "/docs/recovery"},
     "INSTALL_PERMISSION": {
         "message": "Insufficient permissions.",
         "recovery": "Use a user-writable prefix or run the service step with sudo.",
-        "docs": "/docs#installation"},
+        "docs": "/docs/installation"},
     "INSTALL_UNSUPPORTED": {
         "message": "Unsupported platform.",
         "recovery": "Use Docker or a supported Linux distribution.",
-        "docs": "/docs#installation"},
+        "docs": "/docs/installation"},
     "INSTALL_AMBIGUOUS": {
         "message": "Existing installation state is ambiguous.",
         "recovery": "Use status/repair/update explicitly, or an isolated --prefix.",
-        "docs": "/docs#recovery"},
+        "docs": "/docs/recovery"},
     "INSTALL_CANCELLED": {
         "message": "Cancelled by user.",
         "recovery": "Re-run when ready; partial state is repairable.",
-        "docs": "/docs#recovery"},
+        "docs": "/docs/recovery"},
     "INSTALL_ROLLBACK_FAILED": {
         "message": "Rollback did not restore the previous state.",
         "recovery": "Restore the backup in .genio/backups/ manually and report.",
-        "docs": "/docs#recovery"},
+        "docs": "/docs/recovery"},
 }
 
 

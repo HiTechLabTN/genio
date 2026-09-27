@@ -21,7 +21,7 @@ export function Card({ children, label }: { children: ReactNode; label?: string 
   return (
     <div
       aria-label={label}
-      className="rounded-[var(--g5-radius-m)] border border-[var(--g5-border)] bg-[var(--g5-carbon)] p-4 shadow-[var(--g5-elev-1)] sm:p-5"
+      className="min-w-0 rounded-[var(--g5-radius-m)] border border-[var(--g5-border)] bg-[var(--g5-carbon)] p-4 shadow-[var(--g5-elev-1)] sm:p-5"
     >
       {children}
     </div>
@@ -84,13 +84,13 @@ export function Accordion({ title, children }: { title: string; children: ReactN
 export function CodeBlock({ code, label }: { code: string; label?: string }) {
   const [copied, setCopied] = useState(false);
   return (
-    <div className="overflow-hidden rounded-[var(--g5-radius-m)] border border-[var(--g5-border)] bg-black/40">
-      <div className="flex items-center justify-between border-b border-[var(--g5-border)] px-3 py-1.5">
-        <span className="font-mono text-[11px] text-white/50">{label ?? "command"}</span>
+    <div className="min-w-0 max-w-full overflow-hidden rounded-[var(--g5-radius-m)] border border-[var(--g5-border)] bg-black/40">
+      <div className="flex items-center justify-between gap-2 border-b border-[var(--g5-border)] px-3 py-1.5">
+        <span className="min-w-0 flex-1 truncate font-mono text-[11px] text-white/50">{label ?? "command"}</span>
         <button
           type="button"
           aria-label="Copy command to clipboard"
-          className="g5-focusable font-mono text-[11px] text-cyan-300 hover:text-cyan-200"
+          className="g5-focusable min-h-[28px] shrink-0 rounded px-2 font-mono text-[11px] text-cyan-300 hover:text-cyan-200"
           onClick={() => {
             void navigator.clipboard?.writeText(code).then(() => {
               setCopied(true);
@@ -101,7 +101,7 @@ export function CodeBlock({ code, label }: { code: string; label?: string }) {
           {copied ? "copied ✓" : "copy"}
         </button>
       </div>
-      <pre className="overflow-x-auto p-3 font-mono text-xs text-emerald-200"><code>{code}</code></pre>
+      <pre className="max-w-full overflow-x-auto p-3 font-mono text-xs text-emerald-200"><code>{code}</code></pre>
     </div>
   );
 }

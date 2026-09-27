@@ -95,3 +95,15 @@ describe("a11y basics", () => {
     expect(html).toContain('aria-label="Copy command to clipboard"');
   });
 });
+
+describe("presence contract live in TelemetryBar", () => {
+  it("exposes data-presence/data-attention from real props", async () => {
+    const { default: TelemetryBar } = await import("./components/TelemetryBar");
+    const { renderToStaticMarkup: render } = await import("react-dom/server");
+    const React = await import("react");
+    const off = render(React.createElement(TelemetryBar, { status: "idle", connected: false }));
+    expect(off).toContain('data-presence="disconnected"');
+    const on = render(React.createElement(TelemetryBar, { status: "thinking", connected: true }));
+    expect(on).toContain('data-presence="thinking"');
+  });
+});

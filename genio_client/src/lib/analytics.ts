@@ -5,8 +5,9 @@ export function trackPageView(path: string) {
     if (typeof window !== "undefined" && (window as unknown as { plausible?: (e: string, o?: unknown) => void }).plausible) {
       (window as unknown as { plausible: (e: string, o?: unknown) => void }).plausible("pageview", { props: { path } });
     }
-    // Fallback: send beacon to /api/v1/analytics if exists (fire-and-forget)
-    const data = JSON.stringify({ path, ts: Date.now(), ua: navigator.userAgent.slice(0, 120) });
+    // Fallback: send beacon to /api/v1/analytics if exists (fire-and-forget).
+    // G4: no user-agent in body (HTTP layer already sees it; minimize payload).
+    const data = JSON.stringify({ path, ts: Date.now() });
     if (navigator.sendBeacon) {
       try { navigator.sendBeacon("/api/v1/analytics", data); } catch { /* ignore */ }
     }

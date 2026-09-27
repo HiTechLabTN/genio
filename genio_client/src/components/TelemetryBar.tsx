@@ -16,6 +16,8 @@ type Vitals = {
  * Source : GET /api/v1/system/telemetry (same-origin → marche en local
  * comme derrière le tunnel). Zéro nom hardware/marque — pourcentages seuls.
  */
+import { resolvePresence } from "../presence/resolve";
+
 export default function TelemetryBar({
   status,
   connected,
@@ -65,6 +67,17 @@ export default function TelemetryBar({
   }, []);
 
   const busy = status === "thinking" || status === "executing";
+  // Presence contract (§24): same semantic state object drives 2D/3D/panels.
+  // Derived from the exact props this bar already receives — no new data.
+  const presence = resolvePresence({
+    socket: connected ? "connected" : "disconnected",
+    agent: status,
+    streaming: status === "executing",
+    typing: false,
+    taskActive: status === "executing",
+    needsInput: false,
+    sessionAgeMin: 99,
+  });
   const badge = !connected
     ? { dot: "bg-rose-400", txt: "🔴 غير متصل (Offline)" }
     : status === "thinking"
@@ -74,7 +87,12 @@ export default function TelemetryBar({
         : { dot: "bg-emerald-400", txt: "🟢 متصل (Ready)" };
 
   return (
-    <div className="telemetry-bar pointer-events-none absolute inset-x-0 top-0 z-[65]">
+    <div
+      className="telemetry-bar pointer-events-none absolute inset-x-0 top-0 z-[65]"
+      data-presence={presence.semanticState}
+      data-attention={presence.attentionTarget}
+      title={`presence: ${presence.semanticState} → ${presence.attentionTarget ?? "user"}`}
+    >
       <div className="mx-auto flex w-fit max-w-[96vw] flex-wrap items-center justify-center gap-x-3 gap-y-1 rounded-b-2xl border border-white/10 bg-black/55 px-4 py-1.5 font-mono text-[10px] text-white/80 backdrop-blur-md">
         <span className="flex items-center gap-1.5 font-bold">
           <span className={`h-2 w-2 rounded-full ${badge.dot} ${busy ? "animate-ping" : "shadow-[0_0_8px_rgba(52,211,153,0.8)]"}`} />

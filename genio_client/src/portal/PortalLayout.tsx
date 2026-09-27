@@ -47,10 +47,10 @@ function Nav() {
   const cls = ({ isActive }: { isActive: boolean }) =>
     `g5-focusable rounded-full px-3 py-1.5 text-[13px] ${isActive ? "text-white font-bold" : "text-white/70 hover:text-white"}`;
   return (
-    <header className="sticky top-0 z-40 border-b border-[var(--g5-border)] bg-[#020B1E]/85 backdrop-blur">
+    <header className="sticky top-0 z-40 border-b border-[var(--g5-border)] bg-[var(--g5-void)]/85 backdrop-blur">
       <Container>
         <nav aria-label="Genio portal" className="flex h-14 items-center justify-between">
-          <Link to="/" className="g5-focusable text-sm font-bold text-white" aria-label="Genio home">
+          <Link to="/" className="g5-focusable inline-flex min-h-[28px] items-center text-sm font-bold text-white" aria-label="Genio home">
             🇹🇳 Genio <span className="font-mono text-[10px] text-cyan-300">v{(productData as { version: string }).version}</span>
           </Link>
           <div className="hidden items-center gap-1 md:flex">
@@ -71,7 +71,7 @@ function Nav() {
         </nav>
       </Container>
       {open && (
-        <div id="portal-menu" role="dialog" aria-modal="true" aria-label="Navigation" className="border-t border-[var(--g5-border)] bg-[#020B1E] md:hidden">
+        <div id="portal-menu" role="dialog" aria-modal="true" aria-label="Navigation" className="border-t border-[var(--g5-border)] bg-[var(--g5-void)] md:hidden">
           <Container>
             <div className="flex flex-col gap-1 py-3">
               {LINKS.map((l) => (
@@ -88,21 +88,22 @@ function Nav() {
 export function PortalLayout({ title, description, path, children }: { title: string; description: string; path: string; children: ReactNode }) {
   usePageMeta(title, description, path);
   return (
-    <div className="min-h-screen bg-[#020B1E] text-slate-200">
+    <div className="min-h-screen bg-[var(--g5-void)] text-slate-200">
       <a href="#portal-main" className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded focus:bg-cyan-400 focus:px-3 focus:py-1 focus:text-slate-900">
         Skip to content
       </a>
       <Nav />
       <main id="portal-main">
+        <h1 className="sr-only">{title}</h1>
         <Container>{children}</Container>
       </main>
       <footer className="mt-12 border-t border-[var(--g5-border)] py-6">
         <Container>
-          <nav aria-label="Footer" className="flex flex-wrap gap-x-5 gap-y-2 text-xs text-white/50">
-            <Link to="/docs" className="g5-focusable hover:text-white">Docs</Link>
-            <Link to="/security" className="g5-focusable hover:text-white">Security</Link>
-            <Link to="/api" className="g5-focusable hover:text-white">API</Link>
-            <a href="https://github.com/HiTechLabTN/genio" className="g5-focusable hover:text-white" rel="noopener noreferrer">GitHub</a>
+          <nav aria-label="Footer" className="flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-white/50">
+            <Link to="/docs" className="g5-focusable inline-flex min-h-[24px] items-center hover:text-white">Docs</Link>
+            <Link to="/security" className="g5-focusable inline-flex min-h-[24px] items-center hover:text-white">Security</Link>
+            <Link to="/api" className="g5-focusable inline-flex min-h-[24px] items-center hover:text-white">API</Link>
+            <a href="https://github.com/HiTechLabTN/genio" className="g5-focusable inline-flex min-h-[24px] items-center hover:text-white" rel="noopener noreferrer">GitHub</a>
             <span className="font-mono">v{(productData as { version: string }).version} · sovereign · HiTechLab 🇹🇳</span>
           </nav>
         </Container>

@@ -1,0 +1,8 @@
+{
+  "_comment": "G4 portal budgets (measured 2026-09-27, dist 89MB after model dedupe). Exceeding fails CI with explicit reason; raise deliberately via this file.",
+  "dist_total_mb": 100,
+  "js_total_mb": 6,
+  "css_total_kb": 300,
+  "route_chunk_kb": 200,
+  "app_3d_chunk_kb": 2500
+}

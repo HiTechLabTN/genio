@@ -169,6 +169,8 @@ jobs:
           npm audit --omit=dev --audit-level=high
       - name: Build (blocking)
         run: npm run build
+      - name: Bundle budgets (G4, documented in budgets.json)
+        run: node scripts/check-budgets.mjs
       - name: Smoke static bundle
         run: |
           test -f dist/index.html

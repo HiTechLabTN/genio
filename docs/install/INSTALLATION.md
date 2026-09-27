@@ -12,7 +12,7 @@ curl -fsSL https://raw.githubusercontent.com/HiTechLabTN/genio/main/installer/bo
 Pin a release explicitly (recommended):
 
 ```bash
-GENIO_REF=v2.0.0-sovereign-rc1 GENIO_PREFIX=~/.local/share/genio bash install.sh
+GENIO_REF=v4.1.0 GENIO_PREFIX=~/.local/share/genio bash install.sh
 ```
 
 Trust basis: GitHub TLS + reported checkout SHA. No checksum/signature

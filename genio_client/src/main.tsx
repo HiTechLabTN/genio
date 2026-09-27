@@ -1,6 +1,7 @@
 import React, { Suspense, lazy, useEffect } from "react";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { MotionConfig } from "framer-motion";
 import RootErrorBoundary from "./components/RootErrorBoundary";
 import { ThemeProvider } from "./lib/theme";
 import { trackPageView } from "./lib/analytics";
@@ -40,6 +41,7 @@ ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
   <React.StrictMode>
     <RootErrorBoundary>
       <ThemeProvider>
+        <MotionConfig reducedMotion="user">
         <BrowserRouter>
           <Analytics />
           <Suspense fallback={<LoadingFallback />}>
@@ -59,6 +61,7 @@ ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
             </Routes>
           </Suspense>
         </BrowserRouter>
+        </MotionConfig>
       </ThemeProvider>
     </RootErrorBoundary>
   </React.StrictMode>,
