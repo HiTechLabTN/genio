@@ -6,7 +6,6 @@ itself is NOT banned repo-wide (legacy mascot mode + Dashboard keep
 it deliberately) — only the unified path is asserted clean.
 """
 import re
-import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
