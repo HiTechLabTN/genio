@@ -113,11 +113,15 @@ Tauri toolchain, Android SDK/secrets (unchanged).
 
 ## 20. Exact commits
 
-(this report committed next; code commits below)
+`a710b99` (protocol/catalog/visualizer/tests) + `46207e1` (import-scope
+fix found by CI: function-local import shadowed InstallerError —
+UnboundLocalError on non-archive paths; hoisted to module top)
 
 ## 21. CI run
 
-(to monitor after push)
+`36300919232` : 6/6 success (lint, installer, frontend, backend,
+docker-build, distribution). The import-scope bug above was caught
+BY CI (installer job) and fixed — gate working as designed.
 
 ## 22. Final verdict
 
