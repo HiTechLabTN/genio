@@ -13,6 +13,7 @@ import { ErrorBoundary } from "./components/v3";
 import { useVoiceOutput } from "./components/v3/useVoiceOutput";
 import IslamicPatterns from "./components/background/IslamicPatterns";
 import TelemetryBar from "./components/TelemetryBar";
+import { useTaskNotifications } from "./desktop/notifications";
 import UnifiedShell from "./unified/UnifiedShell";
 import IntroCinematic from "./components/intro/IntroCinematic";
 import CinematicPortalSplash from "./components/layout/CinematicPortalSplash";
@@ -206,6 +207,8 @@ export default function App() {
     : wsSendPrompt;
 
   const taskProcRaw = useTaskProcessor({ chat: chat ?? [], telemetry: telemetry ?? null, agentStatus });
+  // G5-C task→notification pipeline (output only, status text only).
+  useTaskNotifications(!!taskProcRaw?.isProcessing, taskProcRaw?.result ?? "", taskProcRaw?.error ?? null);
   const taskProc = {
     thinkingSteps: taskProcRaw?.thinkingSteps ?? [],
     toolActivity: taskProcRaw?.toolActivity ?? [],
