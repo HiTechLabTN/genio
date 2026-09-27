@@ -13,6 +13,7 @@ import { ErrorBoundary } from "./components/v3";
 import { useVoiceOutput } from "./components/v3/useVoiceOutput";
 import IslamicPatterns from "./components/background/IslamicPatterns";
 import TelemetryBar from "./components/TelemetryBar";
+import UnifiedShell from "./unified/UnifiedShell";
 import IntroCinematic from "./components/intro/IntroCinematic";
 import CinematicPortalSplash from "./components/layout/CinematicPortalSplash";
 import CinematicAvatar from "./components/CinematicAvatar";
@@ -91,9 +92,10 @@ export default function App() {
   // Partie A — interface mascotte primaire par défaut, bascule technique ↔ mascotte
   // Écran par défaut = Mode technique (vue agent 2D légère, sans canvas 3D
   // lourd). Choix persistant respecté si déjà enregistré.
-  const [interfaceMode, setInterfaceMode] = useState<"mascot" | "technique">(() => {
+  const [interfaceMode, setInterfaceMode] = useState<"mascot" | "technique" | "unified">(() => {
     try {
-      return (localStorage.getItem("genio.interfaceMode") as "mascot" | "technique") || "technique";
+      const saved = localStorage.getItem("genio.interfaceMode");
+      return saved === "mascot" || saved === "unified" ? saved : "technique";
     } catch {
       return "technique";
     }
@@ -587,6 +589,49 @@ export default function App() {
     );
   }
 
+  // Mode unifié (G4.1) : composition adaptative opt-in. Les modes
+  // mascot/technique restent intacts ; aucune logique existante modifiée.
+  if (interfaceMode === "unified") {
+    const uniKind = (agentStatus as { kind?: string }).kind ?? "idle";
+    return (
+      <div className="fixed inset-0 flex h-[100dvh] w-full flex-col overflow-hidden bg-[#020B1E]">
+        <div className="flex items-center gap-2 border-b border-white/10 px-3 py-2">
+          <span className="text-xs font-bold text-white">Genio unifié</span>
+          <span className="flex-1" />
+          <button
+            type="button"
+            onClick={() => setInterfaceMode("technique")}
+            className="rounded-full border border-white/10 bg-black/30 px-3 py-1.5 text-[11px] text-white/60 hover:bg-black/50 hover:text-white/90"
+          >
+            ← Mode technique
+          </button>
+          <button
+            type="button"
+            onClick={() => setInterfaceMode("mascot")}
+            className="rounded-full border border-white/10 bg-black/30 px-3 py-1.5 text-[11px] text-white/60 hover:bg-black/50 hover:text-white/90"
+          >
+            Mode mascotte
+          </button>
+        </div>
+        <div className="min-h-0 flex-1">
+          <UnifiedShell
+            chat={chat ?? []}
+            agentStatusKind={uniKind}
+            socketState={connected ? "connected" : "disconnected"}
+            streaming={uniKind === "executing"}
+            connected={connected}
+            online={typeof navigator === "undefined" ? true : navigator.onLine}
+            telemetry={telemetry ?? null}
+            taskActive={!!taskProcRaw.isProcessing}
+            currentTool={(taskProcRaw.toolActivity ?? []).slice(-1)[0]}
+            onReconnect={() => { if (target) void connect(target); }}
+            onCancelTask={() => kill()}
+          />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="fixed inset-0 h-[100dvh] w-full overflow-hidden bg-[#020B1E]">
       {/* Barre télémétrie souveraine — sticky top, vitals temps réel */}
@@ -601,6 +646,13 @@ export default function App() {
         title="Retour à la mascotte plein écran"
       >
         ← Mode mascotte
+      </button>
+      <button
+        onClick={() => setInterfaceMode("unified")}
+        className="absolute left-36 top-4 z-[70] flex items-center gap-1.5 rounded-full border border-cyan-400/20 bg-black/30 px-3 py-1.5 text-[11px] text-cyan-200/80 backdrop-blur hover:bg-black/50 hover:text-cyan-100"
+        title="Vue unifiée : conversation, présence et tâche"
+      >
+        Mode unifié
       </button>
       {/* z-0 IslamicPatterns — stays mounted for seamless handoff, CinematicPortalSplash reuses same void #020B1E */}
       <ErrorBoundary name="IslamicPatterns">

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import type { GenioPresenceState } from "./types";
 import { composeGesture } from "./primitives";
 import { effectiveMotion, loadPrefs } from "./preferences";
+import heroWebp from "../assets/mascot/genio-hero.webp";
 
 /**
  * PresenceAvatar — Phase-2 lightweight presence (no 3D cost).
@@ -53,7 +54,7 @@ export default function PresenceAvatar({ presence, compact }: { presence: GenioP
         <span aria-hidden="true" className="text-2xl font-bold text-cyan-300">G</span>
       ) : (
         <img
-          src="/assets/mascot/genio-hero.webp"
+          src={heroWebp}
           alt=""
           width={size}
           height={size}
