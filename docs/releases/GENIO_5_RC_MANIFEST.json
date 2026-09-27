@@ -1,0 +1,71 @@
+{
+  "product": "Genio",
+  "version": "5.0.0-rc0",
+  "note": "CERTIFICATION LABEL ONLY \u2014 not a product version, not a release. Product stays 4.1.0.",
+  "commit": "09af3d50b385aba29a2574d446249791ef912bea",
+  "built_at": "2026-09-27T22:30:34Z",
+  "platform": "linux",
+  "architecture": "x86_64",
+  "artifacts": [
+    {
+      "name": "genio-5.0.0-rc0.tar.gz",
+      "sha256": "963efdeb4eba1769f47fd2b9272354913e64f44e6de918df622982adb0f158c0",
+      "size": 137602032,
+      "type": "source-archive",
+      "provenance": "git archive HEAD (tracked files only)"
+    },
+    {
+      "name": "sbom.json",
+      "sha256": "891bb2ca95af311c8f4efae7e656cf9a483fdeee3a17180047873afe088384bd",
+      "size": 127162,
+      "type": "sbom-cyclonedx-lite",
+      "components": 968
+    },
+    {
+      "name": "genio-client_4.3.0_amd64.AppImage",
+      "sha256": "91223183ec406b4d5ac0a153937083077d19b2ae3a79e29974bcbea953d985ce",
+      "size": 117135864,
+      "type": "desktop-linux",
+      "provenance": "tauri build, unsigned (no private key)"
+    },
+    {
+      "name": "genio-client_4.3.0_amd64.deb",
+      "size": 39680552,
+      "type": "desktop-linux-deb",
+      "sha256": "90e187abb9036642d3ddf058f77516fd10abc50e029fd18b20bd1200e2be53b4",
+      "provenance": "tauri build, unsigned"
+    },
+    {
+      "name": "ghcr.io/hitechlabtn/genio:4.1.0",
+      "digest": "sha256:61d4b425a111eafa3357bb0413a113ab6354f74f78fec4634b69aafa9af57b5f",
+      "type": "docker",
+      "provenance": "docker build + push (immutable tag)"
+    }
+  ],
+  "checksums": {
+    "method": "SHA-256",
+    "verified": true
+  },
+  "docker": {
+    "image": "ghcr.io/hitechlabtn/genio:4.1.0",
+    "non_root": true,
+    "healthcheck": true
+  },
+  "schemas": {
+    "openapi": "schemas/openapi-genio.json",
+    "ipc": "schemas/ipc-v1.json"
+  },
+  "platforms": {
+    "linux": "supported",
+    "windows": "blocked",
+    "macos": "blocked",
+    "android": "blocked",
+    "ios": "blocked"
+  },
+  "sbom": {
+    "components": 968,
+    "vuln": "pip-audit 0, npm 2 moderate"
+  },
+  "signing_status": "BLOCKED \u2014 NO PRIVATE KEY (dev fixtures UNSIGNED-DEVELOPMENT only)",
+  "known_limitations": "docs/release/KNOWN_LIMITATIONS_4.1.0.md"
+}
