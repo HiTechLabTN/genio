@@ -208,6 +208,9 @@ async function getDesktopDownloadUrl(version?: string): Promise<{ exe?: string; 
  * Both paths require user to tap "Install" in the system prompt.
  */
 async function openApkInBrowserViaShell(apkUrl: string): Promise<boolean> {
+  // G5-C hardening: validate before touching the native shell bridge.
+  const { validateOpenUrl } = await import("../desktop/bridge");
+  if (!validateOpenUrl(apkUrl).ok) return false;
   // Spec #1: when os.platform() === 'android', use @tauri-apps/plugin-shell open()
   try {
     // Dynamic import to keep web bundle clean; shell plugin is configured in lib.rs + capabilities

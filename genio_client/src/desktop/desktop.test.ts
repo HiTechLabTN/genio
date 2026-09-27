@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { detectShell, validateOpenUrl, runDesktopCommand } from "./bridge";
 import { lifecycleFromProbes } from "./lifecycle";
+import { lifecycleOf } from "./notifications";
 
 describe("desktop bridge", () => {
   it("detects web shell in test env (no fake tauri)", () => {
@@ -32,5 +33,25 @@ describe("lifecycle", () => {
     expect(lifecycleFromProbes("web", true, true)).toBe("ready");
     expect(lifecycleFromProbes("web", true, false)).toBe("degraded");
     expect(lifecycleFromProbes("web", false, false)).toBe("failed");
+  });
+});
+
+describe("task lifecycle", () => {
+  it("derives running/completed/failed/idle without inventing", () => {
+    expect(lifecycleOf(true, "", null)).toBe("running");
+    expect(lifecycleOf(false, "answer", null)).toBe("completed");
+    expect(lifecycleOf(false, "", "boom")).toBe("failed");
+    expect(lifecycleOf(false, "", null)).toBe("idle");
+  });
+});
+
+describe("web/desktop parity (no second state machine)", () => {
+  it("same runtime facts resolve identically on both shells", async () => {
+    const { resolvePresence } = await import("../presence/resolve");
+    const ctx = { socket: "connected", agent: "executing", streaming: true, typing: false, taskActive: true, needsInput: false, sessionAgeMin: 5 } as const;
+    const web = resolvePresence({ ...ctx });
+    const desktop = resolvePresence({ ...ctx });
+    expect(web).toEqual(desktop);
+    expect(web.semanticState).toBe("explaining");
   });
 });
