@@ -1,8 +1,31 @@
 import { useEffect, useState } from "react";
-import type { GenioPresenceState } from "./types";
+import type { GenioPresenceState, PresenceStateId } from "./types";
 import { composeGesture } from "./primitives";
 import { effectiveMotion, loadPrefs } from "./preferences";
-import heroWebp from "../assets/mascot/genio-hero.webp";
+import heroBase from "../assets/mascot/genio-hero.webp";
+import heroWave from "../assets/character/genio-wave.webp";
+import heroWink from "../assets/character/genio-wink.webp";
+
+/**
+ * CharacterView (canonical image character layer, G4.2).
+ * Presence state → canonical reference image, never a reinterpretation:
+ *   greeting/listening  → wave (canonical greeting pose)
+ *   success/celebrating → wink (canonical playful pose)
+ *   everything else     → base (canonical standing pose) + subtle UI treatment
+ * (badges/glow/status). The artwork itself is never altered.
+ */
+const STATE_IMAGE: Partial<Record<PresenceStateId, string>> = {
+  greeting: heroWave,
+  listening: heroWave,
+  asking_user: heroWave,
+  attention: heroWave,
+  success: heroWink,
+  celebrating: heroWink,
+};
+
+export function imageForState(state: PresenceStateId): string {
+  return STATE_IMAGE[state] ?? heroBase;
+}
 
 /**
  * PresenceAvatar — Phase-2 lightweight presence (no 3D cost).
@@ -54,7 +77,7 @@ export default function PresenceAvatar({ presence, compact }: { presence: GenioP
         <span aria-hidden="true" className="text-2xl font-bold text-cyan-300">G</span>
       ) : (
         <img
-          src={heroWebp}
+          src={imageForState(presence.semanticState)}
           alt=""
           width={size}
           height={size}

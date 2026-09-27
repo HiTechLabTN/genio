@@ -62,3 +62,4 @@ state/session_workdirs/
 !genio_client/src/assets/genio-avatar-face.png
 !genio_client/src/assets/mascot/genio-hero.png
 !/.env.example
+!docs/audit/evidence/*.png
