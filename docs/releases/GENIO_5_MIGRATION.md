@@ -42,3 +42,9 @@ impact, automatic migration (if any) and rollback path.
 
 - 5.0 → 4.x: supported via installer rollback (same mechanisms);
   new 5.0-only config keys (if any) are ignored by 4.x, never crash.
+
+## G5-A contract freeze (2026-09-27)
+
+Contracts frozen: `docs/audit/GENIO_5_{PRODUCT_CONTRACT,CANONICAL_EXPERIENCE,PLATFORM_CONTRACT,G5A_ARCHITECTURE_FREEZE}.md`.
+No format changes in this gate; this file remains the migration policy.
+5.0 stays UNRELEASED until implementation gates pass.

@@ -81,3 +81,23 @@ describe("no fake states", () => {
     expect(html).not.toMatch(/>\d[\d.]*%</);
   });
 });
+
+describe("fresh mount greets honestly", () => {
+  it("renders greeting state with wave image on fresh mount", async () => {
+    const { renderToStaticMarkup: render } = await import("react-dom/server");
+    const React = await import("react");
+    const { default: UnifiedShell } = await import("./unified/UnifiedShell");
+    const base = {
+      chat: [], agentStatusKind: "idle", socketState: "connected",
+      streaming: false, connected: true, telemetry: null, taskActive: false,
+    } as const;
+    const html = render(
+      React.createElement(
+        (await import("react-router-dom")).MemoryRouter, null,
+        React.createElement(UnifiedShell, base as never)
+      )
+    );
+    expect(html).toContain("Genio is ready");
+    expect(html).toContain("genio-wave");
+  });
+});
