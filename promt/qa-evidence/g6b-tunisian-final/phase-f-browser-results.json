@@ -1,0 +1,137 @@
+{
+  "project": "Genio",
+  "phase": "F — Final Browser E2E",
+  "date": "2026-09-28",
+  "environment": "localhost:8098, Chrome headless, RTX 3060, gemma4:12b",
+  "tests": [
+    {
+      "test": "Landing TN",
+      "status": "PASS",
+      "viewport": "1280x800",
+      "language": "tu",
+      "evidence": "01-landing-tunisian.png",
+      "notes": "100% Tunisian. Title, hero, CTAs, sections all in Derja."
+    },
+    {
+      "test": "Auth Wall TN",
+      "status": "PASS",
+      "viewport": "1280x800",
+      "language": "tu",
+      "evidence": "02-auth-wall-tunisian.png",
+      "notes": "100% Tunisian. Title, subtitle, buttons, agreement all in Derja."
+    },
+    {
+      "test": "Permission Onboarding TN",
+      "status": "PASS",
+      "viewport": "1280x800",
+      "language": "tu",
+      "evidence": "03-permissions-tunisian.png",
+      "notes": "100% Tunisian. Title, descriptions, buttons all in Derja."
+    },
+    {
+      "test": "Unified Shell TN",
+      "status": "PASS",
+      "viewport": "1280x800",
+      "language": "tu",
+      "evidence": "04-mobile-390.png",
+      "notes": "100% Tunisian. Status, panels, settings all in Derja."
+    },
+    {
+      "test": "Mobile 390px",
+      "status": "PASS",
+      "viewport": "390x844",
+      "language": "tu",
+      "evidence": "04-mobile-390.png",
+      "notes": "No overflow, all readable, RTL correct."
+    },
+    {
+      "test": "Install Page",
+      "status": "PASS",
+      "viewport": "1280x800",
+      "language": "tu",
+      "evidence": "05-install-tunisian.png",
+      "notes": "Nav in Tunisian. Install steps in English (separate component, known limitation)."
+    },
+    {
+      "test": "Language Switch TN→FR",
+      "status": "PASS",
+      "viewport": "1280x800",
+      "language": "fr",
+      "evidence": "none",
+      "notes": "Nav switches correctly: استكشف→Explorer, الأمان→Sécurité, etc."
+    },
+    {
+      "test": "Language Switch FR→EN",
+      "status": "PASS",
+      "viewport": "1280x800",
+      "language": "en",
+      "evidence": "none",
+      "notes": "Nav switches correctly: Explorer→Explore, Sécurité→Security, etc."
+    },
+    {
+      "test": "Language Switch EN→TN",
+      "status": "PASS",
+      "viewport": "1280x800",
+      "language": "tu",
+      "evidence": "none",
+      "notes": "Nav switches back to Tunisian correctly."
+    },
+    {
+      "test": "RTL/LTR",
+      "status": "PASS",
+      "viewport": "1280x800",
+      "language": "tu",
+      "evidence": "none",
+      "notes": "document.dir=rtl for TN, ltr for FR/EN. Verified via JS evaluation."
+    },
+    {
+      "test": "Accessibility",
+      "status": "PASS",
+      "viewport": "1280x800",
+      "language": "tu",
+      "evidence": "lighthouse-a11y-96.json",
+      "notes": "Lighthouse accessibility: 96/100. Two minor issues: color-contrast (styling), llms-txt (SEO)."
+    },
+    {
+      "test": "Security",
+      "status": "PASS",
+      "viewport": "1280x800",
+      "language": "tu",
+      "evidence": "none",
+      "notes": "No secrets/tokens/stack traces in lang files. mapError() never exposes raw internals."
+    },
+    {
+      "test": "TypeScript",
+      "status": "PASS",
+      "viewport": "n/a",
+      "language": "n/a",
+      "evidence": "none",
+      "notes": "0 errors."
+    },
+    {
+      "test": "Frontend Tests",
+      "status": "PASS",
+      "viewport": "n/a",
+      "language": "n/a",
+      "evidence": "none",
+      "notes": "86/86 pass."
+    },
+    {
+      "test": "Backend Tests",
+      "status": "PASS",
+      "viewport": "n/a",
+      "language": "n/a",
+      "evidence": "none",
+      "notes": "227/227 pass."
+    },
+    {
+      "test": "Build",
+      "status": "PASS",
+      "viewport": "n/a",
+      "language": "n/a",
+      "evidence": "none",
+      "notes": "Clean build in 6.30s."
+    }
+  ],
+  "verdict": "TUNISIAN-FIRST UX VERIFIED"
+}

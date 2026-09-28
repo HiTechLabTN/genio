@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { Camera, Mic, Wifi, HardDrive, ShieldCheck, Loader2, CheckCircle2, XCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 import { verifyCapabilities, requestAll, type PermissionSnapshot } from "../lib/permissions";
+import { useLang, t } from "../lib/lang";
 
 interface Props {
   onComplete: (snapshot: PermissionSnapshot) => void;
@@ -9,6 +10,7 @@ interface Props {
 }
 
 export default function PermissionOnboarding({ onComplete, onSkip }: Props) {
+  const [lang] = useLang();
   const [snapshot, setSnapshot] = useState<PermissionSnapshot | null>(null);
   const [loading, setLoading] = useState(true);
   const [requesting, setRequesting] = useState(false);
@@ -49,17 +51,17 @@ export default function PermissionOnboarding({ onComplete, onSkip }: Props) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-void text-slate-200">
         <Loader2 className="h-8 w-8 animate-spin text-neon" />
-        <span className="ml-3 font-mono text-sm">checking device capabilities…</span>
+        <span className="ml-3 font-mono text-sm">{t(lang, "perm.checking")}</span>
       </div>
     );
   }
 
   const items = snapshot
     ? [
-        { icon: Camera, label: "Camera", desc: "Front-camera face tracking (Chachia avatar gaze)", status: snapshot.camera },
-        { icon: Mic, label: "Microphone", desc: "Native voice input (Darija STT)", status: snapshot.microphone },
-        { icon: HardDrive, label: "Storage", desc: "Attachments & READ_MEDIA_*", status: snapshot.storage },
-        { icon: Wifi, label: "Network", desc: "INTERNET & ACCESS_NETWORK_STATE", status: snapshot.network },
+        { icon: Camera, label: t(lang, "perm.camera"), desc: t(lang, "perm.camera_desc"), status: snapshot.camera },
+        { icon: Mic, label: t(lang, "perm.microphone"), desc: t(lang, "perm.microphone_desc"), status: snapshot.microphone },
+        { icon: HardDrive, label: t(lang, "perm.storage"), desc: t(lang, "perm.storage_desc"), status: snapshot.storage },
+        { icon: Wifi, label: t(lang, "perm.network"), desc: t(lang, "perm.network_desc"), status: snapshot.network },
       ]
     : [];
 
@@ -75,8 +77,8 @@ export default function PermissionOnboarding({ onComplete, onSkip }: Props) {
             <ShieldCheck className="h-6 w-6 text-neon" />
           </div>
           <div>
-            <h1 className="font-display text-lg font-bold text-slate-100">Permissions & Hardware</h1>
-            <p className="font-mono text-xs text-slate-400">Genio needs a few capabilities to run natively on Android</p>
+            <h1 className="font-display text-lg font-bold text-slate-100">{t(lang, "perm.title")}</h1>
+            <p className="font-mono text-xs text-slate-400">{t(lang, "perm.subtitle")}</p>
           </div>
         </div>
 
@@ -100,23 +102,23 @@ export default function PermissionOnboarding({ onComplete, onSkip }: Props) {
             className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-neon px-4 py-2.5 text-sm font-bold text-slate-950 hover:bg-neon-soft disabled:opacity-50"
           >
             {requesting ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
-            {snapshot?.allGranted ? "Re-verify" : "Grant all"}
+            {snapshot?.allGranted ? t(lang, "perm.reverify") : t(lang, "perm.grant_all")}
           </button>
           <button
             onClick={handleContinue}
             className="rounded-xl border border-slate-700/50 bg-slate-900/60 px-4 py-2.5 text-sm font-medium text-slate-300 hover:border-neon/30 hover:text-neon"
           >
-            {snapshot?.allGranted ? "Continue" : "Continue anyway"}
+            {snapshot?.allGranted ? t(lang, "perm.continue") : t(lang, "perm.continue_anyway")}
           </button>
         </div>
 
         <p className="mt-4 text-center font-mono text-[10px] text-slate-500">
-          Tauri Android will also enforce manifest permissions: CAMERA, RECORD_AUDIO, INTERNET, ACCESS_NETWORK_STATE, READ_MEDIA_*.
+          {t(lang, "perm.tauri_note")}
         </p>
 
         {onSkip && (
           <button onClick={onSkip} className="mx-auto mt-2 block font-mono text-[11px] text-slate-600 hover:text-slate-400">
-            skip onboarding
+            {t(lang, "perm.skip")}
           </button>
         )}
       </motion.div>

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useLang, t } from "../lib/lang";
 
 type Vitals = {
   cpu_percent: number;
@@ -25,6 +26,7 @@ export default function TelemetryBar({
   status: string;
   connected: boolean;
 }) {
+  const [lang] = useLang();
   const [v, setV] = useState<Vitals | null>(null);
   const [ping, setPing] = useState<number | null>(null);
   const timer = useRef<number | null>(null);
@@ -79,12 +81,12 @@ export default function TelemetryBar({
     sessionAgeMin: 99,
   });
   const badge = !connected
-    ? { dot: "bg-rose-400", txt: "🔴 غير متصل (Offline)" }
+    ? { dot: "bg-rose-400", txt: t(lang, "telemetry.offline") }
     : status === "thinking"
-      ? { dot: "bg-amber-300", txt: "🟡 جينيو يخمّم... (Thinking)" }
+      ? { dot: "bg-amber-300", txt: t(lang, "telemetry.thinking") }
       : status === "executing"
-        ? { dot: "bg-sky-300", txt: "🔵 يجاوب (Streaming)" }
-        : { dot: "bg-emerald-400", txt: "🟢 متصل (Ready)" };
+        ? { dot: "bg-sky-300", txt: t(lang, "telemetry.streaming") }
+        : { dot: "bg-emerald-400", txt: t(lang, "telemetry.ready") };
 
   return (
     <div

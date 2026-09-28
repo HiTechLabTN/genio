@@ -17,6 +17,7 @@ import { nextPose, SPRING_BY_CONTEXT, type PoseTarget } from "../../lib/mascotAn
 import { markPositive, getStats } from "../../lib/mascotMemory";
 import { startVoiceRecording, stopVoiceRecording, setIntermediateTranscript, speechRecognitionSupported } from "../../lib/audio";
 import type { AgentStatus, ChatEvent, Attachment } from "../../lib/types";
+import { useLang, t } from "../../lib/lang";
 
 interface MascotStageProps {
   chat: ChatEvent[];
@@ -97,6 +98,7 @@ function PhysicsDriver({ onPosition, target, gainRef }: { onPosition: (x: number
 }
 
 export default function MascotStage({ chat, agentStatus, sendPrompt, onSwitchToTechnicalMode }: MascotStageProps) {
+  const [lang] = useLang();
   const [pos, setPos] = useState({ x: 0, y: 0 });
   const [pose, setPose] = useState<PoseTarget | null>(null);
   const [listening, setListening] = useState(false);
@@ -339,7 +341,7 @@ export default function MascotStage({ chat, agentStatus, sendPrompt, onSwitchToT
           {listening ? <MicOff className="h-6 w-6 text-red-200" /> : <Mic className="h-6 w-6 text-cyan-200" />}
         </button>
         <span className="text-[11px] uppercase tracking-widest text-cyan-200/50">
-          {listening ? "écoute…" : speaking ? "parle…" : "touchez pour parler"}
+          {listening ? t(lang, "mascot.listening") : speaking ? t(lang, "mascot.speaking") : t(lang, "mascot.tap_to_speak")}
         </span>
       </div>
 
@@ -347,9 +349,9 @@ export default function MascotStage({ chat, agentStatus, sendPrompt, onSwitchToT
       <button
         onClick={onSwitchToTechnicalMode}
         className="absolute right-4 top-4 flex items-center gap-1.5 rounded-full border border-white/10 bg-black/30 px-3 py-1.5 text-[11px] text-white/60 backdrop-blur hover:bg-black/50 hover:text-white/90"
-        title={`${stats.totalGestures} gestes appris pour cet utilisateur`}
+        title={`${stats.totalGestures} ${t(lang, "mascot.gesture_note")}`}
       >
-        <Settings2 className="h-3.5 w-3.5" /> Mode technique
+        <Settings2 className="h-3.5 w-3.5" /> {t(lang, "mascot.technical_mode")}
       </button>
     </div>
   );

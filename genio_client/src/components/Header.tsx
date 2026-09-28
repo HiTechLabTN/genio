@@ -11,6 +11,7 @@ import {
   Zap,
 } from "lucide-react";
 import type { AgentStatus, TelemetrySnapshot } from "../lib/types";
+import { useLang, t, type Lang } from "../lib/lang";
 
 interface Props {
   node: string;
@@ -37,6 +38,7 @@ export default function Header({
   onDisconnect,
   onToggleDrawer,
 }: Props) {
+  const [lang] = useLang();
   const cpu = telemetry?.cpu_percent;
   const ram = telemetry?.ram_used_gb;
   const ramT = telemetry?.ram_total_gb;
@@ -55,7 +57,7 @@ export default function Header({
         <button
           onClick={onToggleDrawer}
           className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-neon/10 hover:text-neon"
-          title="Toggle drawer"
+          title={t(lang, "header.toggle_drawer")}
         >
           <Menu size={20} />
         </button>
@@ -93,13 +95,13 @@ export default function Header({
             accent={isKilled ? "danger" : "ok"}
           />
           {telemetryStale && (
-            <span
-              className="flex items-center gap-1 rounded-full border border-amber-400/40 bg-amber-400/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-amber-300"
-              title="Telemetry paused — backend event loop busy"
-            >
-              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-amber-400" />
-              stale
-            </span>
+          <span
+            className="flex items-center gap-1 rounded-full border border-amber-400/40 bg-amber-400/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-amber-300"
+            title={t(lang, "header.telemetry_paused")}
+          >
+            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-amber-400" />
+            {t(lang, "header.stale")}
+          </span>
           )}
         </div>
 
@@ -117,25 +119,25 @@ export default function Header({
               ? "border-cyan-400 bg-cyan-400/15 text-cyan-300 shadow-[0_0_16px_rgba(0,229,255,0.4)]"
               : "border-slate-700/40 bg-slate-900/40 text-slate-500 hover:border-cyan-400/30 hover:text-cyan-300"
           }`}
-          title="Toggle selfie face tracking"
+          title={t(lang, "header.toggle_selfie")}
         >
           <Camera size={14} className={selfieActive ? "text-cyan-300" : "text-slate-500"} />
-          SELFIE MODE
+          {t(lang, "header.selfie_mode")}
           <span className={`h-2 w-2 rounded-full ${selfieActive ? "bg-cyan-400 shadow-[0_0_8px_rgba(0,229,255,0.8)] animate-pulse" : "bg-slate-600"}`} />
         </button>
-        <AgentStatusBadge status={agentStatus} />
+        <AgentStatusBadge status={agentStatus} lang={lang} />
         {agentStatus.kind === "executing" || agentStatus.kind === "thinking" ? (
           <button
             onClick={onKill}
             className="flex h-9 items-center gap-1.5 rounded-lg border border-danger/40 bg-danger/10 px-3 text-[11px] font-bold uppercase tracking-wider text-rose-300 transition-all hover:bg-danger/20 hover:shadow-[0_0_16px_rgba(244,63,94,0.3)]"
           >
             <Power size={12} />
-            Stop
+            {t(lang, "header.stop")}
           </button>
         ) : null}
         <button
           onClick={onDisconnect}
-          title="Disconnect"
+          title={t(lang, "header.disconnect")}
           className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-danger/10 hover:text-rose-400"
         >
           <LogOut size={18} />
@@ -185,7 +187,7 @@ function MetricChip({
   );
 }
 
-function AgentStatusBadge({ status }: { status: AgentStatus }) {
+function AgentStatusBadge({ status, lang }: { status: AgentStatus; lang: Lang }) {
   if (status.kind === "idle") return null;
   return (
     <motion.span
@@ -201,9 +203,9 @@ function AgentStatusBadge({ status }: { status: AgentStatus }) {
       }`}
     >
       <span className="h-1.5 w-1.5 rounded-full bg-current" />
-      {status.kind === "thinking" && "Thinking…"}
-      {status.kind === "executing" && `Exec: ${status.tool}`}
-      {status.kind === "completed" && "Completed"}
+      {status.kind === "thinking" && t(lang, "header.thinking")}
+      {status.kind === "executing" && `${t(lang, "header.executing")}${status.tool}`}
+      {status.kind === "completed" && t(lang, "header.completed")}
     </motion.span>
   );
 }
