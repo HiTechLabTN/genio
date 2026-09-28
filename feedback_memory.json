@@ -29,861 +29,6 @@
   ],
   "lessons": [
     {
-      "ts": "2026-08-26T09:43:56.290263",
-      "source": "auditor",
-      "codes": [
-        "literal_translation"
-      ],
-      "new_rules": []
-    },
-    {
-      "ts": "2026-08-26T10:08:47.844888",
-      "source": "auditor",
-      "codes": [
-        "high_latin_ratio"
-      ],
-      "new_rules": [
-        "Tout paragraphe de prose doit être en Darija blanche technique - zéro phrase entière en anglais."
-      ]
-    },
-    {
-      "ts": "2026-08-26T10:14:14.940678",
-      "source": "auditor",
-      "codes": [
-        "high_latin_ratio",
-        "missing_callouts"
-      ],
-      "new_rules": []
-    },
-    {
-      "ts": "2026-08-26T10:20:23.179984",
-      "source": "auditor",
-      "codes": [
-        "high_latin_ratio"
-      ],
-      "new_rules": []
-    },
-    {
-      "ts": "2026-08-26T11:57:18.214500",
-      "source": "auditor",
-      "codes": [
-        "missing_svg"
-      ],
-      "new_rules": []
-    },
-    {
-      "ts": "2026-08-26T11:57:18.216624",
-      "source": "auditor",
-      "codes": [
-        "invalid_svg"
-      ],
-      "new_rules": []
-    },
-    {
-      "ts": "2026-08-26T11:57:18.225686",
-      "source": "auditor",
-      "codes": [
-        "low_code_density"
-      ],
-      "new_rules": []
-    },
-    {
-      "ts": "2026-08-26T11:57:18.228133",
-      "source": "auditor",
-      "codes": [
-        "unspecified"
-      ],
-      "new_rules": []
-    },
-    {
-      "ts": "2026-08-26T11:57:18.229503",
-      "source": "auditor",
-      "codes": [
-        "unspecified"
-      ],
-      "new_rules": []
-    },
-    {
-      "ts": "2026-08-26T11:57:18.233922",
-      "source": "auditor",
-      "codes": [
-        "missing_svg"
-      ],
-      "new_rules": []
-    },
-    {
-      "ts": "2026-08-26T11:57:18.241517",
-      "source": "auditor",
-      "codes": [
-        "missing_table"
-      ],
-      "new_rules": []
-    },
-    {
-      "ts": "2026-08-26T11:57:18.242876",
-      "source": "auditor",
-      "codes": [
-        "missing_callouts"
-      ],
-      "new_rules": []
-    },
-    {
-      "ts": "2026-08-26T11:57:18.244208",
-      "source": "auditor",
-      "codes": [
-        "literal_translation"
-      ],
-      "new_rules": []
-    },
-    {
-      "ts": "2026-08-26T13:08:44.342271",
-      "source": "auditor",
-      "codes": [
-        "missing_svg"
-      ],
-      "new_rules": []
-    },
-    {
-      "ts": "2026-08-26T13:08:44.343732",
-      "source": "auditor",
-      "codes": [
-        "invalid_svg"
-      ],
-      "new_rules": []
-    },
-    {
-      "ts": "2026-08-26T13:08:44.346549",
-      "source": "auditor",
-      "codes": [
-        "low_code_density"
-      ],
-      "new_rules": []
-    },
-    {
-      "ts": "2026-08-26T13:08:44.349050",
-      "source": "auditor",
-      "codes": [
-        "unspecified"
-      ],
-      "new_rules": []
-    },
-    {
-      "ts": "2026-08-26T13:08:44.350456",
-      "source": "auditor",
-      "codes": [
-        "unspecified"
-      ],
-      "new_rules": []
-    },
-    {
-      "ts": "2026-08-26T13:08:44.354137",
-      "source": "auditor",
-      "codes": [
-        "missing_svg"
-      ],
-      "new_rules": []
-    },
-    {
-      "ts": "2026-08-26T13:08:44.394249",
-      "source": "auditor",
-      "codes": [
-        "missing_table"
-      ],
-      "new_rules": []
-    },
-    {
-      "ts": "2026-08-26T13:08:44.395749",
-      "source": "auditor",
-      "codes": [
-        "missing_callouts"
-      ],
-      "new_rules": []
-    },
-    {
-      "ts": "2026-08-26T13:08:44.397205",
-      "source": "auditor",
-      "codes": [
-        "literal_translation"
-      ],
-      "new_rules": []
-    },
-    {
-      "ts": "2026-08-26T13:09:05.497751",
-      "source": "auditor",
-      "codes": [
-        "missing_svg"
-      ],
-      "new_rules": []
-    },
-    {
-      "ts": "2026-08-26T13:09:05.499243",
-      "source": "auditor",
-      "codes": [
-        "invalid_svg"
-      ],
-      "new_rules": []
-    },
-    {
-      "ts": "2026-08-26T13:09:05.500812",
-      "source": "auditor",
-      "codes": [
-        "low_code_density"
-      ],
-      "new_rules": []
-    },
-    {
-      "ts": "2026-08-26T13:09:05.503553",
-      "source": "auditor",
-      "codes": [
-        "unspecified"
-      ],
-      "new_rules": []
-    },
-    {
-      "ts": "2026-08-26T13:09:05.505048",
-      "source": "auditor",
-      "codes": [
-        "unspecified"
-      ],
-      "new_rules": []
-    },
-    {
-      "ts": "2026-08-26T13:09:05.508806",
-      "source": "auditor",
-      "codes": [
-        "missing_svg"
-      ],
-      "new_rules": []
-    },
-    {
-      "ts": "2026-08-26T13:09:05.549603",
-      "source": "auditor",
-      "codes": [
-        "missing_table"
-      ],
-      "new_rules": []
-    },
-    {
-      "ts": "2026-08-26T13:09:05.551118",
-      "source": "auditor",
-      "codes": [
-        "missing_callouts"
-      ],
-      "new_rules": []
-    },
-    {
-      "ts": "2026-08-26T13:09:05.552657",
-      "source": "auditor",
-      "codes": [
-        "literal_translation"
-      ],
-      "new_rules": []
-    },
-    {
-      "ts": "2026-08-26T13:09:34.603834",
-      "source": "auditor",
-      "codes": [
-        "missing_svg"
-      ],
-      "new_rules": []
-    },
-    {
-      "ts": "2026-08-26T13:09:34.607105",
-      "source": "auditor",
-      "codes": [
-        "invalid_svg"
-      ],
-      "new_rules": []
-    },
-    {
-      "ts": "2026-08-26T13:09:34.608816",
-      "source": "auditor",
-      "codes": [
-        "low_code_density"
-      ],
-      "new_rules": []
-    },
-    {
-      "ts": "2026-08-26T13:09:34.611612",
-      "source": "auditor",
-      "codes": [
-        "unspecified"
-      ],
-      "new_rules": []
-    },
-    {
-      "ts": "2026-08-26T13:09:34.613404",
-      "source": "auditor",
-      "codes": [
-        "unspecified"
-      ],
-      "new_rules": []
-    },
-    {
-      "ts": "2026-08-26T13:09:34.617370",
-      "source": "auditor",
-      "codes": [
-        "missing_svg"
-      ],
-      "new_rules": []
-    },
-    {
-      "ts": "2026-08-26T13:09:34.625795",
-      "source": "auditor",
-      "codes": [
-        "missing_table"
-      ],
-      "new_rules": []
-    },
-    {
-      "ts": "2026-08-26T13:09:34.628159",
-      "source": "auditor",
-      "codes": [
-        "missing_callouts"
-      ],
-      "new_rules": []
-    },
-    {
-      "ts": "2026-08-26T13:09:34.630632",
-      "source": "auditor",
-      "codes": [
-        "literal_translation"
-      ],
-      "new_rules": []
-    },
-    {
-      "ts": "2026-08-26T13:12:50.203813",
-      "source": "auditor",
-      "codes": [
-        "missing_svg"
-      ],
-      "new_rules": []
-    },
-    {
-      "ts": "2026-08-26T13:12:50.205426",
-      "source": "auditor",
-      "codes": [
-        "invalid_svg"
-      ],
-      "new_rules": []
-    },
-    {
-      "ts": "2026-08-26T13:12:50.206994",
-      "source": "auditor",
-      "codes": [
-        "low_code_density"
-      ],
-      "new_rules": []
-    },
-    {
-      "ts": "2026-08-26T13:12:50.209840",
-      "source": "auditor",
-      "codes": [
-        "unspecified"
-      ],
-      "new_rules": []
-    },
-    {
-      "ts": "2026-08-26T13:12:50.211847",
-      "source": "auditor",
-      "codes": [
-        "unspecified"
-      ],
-      "new_rules": []
-    },
-    {
-      "ts": "2026-08-26T13:12:50.216189",
-      "source": "auditor",
-      "codes": [
-        "missing_svg"
-      ],
-      "new_rules": []
-    },
-    {
-      "ts": "2026-08-26T13:12:50.225078",
-      "source": "auditor",
-      "codes": [
-        "missing_table"
-      ],
-      "new_rules": []
-    },
-    {
-      "ts": "2026-08-26T13:12:50.227035",
-      "source": "auditor",
-      "codes": [
-        "missing_callouts"
-      ],
-      "new_rules": []
-    },
-    {
-      "ts": "2026-08-26T13:12:50.228886",
-      "source": "auditor",
-      "codes": [
-        "literal_translation"
-      ],
-      "new_rules": []
-    },
-    {
-      "ts": "2026-08-27T12:32:57.211450",
-      "source": "auditor",
-      "codes": [
-        "missing_client_config",
-        "missing_routing_fw",
-        "missing_validation",
-        "missing_addressing_plan"
-      ],
-      "new_rules": [
-        "Configurer les DEUX côtés : Peer serveur ET Peer client (clés croisées + AllowedIPs).",
-        "Inclure ip_forward=1 + NAT/Masquerade + filtrage réel (UFW/iptables) dans tout lab réseau.",
-        "Terminer par validation concrète : wg show + ping bidirectionnel + transfert de fichier.",
-        "Plan d'adressage explicite obligatoire (LAN local / tunnel / LAN distant)."
-      ]
-    },
-    {
-      "ts": "2026-08-27T12:33:51.803684",
-      "source": "auditor",
-      "codes": [
-        "missing_svg"
-      ],
-      "new_rules": []
-    },
-    {
-      "ts": "2026-08-27T12:33:51.805387",
-      "source": "auditor",
-      "codes": [
-        "invalid_svg"
-      ],
-      "new_rules": []
-    },
-    {
-      "ts": "2026-08-27T12:33:51.807096",
-      "source": "auditor",
-      "codes": [
-        "low_code_density"
-      ],
-      "new_rules": []
-    },
-    {
-      "ts": "2026-08-27T12:33:51.809799",
-      "source": "auditor",
-      "codes": [
-        "unspecified"
-      ],
-      "new_rules": []
-    },
-    {
-      "ts": "2026-08-27T12:33:51.811447",
-      "source": "auditor",
-      "codes": [
-        "unspecified"
-      ],
-      "new_rules": []
-    },
-    {
-      "ts": "2026-08-27T12:33:51.815045",
-      "source": "auditor",
-      "codes": [
-        "missing_svg",
-        "low_code_density",
-        "missing_table",
-        "missing_callouts"
-      ],
-      "new_rules": []
-    },
-    {
-      "ts": "2026-08-27T12:33:51.816706",
-      "source": "auditor",
-      "codes": [
-        "low_code_density",
-        "missing_table",
-        "missing_callouts"
-      ],
-      "new_rules": []
-    },
-    {
-      "ts": "2026-08-27T12:33:51.818090",
-      "source": "auditor",
-      "codes": [
-        "low_code_density",
-        "missing_table",
-        "missing_callouts"
-      ],
-      "new_rules": []
-    },
-    {
-      "ts": "2026-08-27T12:34:29.411642",
-      "source": "auditor",
-      "codes": [
-        "missing_svg",
-        "low_code_density",
-        "missing_callouts"
-      ],
-      "new_rules": []
-    },
-    {
-      "ts": "2026-08-27T12:34:29.414055",
-      "source": "auditor",
-      "codes": [
-        "low_code_density",
-        "missing_callouts"
-      ],
-      "new_rules": []
-    },
-    {
-      "ts": "2026-08-27T12:34:29.416577",
-      "source": "auditor",
-      "codes": [
-        "low_code_density",
-        "missing_callouts"
-      ],
-      "new_rules": []
-    },
-    {
-      "ts": "2026-08-27T12:35:05.651399",
-      "source": "auditor",
-      "codes": [
-        "missing_svg",
-        "low_code_density",
-        "high_latin_ratio",
-        "missing_callouts"
-      ],
-      "new_rules": []
-    },
-    {
-      "ts": "2026-08-27T12:35:05.653531",
-      "source": "auditor",
-      "codes": [
-        "low_code_density",
-        "high_latin_ratio",
-        "missing_callouts"
-      ],
-      "new_rules": []
-    },
-    {
-      "ts": "2026-08-27T12:35:05.656122",
-      "source": "auditor",
-      "codes": [
-        "low_code_density",
-        "high_latin_ratio",
-        "missing_callouts"
-      ],
-      "new_rules": []
-    },
-    {
-      "ts": "2026-08-27T12:35:32.780984",
-      "source": "auditor",
-      "codes": [
-        "missing_svg",
-        "low_code_density",
-        "high_latin_ratio",
-        "missing_callouts"
-      ],
-      "new_rules": []
-    },
-    {
-      "ts": "2026-08-27T12:35:32.782976",
-      "source": "auditor",
-      "codes": [
-        "low_code_density",
-        "high_latin_ratio",
-        "missing_callouts"
-      ],
-      "new_rules": []
-    },
-    {
-      "ts": "2026-08-27T12:35:32.785436",
-      "source": "auditor",
-      "codes": [
-        "low_code_density",
-        "high_latin_ratio",
-        "missing_callouts"
-      ],
-      "new_rules": []
-    },
-    {
-      "ts": "2026-08-27T12:36:25.641224",
-      "source": "auditor",
-      "codes": [
-        "missing_svg",
-        "low_code_density",
-        "high_latin_ratio",
-        "missing_callouts"
-      ],
-      "new_rules": []
-    },
-    {
-      "ts": "2026-08-27T12:36:25.643290",
-      "source": "auditor",
-      "codes": [
-        "weak_troubleshooting"
-      ],
-      "new_rules": [
-        "Toujours au moins 2 erreurs réelles avec commandes de diagnostic (wg show, tcpdump...)."
-      ]
-    },
-    {
-      "ts": "2026-08-27T12:36:25.645717",
-      "source": "auditor",
-      "codes": [
-        "weak_troubleshooting"
-      ],
-      "new_rules": []
-    },
-    {
-      "ts": "2026-08-27T12:36:41.384019",
-      "source": "auditor",
-      "codes": [
-        "missing_svg",
-        "low_code_density",
-        "high_latin_ratio",
-        "missing_callouts"
-      ],
-      "new_rules": []
-    },
-    {
-      "ts": "2026-08-27T12:36:41.386217",
-      "source": "auditor",
-      "codes": [
-        "weak_troubleshooting"
-      ],
-      "new_rules": []
-    },
-    {
-      "ts": "2026-08-27T12:36:41.388743",
-      "source": "auditor",
-      "codes": [
-        "high_latin_ratio",
-        "missing_callouts"
-      ],
-      "new_rules": []
-    },
-    {
-      "ts": "2026-08-27T12:37:00.603051",
-      "source": "auditor",
-      "codes": [
-        "missing_svg",
-        "low_code_density",
-        "high_latin_ratio",
-        "missing_callouts"
-      ],
-      "new_rules": []
-    },
-    {
-      "ts": "2026-08-27T12:37:00.605119",
-      "source": "auditor",
-      "codes": [
-        "weak_troubleshooting"
-      ],
-      "new_rules": []
-    },
-    {
-      "ts": "2026-08-27T12:37:00.607611",
-      "source": "auditor",
-      "codes": [
-        "high_latin_ratio"
-      ],
-      "new_rules": []
-    },
-    {
-      "ts": "2026-08-27T12:37:08.047911",
-      "source": "auditor",
-      "codes": [
-        "missing_svg",
-        "low_code_density",
-        "high_latin_ratio",
-        "missing_callouts"
-      ],
-      "new_rules": []
-    },
-    {
-      "ts": "2026-08-27T12:37:08.050007",
-      "source": "auditor",
-      "codes": [
-        "weak_troubleshooting"
-      ],
-      "new_rules": []
-    },
-    {
-      "ts": "2026-08-27T12:37:08.052425",
-      "source": "auditor",
-      "codes": [
-        "high_latin_ratio"
-      ],
-      "new_rules": []
-    },
-    {
-      "ts": "2026-08-27T12:40:19.961656",
-      "source": "auditor",
-      "codes": [
-        "missing_svg",
-        "low_code_density",
-        "high_latin_ratio",
-        "missing_callouts"
-      ],
-      "new_rules": []
-    },
-    {
-      "ts": "2026-08-27T12:40:19.963789",
-      "source": "auditor",
-      "codes": [
-        "weak_troubleshooting"
-      ],
-      "new_rules": []
-    },
-    {
-      "ts": "2026-08-27T12:40:19.966169",
-      "source": "auditor",
-      "codes": [
-        "high_latin_ratio"
-      ],
-      "new_rules": []
-    },
-    {
-      "ts": "2026-08-27T12:41:31.335623",
-      "source": "auditor",
-      "codes": [
-        "missing_svg",
-        "low_code_density",
-        "high_latin_ratio",
-        "missing_callouts"
-      ],
-      "new_rules": []
-    },
-    {
-      "ts": "2026-08-27T12:41:44.003555",
-      "source": "auditor",
-      "codes": [
-        "missing_svg"
-      ],
-      "new_rules": []
-    },
-    {
-      "ts": "2026-08-27T12:41:44.005971",
-      "source": "auditor",
-      "codes": [
-        "invalid_svg"
-      ],
-      "new_rules": []
-    },
-    {
-      "ts": "2026-08-27T12:41:44.008484",
-      "source": "auditor",
-      "codes": [
-        "low_code_density"
-      ],
-      "new_rules": []
-    },
-    {
-      "ts": "2026-08-27T12:41:44.012227",
-      "source": "auditor",
-      "codes": [
-        "unspecified"
-      ],
-      "new_rules": []
-    },
-    {
-      "ts": "2026-08-27T12:41:44.014627",
-      "source": "auditor",
-      "codes": [
-        "unspecified"
-      ],
-      "new_rules": []
-    },
-    {
-      "ts": "2026-08-27T12:41:44.019840",
-      "source": "auditor",
-      "codes": [
-        "missing_svg",
-        "low_code_density",
-        "high_latin_ratio",
-        "missing_callouts"
-      ],
-      "new_rules": []
-    },
-    {
-      "ts": "2026-08-27T12:42:14.085714",
-      "source": "auditor",
-      "codes": [
-        "missing_svg"
-      ],
-      "new_rules": []
-    },
-    {
-      "ts": "2026-08-27T12:42:14.087497",
-      "source": "auditor",
-      "codes": [
-        "invalid_svg"
-      ],
-      "new_rules": []
-    },
-    {
-      "ts": "2026-08-27T12:42:14.089270",
-      "source": "auditor",
-      "codes": [
-        "low_code_density"
-      ],
-      "new_rules": []
-    },
-    {
-      "ts": "2026-08-27T12:42:14.092064",
-      "source": "auditor",
-      "codes": [
-        "unspecified"
-      ],
-      "new_rules": []
-    },
-    {
-      "ts": "2026-08-27T12:42:14.093806",
-      "source": "auditor",
-      "codes": [
-        "unspecified"
-      ],
-      "new_rules": []
-    },
-    {
-      "ts": "2026-08-27T12:42:14.097571",
-      "source": "auditor",
-      "codes": [
-        "missing_svg",
-        "low_code_density",
-        "high_latin_ratio",
-        "missing_callouts"
-      ],
-      "new_rules": []
-    },
-    {
-      "ts": "2026-08-27T12:42:14.105512",
-      "source": "auditor",
-      "codes": [
-        "missing_table"
-      ],
-      "new_rules": []
-    },
-    {
-      "ts": "2026-08-27T12:42:14.107316",
-      "source": "auditor",
-      "codes": [
-        "missing_callouts"
-      ],
-      "new_rules": []
-    },
-    {
-      "ts": "2026-08-27T12:42:14.109120",
-      "source": "auditor",
-      "codes": [
-        "literal_translation"
-      ],
-      "new_rules": []
-    },
-    {
-      "ts": "2026-08-27T12:43:58.229938",
-      "source": "auditor",
-      "codes": [
-        "missing_svg"
-      ],
-      "new_rules": []
-    },
-    {
       "ts": "2026-08-27T12:43:58.231980",
       "source": "auditor",
       "codes": [
@@ -1720,10 +865,836 @@
         "literal_translation"
       ],
       "new_rules": []
+    },
+    {
+      "ts": "2026-09-26T00:00:30.616612",
+      "source": "auditor",
+      "codes": [
+        "missing_svg"
+      ],
+      "new_rules": []
+    },
+    {
+      "ts": "2026-09-26T00:00:30.619879",
+      "source": "auditor",
+      "codes": [
+        "invalid_svg"
+      ],
+      "new_rules": []
+    },
+    {
+      "ts": "2026-09-26T00:00:30.622288",
+      "source": "auditor",
+      "codes": [
+        "low_code_density"
+      ],
+      "new_rules": []
+    },
+    {
+      "ts": "2026-09-26T00:00:30.625674",
+      "source": "auditor",
+      "codes": [
+        "unspecified"
+      ],
+      "new_rules": []
+    },
+    {
+      "ts": "2026-09-26T00:00:30.629663",
+      "source": "auditor",
+      "codes": [
+        "unspecified"
+      ],
+      "new_rules": []
+    },
+    {
+      "ts": "2026-09-26T00:00:30.634010",
+      "source": "auditor",
+      "codes": [
+        "missing_svg",
+        "low_code_density",
+        "high_latin_ratio",
+        "missing_callouts"
+      ],
+      "new_rules": []
+    },
+    {
+      "ts": "2026-09-26T00:00:30.643146",
+      "source": "auditor",
+      "codes": [
+        "missing_table"
+      ],
+      "new_rules": []
+    },
+    {
+      "ts": "2026-09-26T00:00:30.645561",
+      "source": "auditor",
+      "codes": [
+        "missing_callouts"
+      ],
+      "new_rules": []
+    },
+    {
+      "ts": "2026-09-26T00:00:30.647877",
+      "source": "auditor",
+      "codes": [
+        "literal_translation"
+      ],
+      "new_rules": []
+    },
+    {
+      "ts": "2026-09-26T00:25:31.692456",
+      "source": "auditor",
+      "codes": [
+        "missing_svg"
+      ],
+      "new_rules": []
+    },
+    {
+      "ts": "2026-09-26T00:25:31.694837",
+      "source": "auditor",
+      "codes": [
+        "invalid_svg"
+      ],
+      "new_rules": []
+    },
+    {
+      "ts": "2026-09-26T00:25:31.697096",
+      "source": "auditor",
+      "codes": [
+        "low_code_density"
+      ],
+      "new_rules": []
+    },
+    {
+      "ts": "2026-09-26T00:25:31.700359",
+      "source": "auditor",
+      "codes": [
+        "unspecified"
+      ],
+      "new_rules": []
+    },
+    {
+      "ts": "2026-09-26T00:25:31.702594",
+      "source": "auditor",
+      "codes": [
+        "unspecified"
+      ],
+      "new_rules": []
+    },
+    {
+      "ts": "2026-09-26T00:25:31.708298",
+      "source": "auditor",
+      "codes": [
+        "missing_svg",
+        "low_code_density",
+        "high_latin_ratio",
+        "missing_callouts"
+      ],
+      "new_rules": []
+    },
+    {
+      "ts": "2026-09-26T00:25:31.717266",
+      "source": "auditor",
+      "codes": [
+        "missing_table"
+      ],
+      "new_rules": []
+    },
+    {
+      "ts": "2026-09-26T00:25:31.719551",
+      "source": "auditor",
+      "codes": [
+        "missing_callouts"
+      ],
+      "new_rules": []
+    },
+    {
+      "ts": "2026-09-26T00:25:31.721728",
+      "source": "auditor",
+      "codes": [
+        "literal_translation"
+      ],
+      "new_rules": []
+    },
+    {
+      "ts": "2026-09-26T00:31:22.465498",
+      "source": "auditor",
+      "codes": [
+        "missing_svg"
+      ],
+      "new_rules": []
+    },
+    {
+      "ts": "2026-09-26T00:31:22.468382",
+      "source": "auditor",
+      "codes": [
+        "invalid_svg"
+      ],
+      "new_rules": []
+    },
+    {
+      "ts": "2026-09-26T00:31:22.472620",
+      "source": "auditor",
+      "codes": [
+        "low_code_density"
+      ],
+      "new_rules": []
+    },
+    {
+      "ts": "2026-09-26T00:31:22.479905",
+      "source": "auditor",
+      "codes": [
+        "unspecified"
+      ],
+      "new_rules": []
+    },
+    {
+      "ts": "2026-09-26T00:31:22.484092",
+      "source": "auditor",
+      "codes": [
+        "unspecified"
+      ],
+      "new_rules": []
+    },
+    {
+      "ts": "2026-09-26T00:31:22.490586",
+      "source": "auditor",
+      "codes": [
+        "missing_svg",
+        "low_code_density",
+        "high_latin_ratio",
+        "missing_callouts"
+      ],
+      "new_rules": []
+    },
+    {
+      "ts": "2026-09-26T00:31:22.501901",
+      "source": "auditor",
+      "codes": [
+        "missing_table"
+      ],
+      "new_rules": []
+    },
+    {
+      "ts": "2026-09-26T00:31:22.504304",
+      "source": "auditor",
+      "codes": [
+        "missing_callouts"
+      ],
+      "new_rules": []
+    },
+    {
+      "ts": "2026-09-26T00:31:22.506616",
+      "source": "auditor",
+      "codes": [
+        "literal_translation"
+      ],
+      "new_rules": []
+    },
+    {
+      "ts": "2026-09-26T00:41:47.661351",
+      "source": "auditor",
+      "codes": [
+        "missing_svg"
+      ],
+      "new_rules": []
+    },
+    {
+      "ts": "2026-09-26T00:41:47.663853",
+      "source": "auditor",
+      "codes": [
+        "invalid_svg"
+      ],
+      "new_rules": []
+    },
+    {
+      "ts": "2026-09-26T00:41:47.666138",
+      "source": "auditor",
+      "codes": [
+        "low_code_density"
+      ],
+      "new_rules": []
+    },
+    {
+      "ts": "2026-09-26T00:41:47.669391",
+      "source": "auditor",
+      "codes": [
+        "unspecified"
+      ],
+      "new_rules": []
+    },
+    {
+      "ts": "2026-09-26T00:41:47.671600",
+      "source": "auditor",
+      "codes": [
+        "unspecified"
+      ],
+      "new_rules": []
+    },
+    {
+      "ts": "2026-09-26T00:41:47.675696",
+      "source": "auditor",
+      "codes": [
+        "missing_svg",
+        "low_code_density",
+        "high_latin_ratio",
+        "missing_callouts"
+      ],
+      "new_rules": []
+    },
+    {
+      "ts": "2026-09-26T00:41:47.686000",
+      "source": "auditor",
+      "codes": [
+        "missing_table"
+      ],
+      "new_rules": []
+    },
+    {
+      "ts": "2026-09-26T00:41:47.688291",
+      "source": "auditor",
+      "codes": [
+        "missing_callouts"
+      ],
+      "new_rules": []
+    },
+    {
+      "ts": "2026-09-26T00:41:47.690524",
+      "source": "auditor",
+      "codes": [
+        "literal_translation"
+      ],
+      "new_rules": []
+    },
+    {
+      "ts": "2026-09-26T00:45:16.369196",
+      "source": "auditor",
+      "codes": [
+        "missing_svg"
+      ],
+      "new_rules": []
+    },
+    {
+      "ts": "2026-09-26T00:45:16.371612",
+      "source": "auditor",
+      "codes": [
+        "invalid_svg"
+      ],
+      "new_rules": []
+    },
+    {
+      "ts": "2026-09-26T00:45:16.373965",
+      "source": "auditor",
+      "codes": [
+        "low_code_density"
+      ],
+      "new_rules": []
+    },
+    {
+      "ts": "2026-09-26T00:45:16.377380",
+      "source": "auditor",
+      "codes": [
+        "unspecified"
+      ],
+      "new_rules": []
+    },
+    {
+      "ts": "2026-09-26T00:45:16.379590",
+      "source": "auditor",
+      "codes": [
+        "unspecified"
+      ],
+      "new_rules": []
+    },
+    {
+      "ts": "2026-09-26T00:45:16.385246",
+      "source": "auditor",
+      "codes": [
+        "missing_svg",
+        "low_code_density",
+        "high_latin_ratio",
+        "missing_callouts"
+      ],
+      "new_rules": []
+    },
+    {
+      "ts": "2026-09-26T00:45:16.394616",
+      "source": "auditor",
+      "codes": [
+        "missing_table"
+      ],
+      "new_rules": []
+    },
+    {
+      "ts": "2026-09-26T00:45:16.396976",
+      "source": "auditor",
+      "codes": [
+        "missing_callouts"
+      ],
+      "new_rules": []
+    },
+    {
+      "ts": "2026-09-26T00:45:16.399212",
+      "source": "auditor",
+      "codes": [
+        "literal_translation"
+      ],
+      "new_rules": []
+    },
+    {
+      "ts": "2026-09-26T00:52:48.795799",
+      "source": "auditor",
+      "codes": [
+        "missing_svg"
+      ],
+      "new_rules": []
+    },
+    {
+      "ts": "2026-09-26T00:52:48.798316",
+      "source": "auditor",
+      "codes": [
+        "invalid_svg"
+      ],
+      "new_rules": []
+    },
+    {
+      "ts": "2026-09-26T00:52:48.800764",
+      "source": "auditor",
+      "codes": [
+        "low_code_density"
+      ],
+      "new_rules": []
+    },
+    {
+      "ts": "2026-09-26T00:52:48.804228",
+      "source": "auditor",
+      "codes": [
+        "unspecified"
+      ],
+      "new_rules": []
+    },
+    {
+      "ts": "2026-09-26T00:52:48.806759",
+      "source": "auditor",
+      "codes": [
+        "unspecified"
+      ],
+      "new_rules": []
+    },
+    {
+      "ts": "2026-09-26T00:52:48.811030",
+      "source": "auditor",
+      "codes": [
+        "missing_svg",
+        "low_code_density",
+        "high_latin_ratio",
+        "missing_callouts"
+      ],
+      "new_rules": []
+    },
+    {
+      "ts": "2026-09-26T00:52:48.821268",
+      "source": "auditor",
+      "codes": [
+        "missing_table"
+      ],
+      "new_rules": []
+    },
+    {
+      "ts": "2026-09-26T00:52:48.823780",
+      "source": "auditor",
+      "codes": [
+        "missing_callouts"
+      ],
+      "new_rules": []
+    },
+    {
+      "ts": "2026-09-26T00:52:48.826162",
+      "source": "auditor",
+      "codes": [
+        "literal_translation"
+      ],
+      "new_rules": []
+    },
+    {
+      "ts": "2026-09-26T01:00:37.064496",
+      "source": "auditor",
+      "codes": [
+        "missing_svg"
+      ],
+      "new_rules": []
+    },
+    {
+      "ts": "2026-09-26T01:00:37.066806",
+      "source": "auditor",
+      "codes": [
+        "invalid_svg"
+      ],
+      "new_rules": []
+    },
+    {
+      "ts": "2026-09-26T01:00:37.069087",
+      "source": "auditor",
+      "codes": [
+        "low_code_density"
+      ],
+      "new_rules": []
+    },
+    {
+      "ts": "2026-09-26T01:00:37.072492",
+      "source": "auditor",
+      "codes": [
+        "unspecified"
+      ],
+      "new_rules": []
+    },
+    {
+      "ts": "2026-09-26T01:00:37.074895",
+      "source": "auditor",
+      "codes": [
+        "unspecified"
+      ],
+      "new_rules": []
+    },
+    {
+      "ts": "2026-09-26T01:00:37.079163",
+      "source": "auditor",
+      "codes": [
+        "missing_svg",
+        "low_code_density",
+        "high_latin_ratio",
+        "missing_callouts"
+      ],
+      "new_rules": []
+    },
+    {
+      "ts": "2026-09-26T01:00:37.088925",
+      "source": "auditor",
+      "codes": [
+        "missing_table"
+      ],
+      "new_rules": []
+    },
+    {
+      "ts": "2026-09-26T01:00:37.091268",
+      "source": "auditor",
+      "codes": [
+        "missing_callouts"
+      ],
+      "new_rules": []
+    },
+    {
+      "ts": "2026-09-26T01:00:37.093599",
+      "source": "auditor",
+      "codes": [
+        "literal_translation"
+      ],
+      "new_rules": []
+    },
+    {
+      "ts": "2026-09-26T01:33:29.625958",
+      "source": "auditor",
+      "codes": [
+        "missing_svg"
+      ],
+      "new_rules": []
+    },
+    {
+      "ts": "2026-09-26T01:33:29.630675",
+      "source": "auditor",
+      "codes": [
+        "invalid_svg"
+      ],
+      "new_rules": []
+    },
+    {
+      "ts": "2026-09-26T01:33:29.632977",
+      "source": "auditor",
+      "codes": [
+        "low_code_density"
+      ],
+      "new_rules": []
+    },
+    {
+      "ts": "2026-09-26T01:33:29.636320",
+      "source": "auditor",
+      "codes": [
+        "unspecified"
+      ],
+      "new_rules": []
+    },
+    {
+      "ts": "2026-09-26T01:33:29.638665",
+      "source": "auditor",
+      "codes": [
+        "unspecified"
+      ],
+      "new_rules": []
+    },
+    {
+      "ts": "2026-09-26T01:33:29.642861",
+      "source": "auditor",
+      "codes": [
+        "missing_svg",
+        "low_code_density",
+        "high_latin_ratio",
+        "missing_callouts"
+      ],
+      "new_rules": []
+    },
+    {
+      "ts": "2026-09-26T01:33:29.652308",
+      "source": "auditor",
+      "codes": [
+        "missing_table"
+      ],
+      "new_rules": []
+    },
+    {
+      "ts": "2026-09-26T01:33:29.654709",
+      "source": "auditor",
+      "codes": [
+        "missing_callouts"
+      ],
+      "new_rules": []
+    },
+    {
+      "ts": "2026-09-26T01:33:29.656918",
+      "source": "auditor",
+      "codes": [
+        "literal_translation"
+      ],
+      "new_rules": []
+    },
+    {
+      "ts": "2026-09-26T01:56:42.550338",
+      "source": "auditor",
+      "codes": [
+        "missing_svg"
+      ],
+      "new_rules": []
+    },
+    {
+      "ts": "2026-09-26T01:56:42.575372",
+      "source": "auditor",
+      "codes": [
+        "invalid_svg"
+      ],
+      "new_rules": []
+    },
+    {
+      "ts": "2026-09-26T01:56:42.582752",
+      "source": "auditor",
+      "codes": [
+        "low_code_density"
+      ],
+      "new_rules": []
+    },
+    {
+      "ts": "2026-09-26T01:56:42.592995",
+      "source": "auditor",
+      "codes": [
+        "unspecified"
+      ],
+      "new_rules": []
+    },
+    {
+      "ts": "2026-09-26T01:56:42.599496",
+      "source": "auditor",
+      "codes": [
+        "unspecified"
+      ],
+      "new_rules": []
+    },
+    {
+      "ts": "2026-09-26T01:56:42.614646",
+      "source": "auditor",
+      "codes": [
+        "missing_svg",
+        "low_code_density",
+        "high_latin_ratio",
+        "missing_callouts"
+      ],
+      "new_rules": []
+    },
+    {
+      "ts": "2026-09-26T01:56:42.763111",
+      "source": "auditor",
+      "codes": [
+        "missing_table"
+      ],
+      "new_rules": []
+    },
+    {
+      "ts": "2026-09-26T01:56:42.797557",
+      "source": "auditor",
+      "codes": [
+        "missing_callouts"
+      ],
+      "new_rules": []
+    },
+    {
+      "ts": "2026-09-26T01:56:42.813936",
+      "source": "auditor",
+      "codes": [
+        "literal_translation"
+      ],
+      "new_rules": []
+    },
+    {
+      "ts": "2026-09-26T10:20:34.810818",
+      "source": "auditor",
+      "codes": [
+        "missing_svg"
+      ],
+      "new_rules": []
+    },
+    {
+      "ts": "2026-09-26T10:20:34.813716",
+      "source": "auditor",
+      "codes": [
+        "invalid_svg"
+      ],
+      "new_rules": []
+    },
+    {
+      "ts": "2026-09-26T10:20:34.815975",
+      "source": "auditor",
+      "codes": [
+        "low_code_density"
+      ],
+      "new_rules": []
+    },
+    {
+      "ts": "2026-09-26T10:20:34.819271",
+      "source": "auditor",
+      "codes": [
+        "unspecified"
+      ],
+      "new_rules": []
+    },
+    {
+      "ts": "2026-09-26T10:20:34.821519",
+      "source": "auditor",
+      "codes": [
+        "unspecified"
+      ],
+      "new_rules": []
+    },
+    {
+      "ts": "2026-09-26T10:20:34.827108",
+      "source": "auditor",
+      "codes": [
+        "missing_svg",
+        "low_code_density",
+        "high_latin_ratio",
+        "missing_callouts"
+      ],
+      "new_rules": []
+    },
+    {
+      "ts": "2026-09-26T10:20:34.836440",
+      "source": "auditor",
+      "codes": [
+        "missing_table"
+      ],
+      "new_rules": []
+    },
+    {
+      "ts": "2026-09-26T10:20:34.838700",
+      "source": "auditor",
+      "codes": [
+        "missing_callouts"
+      ],
+      "new_rules": []
+    },
+    {
+      "ts": "2026-09-26T10:20:34.840872",
+      "source": "auditor",
+      "codes": [
+        "literal_translation"
+      ],
+      "new_rules": []
+    },
+    {
+      "ts": "2026-09-26T11:33:02.829666",
+      "source": "auditor",
+      "codes": [
+        "missing_svg",
+        "low_code_density",
+        "high_latin_ratio",
+        "missing_callouts"
+      ],
+      "new_rules": []
+    },
+    {
+      "ts": "2026-09-26T11:33:02.834570",
+      "source": "auditor",
+      "codes": [
+        "missing_svg"
+      ],
+      "new_rules": []
+    },
+    {
+      "ts": "2026-09-26T11:33:02.836759",
+      "source": "auditor",
+      "codes": [
+        "invalid_svg"
+      ],
+      "new_rules": []
+    },
+    {
+      "ts": "2026-09-26T11:33:02.839034",
+      "source": "auditor",
+      "codes": [
+        "low_code_density"
+      ],
+      "new_rules": []
+    },
+    {
+      "ts": "2026-09-26T11:33:02.842327",
+      "source": "auditor",
+      "codes": [
+        "unspecified"
+      ],
+      "new_rules": []
+    },
+    {
+      "ts": "2026-09-26T11:33:02.844584",
+      "source": "auditor",
+      "codes": [
+        "unspecified"
+      ],
+      "new_rules": []
+    },
+    {
+      "ts": "2026-09-26T11:33:02.846869",
+      "source": "auditor",
+      "codes": [
+        "missing_table"
+      ],
+      "new_rules": []
+    },
+    {
+      "ts": "2026-09-26T11:33:02.849048",
+      "source": "auditor",
+      "codes": [
+        "missing_callouts"
+      ],
+      "new_rules": []
+    },
+    {
+      "ts": "2026-09-26T11:33:02.851293",
+      "source": "auditor",
+      "codes": [
+        "literal_translation"
+      ],
+      "new_rules": []
     }
   ],
   "stats": {
     "runs": 4,
-    "rejections": 217
-  }
+    "rejections": 316
+  },
+  "session_context": []
 }

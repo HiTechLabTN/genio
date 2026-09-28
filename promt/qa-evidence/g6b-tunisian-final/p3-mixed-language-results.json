@@ -1,0 +1,98 @@
+[
+  {
+    "input": "شنوّة تنجم تعمللي؟",
+    "tag": "TN-semantic",
+    "lang": "Mixed",
+    "response": "عسلامة! أنا جينيو، المهندس متاع الذكاء الاصطناعي في هايتيك لاب...",
+    "pass": true,
+    "elapsed_s": 66.2
+  },
+  {
+    "input": "كيفاش نركّبك؟",
+    "tag": "TN-install",
+    "lang": "TIMEOUT",
+    "response": "",
+    "pass": false,
+    "elapsed_s": 120.0
+  },
+  {
+    "input": "نحب نعمل application",
+    "tag": "TN-code",
+    "lang": "TIMEOUT",
+    "response": "",
+    "pass": false,
+    "elapsed_s": 120.0
+  },
+  {
+    "input": "عندي problème في الكود",
+    "tag": "TN-debug",
+    "lang": "TN/AR",
+    "response": "عسلامة! أنا جينيو، المهندس متاعك في هايتيك لاب. باش نجم نعاونك ونصلحلك الكود...",
+    "pass": true,
+    "elapsed_s": 44.0
+  },
+  {
+    "input": "شوفلي الملف هذا",
+    "tag": "TN-file",
+    "lang": "TIMEOUT",
+    "response": "",
+    "pass": false,
+    "elapsed_s": 152.0
+  },
+  {
+    "input": "فسرلي هذا بطريقة بسيطة",
+    "tag": "TN-explain",
+    "lang": "TN/AR",
+    "response": "عسلامة! أنا جينيو... قولي بربي شنوّة الحاجة اللي تحبني نفسرها لك؟",
+    "pass": true,
+    "elapsed_s": 112.1
+  },
+  {
+    "input": "احكيلي بالتونسي",
+    "tag": "TN-identity",
+    "lang": "TN/AR",
+    "response": "عسلامة! أنا جينيو... نجم نعاونك فيه اليوم؟",
+    "pass": true,
+    "elapsed_s": 48.5
+  },
+  {
+    "input": "عندي problème في الlogin متاع الsite",
+    "tag": "Mixed-1",
+    "lang": "TN/AR",
+    "response": "عطيني رابط الموقع... باش نجم نثبت ونصلحلك المشكل.",
+    "pass": true,
+    "elapsed_s": 104.4
+  },
+  {
+    "input": "نحبك تعمللي application صغيرة بالReact",
+    "tag": "Mixed-2",
+    "lang": "TIMEOUT",
+    "response": "",
+    "pass": false,
+    "elapsed_s": 163.0
+  },
+  {
+    "input": "شنوة معناها هذا error؟",
+    "tag": "Mixed-3",
+    "lang": "Mixed",
+    "response": "باش نجم نعاونك ونفهمك شنوّة معاني هذا الerror...",
+    "pass": true,
+    "elapsed_s": 24.8
+  },
+  {
+    "input": "صلّحلي الbug هذا",
+    "tag": "Mixed-4",
+    "lang": "Mixed",
+    "response": "باش نجم نعاونك ونصلّح الbug...",
+    "pass": true,
+    "elapsed_s": 22.0
+  },
+  {
+    "input": "اعمللي résumé للdocument هذا",
+    "tag": "Mixed-5",
+    "lang": "Mixed",
+    "response": "أنا جينيو... باش نجم نعملك ملخص للdocument...",
+    "pass": true,
+    "elapsed_s": 100.7
+  }
+]
