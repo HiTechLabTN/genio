@@ -6,6 +6,7 @@ import { resolveEngine } from "../presence/engine";
 import { buildTaskModel, sanitizeToolText } from "./taskModel";
 import { loadPrefs, savePrefs, type Density } from "../presence/preferences";
 import type { GenioPresenceState } from "../presence/types";
+import { t, useLang, type Lang } from "../lib/lang";
 
 /** Minimal chat-event view (real fields only; timestamps optional). */
 export interface ChatLike {
@@ -44,25 +45,25 @@ export interface UnifiedProps {
   onSend?: (text: string) => void;
 }
 
-const LEVEL1: Record<string, string> = {
-  idle: "Genio is ready",
-  greeting: "Genio is ready",
-  listening: "Genio is listening",
-  understanding: "Genio is understanding your request",
-  thinking: "Genio is thinking",
-  planning: "Genio is planning your request",
-  explaining: "Genio is answering",
-  executing: "Genio is working on your task",
-  waiting: "Genio is waiting for the service",
-  asking_user: "Genio needs your input",
-  success: "Task completed",
-  warning: "Attention needed",
-  error: "Something went wrong",
-  recovering: "Genio is recovering",
-  celebrating: "Task completed",
-  sleeping: "Genio is idle",
-  disconnected: "Connection lost",
-  attention: "Genio needs your attention",
+const LEVEL1_KEY: Record<string, string> = {
+  idle: "shell.ready",
+  greeting: "shell.greeting",
+  listening: "shell.listening",
+  understanding: "shell.understanding",
+  thinking: "shell.thinking",
+  planning: "shell.planning",
+  explaining: "shell.explaining",
+  executing: "shell.executing",
+  waiting: "shell.waiting",
+  asking_user: "shell.asking",
+  success: "shell.success",
+  warning: "shell.warning",
+  error: "shell.error",
+  recovering: "shell.recovering",
+  celebrating: "shell.celebrating",
+  sleeping: "shell.sleeping",
+  disconnected: "shell.disconnected",
+  attention: "shell.attention",
 };
 
 function fmtTime(ts?: number): string {
@@ -83,12 +84,12 @@ function Metric({ label, value }: { label: string; value: string }) {
   );
 }
 
-export function ResourcePanel({ telemetry, compact }: { telemetry: TelemetryLike | null; compact?: boolean }) {
+export function ResourcePanel({ telemetry, compact, lang }: { telemetry: TelemetryLike | null; compact?: boolean; lang: Lang }) {
   const v = (x: number | undefined, unit: string) =>
-    x === undefined || x === null || Number.isNaN(x) ? "Unavailable" : `${x}${unit}`;
+    x === undefined || x === null || Number.isNaN(x) ? t(lang, "shell.unavailable") : `${x}${unit}`;
   return (
-    <section aria-label="Resources" className="rounded-[var(--g5-radius-m)] border border-[var(--g5-border)] bg-[var(--g5-carbon)] p-3 text-xs">
-      <h3 className="font-bold text-white">Resources</h3>
+    <section aria-label={t(lang, "shell.resources")} className="rounded-[var(--g5-radius-m)] border border-[var(--g5-border)] bg-[var(--g5-carbon)] p-3 text-xs">
+      <h3 className="font-bold text-white">{t(lang, "shell.resources")}</h3>
       <div className="mt-1">
         <Metric label="CPU" value={v(telemetry?.cpu_percent, "%")} />
         <Metric label="RAM" value={v(telemetry?.ram_percent, "%")} />
@@ -106,9 +107,9 @@ export function ResourcePanel({ telemetry, compact }: { telemetry: TelemetryLike
   );
 }
 
-export function TaskPanel({ chat, taskActive, currentTool, onCancelTask, runElapsedMs }: {
+export function TaskPanel({ chat, taskActive, currentTool, onCancelTask, runElapsedMs, lang }: {
   chat: ChatLike[]; taskActive: boolean; currentTool?: string;
-  onCancelTask?: () => void; runElapsedMs: number | null;
+  onCancelTask?: () => void; runElapsedMs: number | null; lang: Lang;
 }) {
   const steps = useMemo(() => chat.filter((e) => e.type === "thought" || e.type === "tool_call" || e.type === "tool_result"), [chat]);
   const lastTool: string | null = useMemo(() => {
@@ -118,16 +119,16 @@ export function TaskPanel({ chat, taskActive, currentTool, onCancelTask, runElap
     return currentTool ?? null;
   }, [chat, currentTool]);
   return (
-    <section aria-label="Current task" className="rounded-[var(--g5-radius-m)] border border-[var(--g5-border)] bg-[var(--g5-carbon)] p-3 text-xs">
+    <section aria-label={t(lang, "shell.current_task")} className="rounded-[var(--g5-radius-m)] border border-[var(--g5-border)] bg-[var(--g5-carbon)] p-3 text-xs">
       <div className="flex items-center justify-between">
-        <h3 className="font-bold text-white">Current task</h3>
+        <h3 className="font-bold text-white">{t(lang, "shell.current_task")}</h3>
         {taskActive && onCancelTask && (
           <button type="button" onClick={onCancelTask} className="g5-focusable rounded-full border border-rose-400/40 px-2.5 py-1 text-[11px] text-rose-300 hover:bg-rose-400/10">
-            Cancel
+            {t(lang, "shell.cancel")}
           </button>
         )}
       </div>
-      {!taskActive && steps.length === 0 && <p className="mt-1 text-white/50">No active task. Send a message to start.</p>}
+      {!taskActive && steps.length === 0 && <p className="mt-1 text-white/50">{t(lang, "shell.no_task")}</p>}
       <ul className="mt-1 space-y-1">
         {steps.slice(-6).map((s, i) => (
           <li key={i} className="text-white/75">
@@ -137,8 +138,8 @@ export function TaskPanel({ chat, taskActive, currentTool, onCancelTask, runElap
       </ul>
       {(taskActive || lastTool) && (
         <div className="mt-2 border-t border-[var(--g5-border)] pt-2 text-white/60">
-          {lastTool && <p>Tool: <span className="font-mono text-white/85">{lastTool.slice(0, 80)}</span></p>}
-          {runElapsedMs !== null && <p>Elapsed (client-observed): <span className="font-mono">{(runElapsedMs / 1000).toFixed(1)}s</span></p>}
+          {lastTool && <p>{t(lang, "task.tool")}: <span className="font-mono text-white/85">{lastTool.slice(0, 80)}</span></p>}
+          {runElapsedMs !== null && <p>{t(lang, "task.elapsed")}: <span className="font-mono">{(runElapsedMs / 1000).toFixed(1)}s</span></p>}
         </div>
       )}
     </section>
@@ -146,12 +147,12 @@ export function TaskPanel({ chat, taskActive, currentTool, onCancelTask, runElap
 }
 
 /** Tool activity — real tool_call/result events only, sanitized. */
-export function ToolActivity({ chat }: { chat: ChatLike[] }) {
+export function ToolActivity({ chat, lang }: { chat: ChatLike[]; lang: Lang }) {
   const items = chat.filter((e) => e.type === "tool_call" || e.type === "tool_result").slice(-5);
   if (items.length === 0) return null;
   return (
-    <section aria-label="Tool activity" className="rounded-[var(--g5-radius-m)] border border-[var(--g5-border)] bg-[var(--g5-carbon)] p-3 text-xs">
-      <h3 className="font-bold text-white">Tool activity</h3>
+    <section aria-label={t(lang, "tool.activity")} className="rounded-[var(--g5-radius-m)] border border-[var(--g5-border)] bg-[var(--g5-carbon)] p-3 text-xs">
+      <h3 className="font-bold text-white">{t(lang, "tool.activity")}</h3>
       <ul className="mt-1 space-y-1">
         {items.map((e, i) => (
           <li key={i} className="text-white/75">
@@ -165,13 +166,13 @@ export function ToolActivity({ chat }: { chat: ChatLike[] }) {
 }
 
 /** Evidence — only backend-provided artifacts; otherwise honest empty. */
-export function EvidencePanel({ chat }: { chat: ChatLike[] }) {
+export function EvidencePanel({ chat, lang }: { chat: ChatLike[]; lang: Lang }) {
   const items = chat.filter((e) => (e as { artifact?: string }).artifact);
   return (
-    <section aria-label="Evidence" className="rounded-[var(--g5-radius-m)] border border-[var(--g5-border)] bg-[var(--g5-carbon)] p-3 text-xs">
-      <h3 className="font-bold text-white">Evidence</h3>
+    <section aria-label={t(lang, "evidence")} className="rounded-[var(--g5-radius-m)] border border-[var(--g5-border)] bg-[var(--g5-carbon)] p-3 text-xs">
+      <h3 className="font-bold text-white">{t(lang, "evidence")}</h3>
       {items.length === 0 ? (
-        <p className="mt-1 text-white/50">Evidence unavailable</p>
+        <p className="mt-1 text-white/50">{t(lang, "tool.evidence_unavailable")}</p>
       ) : (
         <ul className="mt-1 space-y-1">
           {items.map((e, i) => (
@@ -185,10 +186,10 @@ export function EvidencePanel({ chat }: { chat: ChatLike[] }) {
   );
 }
 
-export function EventStream({ chat }: { chat: ChatLike[] }) {  return (
-    <section aria-label="Event stream" className="rounded-[var(--g5-radius-m)] border border-[var(--g5-border)] bg-black/40 p-3 font-mono text-[11px]">
-      <h3 className="font-bold text-white">Events</h3>
-      {chat.length === 0 && <p className="mt-1 text-white/40">No events yet.</p>}
+export function EventStream({ chat, lang }: { chat: ChatLike[]; lang: Lang }) {  return (
+    <section aria-label={t(lang, "shell.events")} className="rounded-[var(--g5-radius-m)] border border-[var(--g5-border)] bg-black/40 p-3 font-mono text-[11px]">
+      <h3 className="font-bold text-white">{t(lang, "shell.events")}</h3>
+      {chat.length === 0 && <p className="mt-1 text-white/40">{t(lang, "events.empty")}</p>}
       <ol className="mt-1 max-h-56 space-y-1 overflow-y-auto">
         {chat.map((e, i) => (
           <li key={i} className="text-white/70">
@@ -202,11 +203,16 @@ export function EventStream({ chat }: { chat: ChatLike[] }) {  return (
   );
 }
 
-export function DensitySettings({ density, onChange }: { density: Density; onChange: (d: Density) => void }) {
+export function DensitySettings({ density, onChange, lang }: { density: Density; onChange: (d: Density) => void; lang: Lang }) {
+  const names: Record<Density, string> = {
+    simple: t(lang, "density.simple"),
+    detailed: t(lang, "density.detailed"),
+    advanced: t(lang, "density.advanced"),
+  };
   return (
     <fieldset>
-      <legend className="text-xs font-bold text-white">Information density</legend>
-      <div className="mt-1 flex gap-2" role="radiogroup" aria-label="Information density">
+      <legend className="text-xs font-bold text-white">{t(lang, "settings.density")}</legend>
+      <div className="mt-1 flex gap-2" role="radiogroup" aria-label={t(lang, "settings.density")}>
         {(["simple", "detailed", "advanced"] as Density[]).map((d) => (
           <label key={d} className="flex items-center gap-1 text-xs text-white/75">
             <input
@@ -216,7 +222,7 @@ export function DensitySettings({ density, onChange }: { density: Density; onCha
               onChange={() => onChange(d)}
               className="accent-cyan-400"
             />
-            {d[0].toUpperCase() + d.slice(1)}
+            {names[d]}
           </label>
         ))}
       </div>
@@ -224,24 +230,24 @@ export function DensitySettings({ density, onChange }: { density: Density; onCha
   );
 }
 
-export function AmbientSettings({ ambient, reduced, onAmbient, onReduced }: {
+export function AmbientSettings({ ambient, reduced, onAmbient, onReduced, lang }: {
   ambient: boolean; reduced: boolean;
-  onAmbient: (v: boolean) => void; onReduced: (v: boolean) => void;
+  onAmbient: (v: boolean) => void; onReduced: (v: boolean) => void; lang: Lang;
 }) {
   return (
     <fieldset>
-      <legend className="text-xs font-bold text-white">Ambient effects</legend>
+      <legend className="text-xs font-bold text-white">{t(lang, "settings.ambient")}</legend>
       <div className="mt-1 flex gap-4 text-xs text-white/75">
         <label className="flex items-center gap-1">
           <input type="checkbox" checked={ambient} onChange={(e) => onAmbient(e.target.checked)} className="accent-cyan-400" />
-          Glow/particles
+          {t(lang, "ambient.glow")}
         </label>
         <label className="flex items-center gap-1">
           <input type="checkbox" checked={reduced} onChange={(e) => onReduced(e.target.checked)} className="accent-cyan-400" />
-          Reduced motion
+          {t(lang, "ambient.reduced")}
         </label>
       </div>
-      <p className="mt-1 text-[11px] text-white/40">Security alerts, task state and errors are never disabled by these settings.</p>
+      <p className="mt-1 text-[11px] text-white/40">{t(lang, "ambient.note")}</p>
     </fieldset>
   );
 }
@@ -252,6 +258,7 @@ export default function UnifiedShell(props: UnifiedProps) {
   const [now, setNow] = useState(Date.now());
   const mountRef = useRef(Date.now());
   const wasActive = useRef(false);
+  const [lang] = useLang();
 
   const save = (p: typeof prefs) => { setPrefs(p); savePrefs(p); };
   const osReduced = typeof window !== "undefined" && !!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
@@ -319,29 +326,29 @@ export default function UnifiedShell(props: UnifiedProps) {
           </div>
           <div className="min-w-0 flex-1">
             <p role="status" aria-live="polite" className="text-base font-bold text-white sm:text-lg">
-              {LEVEL1[presence.semanticState] ?? "Genio"}
+              {t(lang, LEVEL1_KEY[presence.semanticState] ?? "shell.ready")}
             </p>
             {/* Level 2 — what now */}
             {(lastThought?.text || props.currentTool) && (
               <p className="mt-0.5 truncate text-xs text-white/60">
-                {props.currentTool ? `Tool: ${props.currentTool.slice(0, 60)}` : (lastThought?.text ?? "").slice(0, 90)}
+                {props.currentTool ? `${t(lang, "task.tool")}: ${props.currentTool.slice(0, 60)}` : (lastThought?.text ?? "").slice(0, 90)}
               </p>
             )}
           </div>
         </div>
         {offline && (
           <p role="alert" className="mt-2 rounded-lg border border-amber-400/30 bg-amber-400/10 p-2 text-xs text-amber-200">
-            Offline — navigation, docs, settings and preferences stay usable. AI features need a connection.
+            {t(lang, "shell.offline")}
           </p>
         )}
         {failed && (
           <div role="alert" className="mt-2 rounded-lg border border-rose-400/30 bg-rose-400/10 p-2 text-xs">
-            <p className="font-bold text-rose-200">Connection lost{props.error ? `: ${props.error.slice(0, 160)}` : ""}</p>
+            <p className="font-bold text-rose-200">{t(lang, "shell.connection_lost")}{props.error ? `: ${props.error.slice(0, 160)}` : ""}</p>
             <div className="mt-2 flex flex-wrap gap-2">
               {props.onReconnect && (
-                <button type="button" onClick={props.onReconnect} className="g5-focusable rounded-full bg-cyan-400 px-3 py-1 font-bold text-slate-900">Reconnect</button>
+                <button type="button" onClick={props.onReconnect} className="g5-focusable rounded-full bg-cyan-400 px-3 py-1 font-bold text-slate-900">{t(lang, "shell.reconnect")}</button>
               )}
-              <Link to="/docs" className="g5-focusable rounded-full border border-white/15 px-3 py-1 text-white/80">Details in docs</Link>
+              <Link to="/docs" className="g5-focusable rounded-full border border-white/15 px-3 py-1 text-white/80">{t(lang, "shell.details_docs")}</Link>
             </div>
           </div>
         )}
@@ -349,8 +356,8 @@ export default function UnifiedShell(props: UnifiedProps) {
 
       {/* Level 3 — result summary */}
       {lastAnswer?.text && !props.taskActive && (
-        <section aria-label="Result" className="rounded-[var(--g5-radius-m)] border border-[var(--g5-border)] bg-[var(--g5-carbon)] p-3 text-xs text-white/80">
-          <h3 className="font-bold text-white">Result</h3>
+        <section aria-label={t(lang, "shell.result")} className="rounded-[var(--g5-radius-m)] border border-[var(--g5-border)] bg-[var(--g5-carbon)] p-3 text-xs text-white/80">
+          <h3 className="font-bold text-white">{t(lang, "shell.result")}</h3>
           <p className="mt-1 line-clamp-4">{lastAnswer.text}</p>
         </section>
       )}
@@ -364,19 +371,20 @@ export default function UnifiedShell(props: UnifiedProps) {
             currentTool={props.currentTool ? sanitizeToolText(props.currentTool) : task.tool ? sanitizeToolText(task.tool) : undefined}
             onCancelTask={props.onCancelTask}
             runElapsedMs={runStart === null ? null : now - runStart}
+            lang={lang}
           />
-          {detailed && <ToolActivity chat={props.chat} />}
-          {detailed && <EvidencePanel chat={props.chat} />}
+          {detailed && <ToolActivity chat={props.chat} lang={lang} />}
+          {detailed && <EvidencePanel chat={props.chat} lang={lang} />}
         </div>
         <div className={presence.attentionTarget === "task" ? "order-2 lg:order-2" : "order-1 lg:order-2"}>
-          <ResourcePanel telemetry={props.telemetry} compact={!detailed} />
+          <ResourcePanel telemetry={props.telemetry} compact={!detailed} lang={lang} />
         </div>
       </div>
 
       {/* Level 4 — technical details, opt-in */}
       <details className="rounded-[var(--g5-radius-m)] border border-[var(--g5-border)] bg-black/30 p-3 text-xs">
         <summary className="g5-focusable cursor-pointer font-bold text-white">
-          Technical details {advanced ? "(advanced on)" : "(opt-in)"}
+          {t(lang, "shell.details")} {advanced ? `(${t(lang, "shell.advanced_on")})` : `(${t(lang, "shell.opt_in")})`}
         </summary>
         <div className="mt-2 grid gap-3">
           <button
@@ -385,23 +393,24 @@ export default function UnifiedShell(props: UnifiedProps) {
             aria-pressed={advanced}
             className="g5-focusable w-fit rounded-full border border-white/15 px-3 py-1 text-white/80"
           >
-            {advanced ? "Hide advanced" : "Show advanced"}
+            {advanced ? t(lang, "shell.hide_advanced") : t(lang, "shell.show_advanced")}
           </button>
-          {(detailed) && <EventStream chat={props.chat} />}
+          {(detailed) && <EventStream chat={props.chat} lang={lang} />}
           <p className="font-mono text-[11px] text-white/50">
             presence={presence.semanticState} attention={presence.attentionTarget} intensity={presence.intensity} gesture={presence.gesture}
           </p>
         </div>
       </details>
 
-      <section aria-label="Experience settings" className="rounded-[var(--g5-radius-m)] border border-[var(--g5-border)] bg-[var(--g5-carbon)] p-3">
+      <section aria-label={t(lang, "settings")} className="rounded-[var(--g5-radius-m)] border border-[var(--g5-border)] bg-[var(--g5-carbon)] p-3">
         <div className="grid gap-3 sm:grid-cols-2">
-          <DensitySettings density={prefs.density} onChange={(density) => save({ ...prefs, density })} />
+          <DensitySettings density={prefs.density} onChange={(density) => save({ ...prefs, density })} lang={lang} />
           <AmbientSettings
             ambient={prefs.ambient}
             reduced={prefs.animation !== "on" || osReduced}
             onAmbient={(ambient) => save({ ...prefs, ambient })}
             onReduced={(v) => save({ ...prefs, animation: v ? "reduced" : "on" })}
+            lang={lang}
           />
         </div>
       </section>

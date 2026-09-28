@@ -3,6 +3,7 @@ import { Mic, Paperclip, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type { Attachment, ServerNode } from "../lib/types";
 import { setIntermediateTranscript, startVoiceRecording, stopVoiceRecording, speechRecognitionSupported, transcribeAudio } from "../lib/audio";
+import { t, useLang } from "../lib/lang";
 
 interface Props {
   onSendPrompt: (text: string, attachments?: Attachment[]) => void;
@@ -21,6 +22,7 @@ export default function BottomInputBar({ onSendPrompt, onSendVoice, disabled, is
   const [micError, setMicError] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [lang] = useLang();
 
   function handleDrop(e: React.DragEvent) {
     e.preventDefault();
@@ -161,7 +163,7 @@ export default function BottomInputBar({ onSendPrompt, onSendVoice, disabled, is
     >
       {/* attachments preview */}
       {dragOver && (
-        <p className="mb-2 text-center text-[11px] font-mono text-neon">drop files to attach</p>
+        <p className="mb-2 text-center text-[11px] font-mono text-neon">{t(lang, "input.drop")}</p>
       )}
       {attachments.length > 0 && (
         <div className="mb-2 flex flex-wrap gap-1.5">
@@ -184,7 +186,7 @@ export default function BottomInputBar({ onSendPrompt, onSendVoice, disabled, is
         {/* attachment picker */}
         <label
           className="flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-xl border border-slate-700/50 bg-slate-900/60 text-slate-400 transition-all hover:border-neon/40 hover:bg-neon/5 hover:text-neon"
-          title="Attach files"
+          title={t(lang, "input.attach")}
         >
           <Paperclip size={16} />
           <input
@@ -203,7 +205,7 @@ export default function BottomInputBar({ onSendPrompt, onSendVoice, disabled, is
           onChange={(e) => setValue(e.target.value)}
           onKeyDown={handleKeyDown}
           rows={1}
-          placeholder="Message Genio… (Enter to send, Shift+Enter for newline)"
+          placeholder={t(lang, "input.placeholder")}
           className="min-h-[40px] max-h-[160px] min-w-0 flex-1 resize-none rounded-xl border border-slate-700/60 bg-slate-950/60 px-3 sm:px-4 py-2.5 text-sm text-slate-100 placeholder-slate-500 outline-none transition-all focus:border-neon/60 focus:bg-slate-900/80 focus:shadow-neon font-mono"
           disabled={disabled || recording}
         />
@@ -211,7 +213,7 @@ export default function BottomInputBar({ onSendPrompt, onSendVoice, disabled, is
         {/* voice - ÉCOUTE pill */}
         <button
           onClick={toggleMic}
-          title={recording ? "Stop recording" : "Écoute"}
+          title={recording ? t(lang, "input.stop_recording") : t(lang, "input.listen")}
           className={`flex h-10 shrink-0 items-center justify-center gap-1.5 rounded-full border px-2.5 sm:px-4 text-[11px] sm:text-[12px] font-bold tracking-wider backdrop-blur transition-all duration-200 ${
             recording
               ? "border-red-500 bg-red-500/15 text-red-300 shadow-[0_0_16px_rgba(239,68,68,0.5)] animate-pulse"
@@ -226,7 +228,7 @@ export default function BottomInputBar({ onSendPrompt, onSendVoice, disabled, is
             </span>
             <Mic size={14} className={recording ? "text-red-300" : "text-red-400/70"} />
           </span>
-          <span className="hidden sm:inline">ÉCOUTE</span>
+          <span className="hidden sm:inline">{t(lang, "input.listen_label")}</span>
         </button>
 
         {/* send - PRÊT pill */}
@@ -240,13 +242,13 @@ export default function BottomInputBar({ onSendPrompt, onSendVoice, disabled, is
           } disabled:opacity-40`}
         >
           <span className="text-cyan-300">✦✦</span>
-          <span className="hidden sm:inline">PRÊT</span>
+          <span className="hidden sm:inline">{t(lang, "input.send_label")}</span>
         </button>
       </div>
 
       {micError && (
         <p className="mt-2 text-center text-[11px] font-mono text-rose-400">
-          ⚠ {micError}
+          ⚠ {t(lang, "errors.mic")}
         </p>
       )}
 
@@ -256,10 +258,10 @@ export default function BottomInputBar({ onSendPrompt, onSendVoice, disabled, is
           animate={{ opacity: 1, y: 0 }}
           className="mt-2 text-center text-[11px] font-mono text-danger"
         >
-          ● recording {recTimer}s —{" "}
+          ● {t(lang, "input.recording")} {recTimer}s —{" "}
           {speechRecognitionSupported()
-            ? "live transcription: speak…"
-            : "release to send via Web Audio"}
+            ? t(lang, "input.live_transcription")
+            : t(lang, "input.release_to_send")}
         </motion.p>
       )}
 

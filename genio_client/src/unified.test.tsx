@@ -25,39 +25,39 @@ describe("unified layout", () => {
   it("idle renders conversation mode with honest copy", () => {
     const html = shell();
     expect(html).toContain('data-layout-mode="conversation"');
-    expect(html).toContain("Genio is ready");
+    // Tunisian-first: default lang is "tu", fresh mount shows greeting
+    expect(html).toContain("عسلامة! أنا Genio");
   });
   it("executing renders execution mode + task panel", () => {
     const html = shell({ taskActive: true, agentStatusKind: "executing", streaming: false });
     expect(html).toContain('data-layout-mode="execution"');
-    expect(html).toContain("Genio is working on your task");
-    expect(html).toContain("Current task");
+    expect(html).toContain("Genio قاعد يخدم على مهمّتك");
+    expect(html).toContain("المهمّة الحالية");
   });
   it("streaming answer renders explaining (what the user sees)", () => {
     const html = shell({ taskActive: true, agentStatusKind: "executing", streaming: true });
-    expect(html).toContain("Genio is answering");
+    expect(html).toContain("Genio يجاوب فيك");
   });
   it("disconnected shows failure UX with reconnect", () => {
     const html = shell({ connected: false, socketState: "disconnected", onReconnect: () => undefined });
-    expect(html).toContain("Connection lost");
-    expect(html).toContain("Reconnect");
+    expect(html).toContain("تقطع الاتصال");
+    expect(html).toContain("عاود الاتصال");
   });
 });
 
 describe("density", () => {
   it("simple hides event stream, advanced shows it", () => {
     const simple = shell();
-    expect(simple).not.toContain("Event stream");
-    // advanced density is opt-in via settings (localStorage tested separately);
+    expect(simple).not.toContain("الأحداث");
     // technical details disclosure always present:
-    expect(simple).toContain("Technical details");
+    expect(simple).toContain("تفاصيل تقنية");
   });
 });
 
 describe("resources honesty", () => {
   it("missing metrics say Unavailable, never 0", () => {
     const html = shell();
-    expect(html).toContain("Unavailable");
+    expect(html).toContain("غير متوفّر");
     expect(html).not.toContain(">0%<");
   });
   it("real telemetry values render", () => {
@@ -69,8 +69,8 @@ describe("resources honesty", () => {
 describe("offline shell", () => {
   it("offline banner keeps shell usable", () => {
     const html = shell({ online: false });
-    expect(html).toMatch(/Offline/);
-    expect(html).toContain("Current task");
+    expect(html).toContain("ما فماش اتصال");
+    expect(html).toContain("المهمّة الحالية");
   });
 });
 
@@ -97,7 +97,7 @@ describe("fresh mount greets honestly", () => {
         React.createElement(UnifiedShell, base as never)
       )
     );
-    expect(html).toContain("Genio is ready");
+    expect(html).toContain("عسلامة! أنا Genio");
     expect(html).toContain("genio-wave");
   });
 });

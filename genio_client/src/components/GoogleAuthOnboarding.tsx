@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { Globe, Shield, Sparkles, Loader2, LogIn, Zap } from "lucide-react";
 import { useEffect, useState } from "react";
 import { signInWithGoogle, getGoogleProfile, getGoogleToken, hasGoogleAuth } from "../lib/googleAuth";
+import { getLang, t } from "../lib/lang";
 
 interface Props {
   onAuthed: (token: string) => void;
@@ -11,6 +12,7 @@ interface Props {
 export default function GoogleAuthOnboarding({ onAuthed, onSkip }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [lang] = useState(getLang);
 
   async function handleGoogle() {
     setError(null);
@@ -53,9 +55,12 @@ export default function GoogleAuthOnboarding({ onAuthed, onSkip }: Props) {
               <Globe className="h-4 w-4 text-[#4285F4]" />
             </span>
           </div>
-          <h1 className="font-display text-xl font-bold text-slate-100">Welcome to Genio</h1>
+          <h1 className="font-display text-xl font-bold text-slate-100">{t(lang, "auth.title")}</h1>
           <p className="mt-2 max-w-sm font-mono text-xs leading-relaxed text-slate-400">
-            Zero-config Gemini cloud. Sign in with Google to unlock your <span className="text-neon">Tunisian cyber-companion</span> instantly — no IP, no API key, no manual setup.
+            {t(lang, "auth.subtitle")}
+          </p>
+          <p className="mt-2 max-w-sm text-[11px] leading-relaxed text-slate-500">
+            {t(lang, "auth.why")}
           </p>
         </div>
 
@@ -64,7 +69,7 @@ export default function GoogleAuthOnboarding({ onAuthed, onSkip }: Props) {
             <img src={profile.picture || `https://api.dicebear.com/7.x/initials/svg?seed=${profile.email}`} alt="avatar" className="h-8 w-8 rounded-full" />
             <div className="min-w-0">
               <p className="truncate text-sm font-medium text-slate-100">{profile.name || profile.email}</p>
-              <p className="truncate font-mono text-[11px] text-ok">Already signed in — tap Continue</p>
+              <p className="truncate font-mono text-[11px] text-ok">{t(lang, "auth.signed_in")}</p>
             </div>
           </div>
         )}
@@ -75,7 +80,7 @@ export default function GoogleAuthOnboarding({ onAuthed, onSkip }: Props) {
           className="flex w-full items-center justify-center gap-3 rounded-xl bg-white px-5 py-3 text-sm font-semibold text-slate-900 shadow hover:bg-slate-50 disabled:opacity-60"
         >
           {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Globe className="h-5 w-5 text-[#4285F4]" />}
-          {already ? "Continue with Google" : "Sign in with Google"}
+          {already ? t(lang, "auth.continue_google") : t(lang, "auth.google")}
         </button>
 
         <div className="my-4 flex items-center gap-3">
@@ -89,12 +94,20 @@ export default function GoogleAuthOnboarding({ onAuthed, onSkip }: Props) {
           <span className="flex items-center gap-1.5 text-slate-500"><Shield className="h-3 w-3 text-ok" /> Private</span>
         </div>
 
-        {error && <p className="mt-4 rounded-lg border border-danger/20 bg-danger/10 px-3 py-2 text-center text-xs text-rose-300">{error}</p>}
+        {error && (
+          <div className="mt-4 rounded-lg border border-danger/20 bg-danger/10 px-3 py-2 text-center text-xs text-rose-300">
+            <p>{t(lang, "errors.auth")}</p>
+            <details className="mt-1">
+              <summary className="cursor-pointer font-mono text-[10px] text-slate-500">{t(lang, "errors.tech_details")}</summary>
+              <p className="mt-1 font-mono text-[10px] text-slate-500" dir="ltr">{error}</p>
+            </details>
+          </div>
+        )}
 
         <div className="mt-6 flex justify-center gap-4">
           {onSkip && (
             <button onClick={onSkip} className="font-mono text-xs text-slate-500 hover:text-slate-300">
-              Skip for now (manual IP)
+              {t(lang, "auth.skip")}
             </button>
           )}
           <button onClick={() => onAuthed("mock-bypass-" + Date.now())} className="flex items-center gap-1 font-mono text-xs text-neon/70 hover:text-neon">
@@ -103,7 +116,7 @@ export default function GoogleAuthOnboarding({ onAuthed, onSkip }: Props) {
         </div>
 
         <p className="mt-4 text-center font-mono text-[10px] text-slate-600">
-          By continuing you agree to HiTechLab encrypted Gemini gateway. Token stored securely via Tauri Store + localStorage.
+          {t(lang, "auth.agree")}
         </p>
       </motion.div>
     </div>
