@@ -174,6 +174,52 @@ export default function Landing() {
         </div>
       </section>
 
+      {/* PLATFORM MATRIX — factual, from product-data (G6-A) */}
+      <section aria-label="Platform support" className="relative z-10 mx-auto max-w-6xl px-5 py-10 md:px-8">
+        <h2 style={{ fontFamily: "Reem Kufi, sans-serif" }} className="text-center text-[20px] font-bold text-white md:text-[24px]">
+          وين تنجّم تستعمل جينيو؟
+        </h2>
+        <div className="mx-auto mt-6 grid max-w-4xl gap-3 sm:grid-cols-2">
+          {[
+            ["Linux (AppImage / DEB)", "✅ متوفر — v5.0.0", true],
+            ["Docker", "✅ متوفر", true],
+            ["Windows / macOS / Android / iOS", "❌ غير متوفر حالياً", false],
+            ["HiTech-OS", "عقد جاهز — التنفيذ لاحقاً", false],
+          ].map(([label, state, ok]) => (
+            <div key={label as string} className="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/5 px-4 py-3">
+              <span className="text-[13px] font-bold text-white">{label}</span>
+              <span className={`font-mono text-[11px] ${ok ? "text-emerald-300" : "text-white/50"}`}>{state}</span>
+            </div>
+          ))}
+        </div>
+        <div className="mt-4 text-center">
+          <Link to="/download" className="text-[13px] font-bold text-cyan-300 hover:text-cyan-200">كل خيارات التحميل ←</Link>
+        </div>
+      </section>
+
+      {/* INSTALL 3 STEPS — real commands, checksums first */}
+      <section aria-label="Install" className="relative z-10 mx-auto max-w-6xl px-5 py-10 md:px-8">
+        <h2 style={{ fontFamily: "Reem Kufi, sans-serif" }} className="text-center text-[20px] font-bold text-white md:text-[24px]">
+          ثبّت جينيو في 3 خطوات
+        </h2>
+        <ol className="mx-auto mt-6 grid max-w-4xl gap-3 md:grid-cols-3">
+          {[
+            ["1", "حمّل", "الأرشيف +-checksum من صفحة v5.0.0"],
+            ["2", "ثبّت", "بالـ CLI أو AppImage — الـ doctor يتأكد"],
+            ["3", "تحقّق", "genio doctor → HEALTHY (0 FAIL)"],
+          ].map(([n, t, d]) => (
+            <li key={n} className="rounded-xl border border-white/10 bg-white/5 p-4">
+              <span className="font-mono text-[11px] text-cyan-300">STEP {n}</span>
+              <p className="mt-1 text-[14px] font-bold text-white">{t}</p>
+              <p className="mt-1 text-[12px] text-white/60">{d}</p>
+            </li>
+          ))}
+        </ol>
+        <div className="mt-4 text-center">
+          <Link to="/install" className="text-[13px] font-bold text-cyan-300 hover:text-cyan-200">مساعد التثبيت ←</Link>
+        </div>
+      </section>
+
       {/* FOOTER */}
       <footer className="relative z-10 border-t border-white/10 bg-slate-950/40 px-5 py-8 text-center backdrop-blur md:px-8">
         <p style={{ fontFamily: "Reem Kufi, sans-serif" }} className="text-[13px] font-bold tracking-wide text-white/80">

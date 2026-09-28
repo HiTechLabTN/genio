@@ -78,6 +78,19 @@
     }
   },
   "release_notes": "- Smart installer (`installer/genio`): install/doctor/status/repair/\n  update/rollback/uninstall, manifests, backups, port detection.\n- Release archives `.tar.g\n\n- VODER `language=\"ar\"` 500 → default `auto` + explicit 422.\n- Strict-mode keyless boot refused (boot guard + tests).\n- CI: pinned ruff, portable test paths, Playwright browsers, missing\n  PWA asset, sibling-path guard.\n- Docker context: secrets/weights excluded (proven).",
+  "public_release": {
+    "appimage": "https://github.com/HiTechLabTN/genio/releases/download/v5.0.0/genio-client_4.3.0_amd64.AppImage",
+    "appimage_sha256": "https://github.com/HiTechLabTN/genio/releases/download/v5.0.0/genio-client_4.3.0_amd64.AppImage.sha256",
+    "deb": "https://github.com/HiTechLabTN/genio/releases/download/v5.0.0/genio-client_4.3.0_amd64.deb",
+    "deb_sha256": "https://github.com/HiTechLabTN/genio/releases/download/v5.0.0/genio-client_4.3.0_amd64.deb.sha256",
+    "docker": "ghcr.io/hitechlabtn/genio:5.0.0",
+    "manifest": "https://github.com/HiTechLabTN/genio/releases/download/v5.0.0/genio-5.0.0.manifest.json",
+    "notes": "https://github.com/HiTechLabTN/genio/releases/tag/v5.0.0",
+    "sbom": "https://github.com/HiTechLabTN/genio/releases/download/v5.0.0/sbom.json",
+    "sha256": "https://github.com/HiTechLabTN/genio/releases/download/v5.0.0/genio-5.0.0.tar.gz.sha256",
+    "tag": "v5.0.0",
+    "tarball": "https://github.com/HiTechLabTN/genio/releases/download/v5.0.0/genio-5.0.0.tar.gz"
+  },
   "known_limitations": [
     "1. No installable Python package (CWD pinned per launch vector).",
     "2. Voice/systemd clean-room partial (optional/shared host).",

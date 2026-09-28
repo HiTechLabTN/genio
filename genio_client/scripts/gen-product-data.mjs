@@ -36,6 +36,7 @@ const openapi = json("schemas/openapi-genio.json");
 const ipc = json("schemas/ipc-v1.json");
 const notes = read("docs/release/RELEASE_NOTES_4.1.0.md");
 const limits = read("docs/release/KNOWN_LIMITATIONS_4.1.0.md");
+const publicRelease = json("docs/releases/PUBLIC_RELEASE.json");
 
 const data = {
   generated_from: "authoritative repo sources (see scripts/gen-product-data.mjs)",
@@ -66,6 +67,7 @@ const data = {
     android: { status: "unavailable", reason: "APK requires release signing secrets (external)" },
   },
   release_notes: section(notes, "New") + "\n\n" + section(notes, "Fixed"),
+  public_release: publicRelease,
   known_limitations: limits.split("\n").filter((l) => /^\d+\./.test(l)).slice(0, 12),
 };
 
