@@ -6,8 +6,6 @@ between product-data.json and its sources.
 import json
 from pathlib import Path
 
-import pytest
-
 ROOT = Path(__file__).resolve().parents[1]
 
 STALE = [
