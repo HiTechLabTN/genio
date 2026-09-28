@@ -13,6 +13,8 @@ gated tools, and never sends your data to the cloud unless you explicitly allow 
 
 **👋 Just exploring** · [🚀 Try](#-try-genio) · [📦 Install](#-install-genio) · [🧑‍💻 Developer](#-developer) · [🔐 Security](#-security) · [🏗️ Architecture](#️-architecture)
 
+> **ركّب Genio توّا** (install interactively): 👉 https://genio.hitech.tn/install
+
 ---
 
 ## 🚀 Try Genio

@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Link, NavLink, useLocation } from "react-router-dom";
 import { Container } from "./ui";
+import { getLang, setLang, t, type Lang } from "../lib/lang";
 import productData from "../product-data.json";
 
 /** Per-route SEO: title + description + canonical (no secrets, no infra). */
@@ -25,17 +26,37 @@ export function usePageMeta(title: string, description: string, path: string) {
 }
 
 const LINKS = [
-  { to: "/", label: "Genio", end: true },
-  { to: "/explore", label: "Explore" },
-  { to: "/security", label: "Security" },
-  { to: "/docs", label: "Docs" },
-  { to: "/download", label: "Download" },
-  { to: "/install", label: "Install" },
-  { to: "/app", label: "App" },
+  { to: "/", key: "nav_home", fallback: "Genio", end: true },
+  { to: "/explore", key: "nav_explore", fallback: "Explore" },
+  { to: "/security", key: "nav_security", fallback: "Security" },
+  { to: "/docs", key: "nav_docs", fallback: "Docs" },
+  { to: "/download", key: "nav_download", fallback: "Download" },
+  { to: "/install", key: "nav_install", fallback: "Install" },
+  { to: "/app", key: "nav_app", fallback: "App" },
 ];
+
+function LangSwitcher({ lang, onChange }: { lang: Lang; onChange: (l: Lang) => void }) {
+  return (
+    <div role="group" aria-label="Language / اللغة" className="flex items-center gap-1">
+      {(["tu", "fr", "en"] as Lang[]).map((l) => (
+        <button
+          key={l}
+          type="button"
+          aria-pressed={lang === l}
+          aria-label={l === "tu" ? "تونسي" : l === "fr" ? "Français" : "English"}
+          onClick={() => onChange(l)}
+          className={`g5-focusable rounded-full px-2 py-1 font-mono text-[11px] ${lang === l ? "bg-cyan-400 font-bold text-slate-900" : "text-white/60 hover:text-white"}`}
+        >
+          {l === "tu" ? "TN" : l.toUpperCase()}
+        </button>
+      ))}
+    </div>
+  );
+}
 
 function Nav() {
   const [open, setOpen] = useState(false);
+  const [lang, setLangState] = useState<Lang>(() => getLang());
   const loc = useLocation();
   useEffect(() => setOpen(false), [loc.pathname]);
   useEffect(() => {
@@ -55,8 +76,9 @@ function Nav() {
           </Link>
           <div className="hidden items-center gap-1 md:flex">
             {LINKS.map((l) => (
-              <NavLink key={l.to} to={l.to} end={l.end} className={cls}>{l.label}</NavLink>
+              <NavLink key={l.to} to={l.to} end={l.end} className={cls}>{t(lang, l.key) || l.fallback}</NavLink>
             ))}
+            <LangSwitcher lang={lang} onChange={(l) => { setLang(l); setLangState(l); }} />
           </div>
           <button
             type="button"
@@ -75,8 +97,11 @@ function Nav() {
           <Container>
             <div className="flex flex-col gap-1 py-3">
               {LINKS.map((l) => (
-                <NavLink key={l.to} to={l.to} end={l.end} className={cls}>{l.label}</NavLink>
+                <NavLink key={l.to} to={l.to} end={l.end} className={cls}>{t(lang, l.key) || l.fallback}</NavLink>
               ))}
+              <div className="pt-2">
+                <LangSwitcher lang={lang} onChange={(l) => { setLang(l); setLangState(l); }} />
+              </div>
             </div>
           </Container>
         </div>

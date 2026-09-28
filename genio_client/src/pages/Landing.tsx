@@ -50,6 +50,12 @@ export default function Landing() {
               >
                 جرّب Genio توة ←
               </Link>
+              <Link
+                to="/install"
+                className="inline-flex items-center justify-center rounded-full border border-cyan-400/40 bg-cyan-400/10 px-7 py-3 text-[15px] font-extrabold text-cyan-200 transition hover:bg-cyan-400/20 active:scale-95"
+              >
+                ركّب Genio توّا ↓
+              </Link>
               <a href="#how" className="inline-flex items-center justify-center rounded-full border border-white/15 bg-white/5 px-6 py-3 text-[14px] font-bold text-white/90 backdrop-blur hover:bg-white/10">
                 كيفاش يخدم؟
               </a>
