@@ -18,6 +18,7 @@ import UnifiedShell from "./unified/UnifiedShell";
 import IntroCinematic from "./components/intro/IntroCinematic";
 import CinematicPortalSplash from "./components/layout/CinematicPortalSplash";
 import CinematicAvatar from "./components/CinematicAvatar";
+import { t, useLang, mapError } from "./lib/lang";
 // MascotStage (graphe Three.js/GLB + useGLTF.preload au niveau module) en
 // lazy : le chunk 3D + les .glb ne se téléchargent QUE si l'utilisateur entre
 // réellement en mode mascotte. Fichiers Partie A intacts (aucune édition).
@@ -83,6 +84,7 @@ export default function App() {
       return false;
     }
   });
+  const [lang] = useLang();
   useEffect(() => {
     if (!showGoogleAuth) return;
     if (!hasGoogleAuth()) return;
@@ -193,12 +195,13 @@ export default function App() {
             }
           } catch (e: unknown) {
             const msg = e instanceof Error ? e.message : String(e);
+            const mapped = mapError(lang, msg);
             if (msg === "NO_GOOGLE_TOKEN" || msg.includes("NO_GOOGLE_TOKEN")) {
-              setGeminiChat((prev) => [...prev.slice(-299), { type: "answer", text: "سجّل بـ Google باش تكمّل في السحاب" } as const, { type: "error", message: "NEED_GOOGLE_AUTH" } as const]);
+              setGeminiChat((prev) => [...prev.slice(-299), { type: "answer", text: t(lang, "errors.cloud_auth") } as const, { type: "error", message: "NEED_GOOGLE_AUTH" } as const]);
             } else if (msg === "GEMINI_PROXY_FAIL" || msg.includes("GEMINI_PROXY_FAIL") || msg.includes("السيرفر طايح")) {
-              setGeminiChat((prev) => [...prev.slice(-299), { type: "answer", text: "مشكل في الاتصال بالسحاب — عاود جرّب" } as const]);
-            } else if (msg.includes("السيرفر طايح")) setGeminiChat((prev) => [...prev.slice(-299), { type: "answer", text: msg }]);
-            else setGeminiChat((prev) => [...prev.slice(-299), { type: "error", message: msg }]);
+              setGeminiChat((prev) => [...prev.slice(-299), { type: "answer", text: t(lang, "errors.cloud_fail") } as const]);
+            } else if (msg.includes("السيرفر طايح")) setGeminiChat((prev) => [...prev.slice(-299), { type: "answer", text: mapped.friendly }]);
+            else setGeminiChat((prev) => [...prev.slice(-299), { type: "error", message: mapped.friendly }]);
             setGeminiStatus({ kind: "idle" });
           }
         })();
@@ -491,7 +494,8 @@ export default function App() {
         setFabRecording(true);
       } catch (err: unknown) {
         setFabRecording(false);
-        setFabMicError(err instanceof Error ? err.message : "Microphone unavailable");
+        const mapped = mapError(lang, err instanceof Error ? err.message : String(err));
+        setFabMicError(mapped.friendly);
       }
     }
   }
@@ -804,7 +808,7 @@ export default function App() {
                         return t.trim();
                       })();
                       if (!cleanText && !msg) return null;
-                      if (cleanText === "سجّل بـ Google باش تكمّل في السحاب") {
+                      if (cleanText === t(lang, "errors.cloud_auth")) {
                         return (
                           <div key={i} className="rounded-xl border border-cyan-500/30 bg-cyan-500/10 p-3">
                             <p className="font-mono text-[12px] font-bold text-cyan-200">{cleanText}</p>
@@ -812,13 +816,13 @@ export default function App() {
                               onClick={() => setShowGoogleAuth(true)}
                               className="mt-2 rounded-full bg-white px-4 py-1.5 font-mono text-[11px] font-bold text-slate-900 hover:bg-slate-100 transition-colors"
                             >
-                              سجّل بـ Google
+                              {t(lang, "errors.google_signin")}
                             </button>
                           </div>
                         );
                       }
                       if (msg === "NEED_GOOGLE_AUTH") return null;
-                      if (cleanText === "مشكل في الاتصال بالسحاب — عاود جرّب") {
+                      if (cleanText === t(lang, "errors.cloud_fail")) {
                         return (
                           <div key={i} className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-2">
                             <p className="font-mono text-[11px] text-amber-200">{cleanText}</p>
@@ -826,7 +830,7 @@ export default function App() {
                               onClick={() => lastPromptRef.current && handleSendPrompt(lastPromptRef.current)}
                               className="mt-1 rounded-full border border-amber-400/30 px-3 py-1 font-mono text-[10px] text-amber-200"
                             >
-                              عاود جرّب
+                              {t(lang, "errors.cloud_retry")}
                             </button>
                           </div>
                         );
@@ -945,7 +949,7 @@ export default function App() {
               {fabMicError && <p className="mx-3 pb-2 text-center font-mono text-[11px] text-rose-300">⚠ {fabMicError}</p>}
               {fabRecording && (
                 <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mx-3 pb-3 text-center font-mono text-[10px] text-rose-300">
-                  ● recording {fabRecTimer}s — {speechRecognitionSupported() ? "live transcription…" : "release to send"}
+                  ● {t(lang, "errors.recording")} {fabRecTimer}s — {speechRecognitionSupported() ? t(lang, "errors.live_transcription") : t(lang, "errors.release_to_send")}
                 </motion.p>
               )}
             </motion.div>
@@ -953,7 +957,7 @@ export default function App() {
         </AnimatePresence>
 
         <motion.button
-          aria-label={fabOpen ? "Close chat" : "Open chat"}
+          aria-label={fabOpen ? t(lang, "errors.close_chat") : t(lang, "errors.open_chat")}
           onClick={() => setFabOpen((v) => !v)}
           whileHover={{ scale: 1.06 }}
           whileTap={{ scale: 0.94 }}

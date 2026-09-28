@@ -2,7 +2,7 @@ import { motion } from "framer-motion";
 import { Globe, Shield, Sparkles, Loader2, LogIn, Zap } from "lucide-react";
 import { useEffect, useState } from "react";
 import { signInWithGoogle, getGoogleProfile, getGoogleToken, hasGoogleAuth } from "../lib/googleAuth";
-import { getLang, t } from "../lib/lang";
+import { getLang, t, mapError } from "../lib/lang";
 
 interface Props {
   onAuthed: (token: string) => void;
@@ -21,7 +21,8 @@ export default function GoogleAuthOnboarding({ onAuthed, onSkip }: Props) {
       const token = await signInWithGoogle();
       onAuthed(token);
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Google sign-in failed");
+      const mapped = mapError(lang, e instanceof Error ? e.message : String(e));
+      setError(mapped.friendly);
     } finally {
       setLoading(false);
     }

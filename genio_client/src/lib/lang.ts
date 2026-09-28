@@ -88,6 +88,17 @@ const STRINGS: Record<Lang, Record<string, string>> = {
     "errors.server": "السيرفر ما جاوبش. عاود جرّب بعد شوية.",
     "errors.timeout": "طوّل برشا وما جاش رد. عاود جرّب.",
     "errors.tech_details": "تفاصيل تقنية",
+    "errors.cloud_auth": "سجّل بـ Google باش تكمّل في السحاب",
+    "errors.cloud_fail": "مشكل في الاتصال بالسحاب — عاود جرّب",
+    "errors.cloud_retry": "عاود جرّب",
+    "errors.google_signin": "ادخل بـ Google",
+    "errors.mic_unavailable": "المايكرو موش متوفّر. تحقق من إذن المتصفح.",
+    "errors.google_auth_failed": "الدخول بـ Google فشل. عاود جرّب.",
+    "errors.recording": "جاري التسجيل",
+    "errors.live_transcription": "التحويل الحيّ يشتغل…",
+    "errors.release_to_send": "حرّر باش تبعث",
+    "errors.close_chat": "سكّر الدردشة",
+    "errors.open_chat": "افتح الدردشة",
     // status.*
     "status.connected": "متصل",
     "status.connecting": "قاعد يتصل...",
@@ -213,6 +224,17 @@ const STRINGS: Record<Lang, Record<string, string>> = {
     "errors.server": "Le serveur ne répond pas. Réessayez dans un moment.",
     "errors.timeout": "Trop long sans réponse. Réessayez.",
     "errors.tech_details": "Détails techniques",
+    "errors.cloud_auth": "Connectez-vous avec Google pour continuer dans le cloud",
+    "errors.cloud_fail": "Problème de connexion au cloud — réessayez",
+    "errors.cloud_retry": "Réessayer",
+    "errors.google_signin": "Se connecter avec Google",
+    "errors.mic_unavailable": "Microphone indisponible. Vérifiez les autorisations du navigateur.",
+    "errors.google_auth_failed": "Connexion Google échouée. Réessayez.",
+    "errors.recording": "Enregistrement",
+    "errors.live_transcription": "Transcription en direct…",
+    "errors.release_to_send": "Relâchez pour envoyer",
+    "errors.close_chat": "Fermer le chat",
+    "errors.open_chat": "Ouvrir le chat",
     "status.connected": "Connecté",
     "status.connecting": "Connexion...",
     "status.disconnected": "Déconnecté",
@@ -329,6 +351,17 @@ const STRINGS: Record<Lang, Record<string, string>> = {
     "errors.server": "The server did not answer. Retry in a moment.",
     "errors.timeout": "Took too long. Retry.",
     "errors.tech_details": "Technical details",
+    "errors.cloud_auth": "Sign in with Google to continue in the cloud",
+    "errors.cloud_fail": "Cloud connection problem — retry",
+    "errors.cloud_retry": "Retry",
+    "errors.google_signin": "Sign in with Google",
+    "errors.mic_unavailable": "Microphone unavailable. Check browser permission.",
+    "errors.google_auth_failed": "Google sign-in failed. Try again.",
+    "errors.recording": "Recording",
+    "errors.live_transcription": "Live transcription…",
+    "errors.release_to_send": "Release to send",
+    "errors.close_chat": "Close chat",
+    "errors.open_chat": "Open chat",
     "status.connected": "Connected",
     "status.connecting": "Connecting...",
     "status.disconnected": "Disconnected",
@@ -425,4 +458,33 @@ export function useLang(): [Lang, (l: Lang) => void] {
     window.dispatchEvent(new Event("genio:lang"));
   };
   return [lang, change];
+}
+
+/**
+ * Map internal error strings to friendly localized user-facing messages.
+ * Internal/technical details are hidden behind `errors.tech_details`.
+ * Never expose secrets, tokens, paths, or stack traces.
+ */
+export function mapError(lang: Lang, raw: string): { friendly: string; technical?: string } {
+  const s = (raw || "").toLowerCase();
+  if (s.includes("no_google_token") || s.includes("need_google_auth")) {
+    return { friendly: t(lang, "errors.cloud_auth") };
+  }
+  if (s.includes("gemini_proxy_fail") || s.includes("السيرفر طايح") || s.includes("server")) {
+    return { friendly: t(lang, "errors.cloud_fail"), technical: raw };
+  }
+  if (s.includes("microphone") || s.includes("mic") || s.includes("permission")) {
+    return { friendly: t(lang, "errors.mic_unavailable") };
+  }
+  if (s.includes("network") || s.includes("fetch") || s.includes("offline")) {
+    return { friendly: t(lang, "errors.network") };
+  }
+  if (s.includes("timeout")) {
+    return { friendly: t(lang, "errors.timeout") };
+  }
+  if (s.includes("google") && (s.includes("sign") || s.includes("auth") || s.includes("login"))) {
+    return { friendly: t(lang, "errors.google_auth_failed") };
+  }
+  // Generic fallback — never leak raw internals
+  return { friendly: t(lang, "errors.generic"), technical: raw };
 }

@@ -3,7 +3,7 @@ import { Mic, Paperclip, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type { Attachment, ServerNode } from "../lib/types";
 import { setIntermediateTranscript, startVoiceRecording, stopVoiceRecording, speechRecognitionSupported, transcribeAudio } from "../lib/audio";
-import { t, useLang } from "../lib/lang";
+import { t, useLang, mapError } from "../lib/lang";
 
 interface Props {
   onSendPrompt: (text: string, attachments?: Attachment[]) => void;
@@ -103,7 +103,8 @@ export default function BottomInputBar({ onSendPrompt, onSendVoice, disabled, is
         setRecording(true);
       } catch (err: unknown) {
         setRecording(false);
-        setMicError(err instanceof Error ? err.message : "Microphone unavailable");
+        const mapped = mapError(lang, err instanceof Error ? err.message : String(err));
+        setMicError(mapped.friendly);
       }
     }
   }
