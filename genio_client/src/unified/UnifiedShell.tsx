@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import PresenceAvatar from "../presence/PresenceAvatar";
+import Mascot from "./Mascot";
 import { resolvePresence, layoutModeFor } from "../presence/resolve";
+import { resolveEngine } from "../presence/engine";
+import { buildTaskModel, sanitizeToolText } from "./taskModel";
 import { loadPrefs, savePrefs, type Density } from "../presence/preferences";
 import type { GenioPresenceState } from "../presence/types";
 
@@ -109,11 +111,11 @@ export function TaskPanel({ chat, taskActive, currentTool, onCancelTask, runElap
   onCancelTask?: () => void; runElapsedMs: number | null;
 }) {
   const steps = useMemo(() => chat.filter((e) => e.type === "thought" || e.type === "tool_call" || e.type === "tool_result"), [chat]);
-  const lastTool = useMemo(() => {
+  const lastTool: string | null = useMemo(() => {
     for (let i = chat.length - 1; i >= 0; i--) {
       if (chat[i].type === "tool_call") return chat[i].command || "tool";
     }
-    return currentTool;
+    return currentTool ?? null;
   }, [chat, currentTool]);
   return (
     <section aria-label="Current task" className="rounded-[var(--g5-radius-m)] border border-[var(--g5-border)] bg-[var(--g5-carbon)] p-3 text-xs">
@@ -143,8 +145,47 @@ export function TaskPanel({ chat, taskActive, currentTool, onCancelTask, runElap
   );
 }
 
-export function EventStream({ chat }: { chat: ChatLike[] }) {
+/** Tool activity — real tool_call/result events only, sanitized. */
+export function ToolActivity({ chat }: { chat: ChatLike[] }) {
+  const items = chat.filter((e) => e.type === "tool_call" || e.type === "tool_result").slice(-5);
+  if (items.length === 0) return null;
   return (
+    <section aria-label="Tool activity" className="rounded-[var(--g5-radius-m)] border border-[var(--g5-border)] bg-[var(--g5-carbon)] p-3 text-xs">
+      <h3 className="font-bold text-white">Tool activity</h3>
+      <ul className="mt-1 space-y-1">
+        {items.map((e, i) => (
+          <li key={i} className="text-white/75">
+            <span className="font-mono text-cyan-300">[{e.type}]</span>{" "}
+            {sanitizeToolText(e.command || e.text || e.message || "tool").slice(0, 120)}
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+/** Evidence — only backend-provided artifacts; otherwise honest empty. */
+export function EvidencePanel({ chat }: { chat: ChatLike[] }) {
+  const items = chat.filter((e) => (e as { artifact?: string }).artifact);
+  return (
+    <section aria-label="Evidence" className="rounded-[var(--g5-radius-m)] border border-[var(--g5-border)] bg-[var(--g5-carbon)] p-3 text-xs">
+      <h3 className="font-bold text-white">Evidence</h3>
+      {items.length === 0 ? (
+        <p className="mt-1 text-white/50">Evidence unavailable</p>
+      ) : (
+        <ul className="mt-1 space-y-1">
+          {items.map((e, i) => (
+            <li key={i} className="font-mono text-[11px] text-white/75">
+              {sanitizeToolText(String((e as { artifact?: string }).artifact)).slice(0, 160)}
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
+
+export function EventStream({ chat }: { chat: ChatLike[] }) {  return (
     <section aria-label="Event stream" className="rounded-[var(--g5-radius-m)] border border-[var(--g5-border)] bg-black/40 p-3 font-mono text-[11px]">
       <h3 className="font-bold text-white">Events</h3>
       {chat.length === 0 && <p className="mt-1 text-white/40">No events yet.</p>}
@@ -226,8 +267,7 @@ export default function UnifiedShell(props: UnifiedProps) {
     return () => window.clearInterval(id);
   }, [runStart === null]);
 
-  const presence: GenioPresenceState = resolvePresence({
-    socket: props.connected ? "connected" : props.socketState,
+  const presence: GenioPresenceState = resolvePresence({    socket: props.connected ? "connected" : props.socketState,
     agent: props.agentStatusKind,
     streaming: props.streaming,
     typing: false,
@@ -241,6 +281,29 @@ export default function UnifiedShell(props: UnifiedProps) {
   const advanced = prefs.density === "advanced";
   const detailed = advanced || prefs.density === "detailed";
 
+  // Engine (G6-B): same facts → engine state + visual config. No duplicate machine.
+  const engine = resolveEngine({
+    online: props.online !== false,
+    socket: props.connected ? "connected" : props.socketState,
+    agent: props.agentStatusKind,
+    streaming: props.streaming,
+    typing: false,
+    taskActive: props.taskActive,
+    toolActive: props.chat.some((e) => e.type === "tool_call"),
+    needsInput: props.agentStatusKind === "awaiting_input",
+    error: props.error,
+    lastOutcome: undefined,
+    sessionAgeMin: (Date.now() - mountRef.current) / 60000,
+  });
+  // Typed task model from real chat events (progress UNKNOWN unless backend measures).
+  const task = buildTaskModel({
+    active: props.taskActive,
+    result: [...props.chat].reverse().find((e) => e.type === "answer")?.text ?? "",
+    error: props.error ?? null,
+    cancelRequested: false,
+    events: props.chat,
+  });
+
   const lastAnswer = [...props.chat].reverse().find((e) => e.type === "answer");
   const lastThought = [...props.chat].reverse().find((e) => e.type === "thought");
   const offline = props.online === false || (!props.connected && props.socketState === "disconnected");
@@ -252,7 +315,7 @@ export default function UnifiedShell(props: UnifiedProps) {
       <section aria-label="Status" className="rounded-[var(--g5-radius-m)] border border-[var(--g5-border)] bg-[var(--g5-carbon)] p-4">
         <div className="flex items-center gap-3">
           <div className="shrink-0">
-            <PresenceAvatar presence={presence} compact={prefs.mascotSize === "compact"} />
+            <Mascot presence={presence} engine={engine.engine} size={prefs.mascotSize === "compact" ? 56 : undefined} />
           </div>
           <div className="min-w-0 flex-1">
             <p role="status" aria-live="polite" className="text-base font-bold text-white sm:text-lg">
@@ -298,10 +361,12 @@ export default function UnifiedShell(props: UnifiedProps) {
           <TaskPanel
             chat={props.chat}
             taskActive={props.taskActive}
-            currentTool={props.currentTool}
+            currentTool={props.currentTool ? sanitizeToolText(props.currentTool) : task.tool ? sanitizeToolText(task.tool) : undefined}
             onCancelTask={props.onCancelTask}
             runElapsedMs={runStart === null ? null : now - runStart}
           />
+          {detailed && <ToolActivity chat={props.chat} />}
+          {detailed && <EvidencePanel chat={props.chat} />}
         </div>
         <div className={presence.attentionTarget === "task" ? "order-2 lg:order-2" : "order-1 lg:order-2"}>
           <ResourcePanel telemetry={props.telemetry} compact={!detailed} />
