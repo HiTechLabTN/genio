@@ -1,0 +1,45 @@
+{
+  "product": "Genio",
+  "version": "4.1.0",
+  "candidate_commit": "891c5efbd2cca805cf6ffdc137483581cdc262b7",
+  "build_date": "2026-09-28T05:31:19Z",
+  "note": "Certification manifest. NOT a 5.0.0 release (no tag created).",
+  "artifacts": [
+    {
+      "name": "genio-4.1.0.tar.gz",
+      "sha256": "691712686e202ca81c597506ee0b39405f6b7394cf725ad2ac580976a70971f5",
+      "size": 135887600,
+      "type": "source-archive",
+      "provenance": "github release v4.1.0 (public, downloaded+verified)"
+    },
+    {
+      "name": "genio-client_4.3.0_amd64.AppImage",
+      "sha256": "91223183ec406b4d5ac0a153937083077d19b2ae3a79e29974bcbea953d985ce",
+      "size": 117135864,
+      "type": "desktop-linux",
+      "provenance": "tauri build local"
+    },
+    {
+      "name": "genio-client_4.3.0_amd64.deb",
+      "sha256": "90e187abb9036642d3ddf058f77516fd10abc50e029fd18b20bd1200e2be53b4",
+      "size": 39680552,
+      "type": "desktop-linux-deb",
+      "provenance": "tauri build local"
+    },
+    {
+      "name": "ghcr.io/hitechlabtn/genio:4.1.0",
+      "digest": "sha256:61d4b425a111eafa3357bb0413a113ab6354f74f78fec4634b69aafa9af57b5f",
+      "type": "docker",
+      "provenance": "docker build + push (immutable tag)"
+    }
+  ],
+  "SBOM": {
+    "components": 968,
+    "format": "CycloneDX-lite",
+    "vuln": "pip-audit 0, npm 2 moderate"
+  },
+  "platform": "linux",
+  "architecture": "x86_64",
+  "signing_status": "UNSIGNED / DEVELOPMENT (no production key; updater fixtures unsigned-dev only)",
+  "known_limitations": "docs/releases/GENIO_5_LIMITATIONS.md"
+}
