@@ -4,7 +4,6 @@ Fails on stale claims (deleted tags, old test counts) and on drift
 between product-data.json and its sources.
 """
 import json
-import sys
 from pathlib import Path
 
 import pytest
