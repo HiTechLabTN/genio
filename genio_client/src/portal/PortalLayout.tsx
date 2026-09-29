@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Link, NavLink, useLocation } from "react-router-dom";
 import { Container } from "./ui";
-import { getLang, setLang, t, type Lang } from "../lib/lang";
+import { t, useLang, type Lang } from "../lib/lang";
 import productData from "../product-data.json";
 
 /** Per-route SEO: title + description + canonical (no secrets, no infra). */
@@ -56,7 +56,7 @@ function LangSwitcher({ lang, onChange }: { lang: Lang; onChange: (l: Lang) => v
 
 function Nav() {
   const [open, setOpen] = useState(false);
-  const [lang, setLangState] = useState<Lang>(() => getLang());
+  const [lang, change] = useLang();
   const loc = useLocation();
   useEffect(() => setOpen(false), [loc.pathname]);
   useEffect(() => {
@@ -78,14 +78,14 @@ function Nav() {
             {LINKS.map((l) => (
               <NavLink key={l.to} to={l.to} end={l.end} className={cls}>{t(lang, l.key) || l.fallback}</NavLink>
             ))}
-            <LangSwitcher lang={lang} onChange={(l) => { setLang(l); setLangState(l); }} />
+            <LangSwitcher lang={lang} onChange={change} />
           </div>
           <button
             type="button"
             className="g5-focusable rounded-full border border-white/15 px-3 py-1.5 text-[13px] text-white md:hidden"
             aria-expanded={open}
             aria-controls="portal-menu"
-            aria-label="Open navigation menu"
+            aria-label={t(lang, "a11y.open_menu")}
             onClick={() => setOpen((v) => !v)}
           >
             ☰
@@ -93,14 +93,14 @@ function Nav() {
         </nav>
       </Container>
       {open && (
-        <div id="portal-menu" role="dialog" aria-modal="true" aria-label="Navigation" className="border-t border-[var(--g5-border)] bg-[var(--g5-void)] md:hidden">
+        <div id="portal-menu" role="dialog" aria-modal="true" aria-label={t(lang, "a11y.nav_dialog")} className="border-t border-[var(--g5-border)] bg-[var(--g5-void)] md:hidden">
           <Container>
             <div className="flex flex-col gap-1 py-3">
               {LINKS.map((l) => (
                 <NavLink key={l.to} to={l.to} end={l.end} className={cls}>{t(lang, l.key) || l.fallback}</NavLink>
               ))}
               <div className="pt-2">
-                <LangSwitcher lang={lang} onChange={(l) => { setLang(l); setLangState(l); }} />
+                <LangSwitcher lang={lang} onChange={change} />
               </div>
             </div>
           </Container>
@@ -112,10 +112,11 @@ function Nav() {
 
 export function PortalLayout({ title, description, path, children }: { title: string; description: string; path: string; children: ReactNode }) {
   usePageMeta(title, description, path);
+  const [lang] = useLang();
   return (
     <div className="min-h-screen bg-[var(--g5-void)] text-slate-200">
       <a href="#portal-main" className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded focus:bg-cyan-400 focus:px-3 focus:py-1 focus:text-slate-900">
-        Skip to content
+        {t(lang, "a11y.skip")}
       </a>
       <Nav />
       <main id="portal-main">
@@ -125,11 +126,11 @@ export function PortalLayout({ title, description, path, children }: { title: st
       <footer className="mt-12 border-t border-[var(--g5-border)] py-6">
         <Container>
           <nav aria-label="Footer" className="flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-white/50">
-            <Link to="/docs" className="g5-focusable inline-flex min-h-[24px] items-center hover:text-white">Docs</Link>
-            <Link to="/security" className="g5-focusable inline-flex min-h-[24px] items-center hover:text-white">Security</Link>
-            <Link to="/api" className="g5-focusable inline-flex min-h-[24px] items-center hover:text-white">API</Link>
+            <Link to="/docs" className="g5-focusable inline-flex min-h-[24px] items-center hover:text-white">{t(lang, "footer.docs")}</Link>
+            <Link to="/security" className="g5-focusable inline-flex min-h-[24px] items-center hover:text-white">{t(lang, "footer.security")}</Link>
+            <Link to="/api" className="g5-focusable inline-flex min-h-[24px] items-center hover:text-white">{t(lang, "footer.api")}</Link>
             <a href="https://github.com/HiTechLabTN/genio" className="g5-focusable inline-flex min-h-[24px] items-center hover:text-white" rel="noopener noreferrer">GitHub</a>
-            <span className="font-mono">v{(productData as { version: string }).version} · sovereign · HiTechLab 🇹🇳</span>
+            <span className="font-mono">v{(productData as { version: string }).version} · {t(lang, "footer.tag")}</span>
           </nav>
         </Container>
       </footer>

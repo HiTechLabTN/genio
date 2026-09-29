@@ -3,6 +3,7 @@ import { PortalLayout } from "../PortalLayout";
 import { Accordion, ActionButton, Card, CodeBlock, Section, StatusBadge } from "../ui";
 import { INSTALL_STATES, type InstallStateId, type Severity } from "../../lib/installStates";
 import { parseEventLog } from "../../lib/installEvents";
+import { t, useLang, type Lang } from "../../lib/lang";
 import productData from "../../product-data.json";
 
 function platform(): string {
@@ -24,7 +25,24 @@ const COMMANDS: Record<string, string> = {
   Server: `curl -fsSL -o genio.tar.gz ${(productData as { artifacts: { archive: string } }).artifacts.archive}`,
 };
 
+/**
+ * Localized installer-state labels/descriptions.
+ * INSTALL_STATES (lib/installStates.ts) is locked by mirror tests and stays
+ * English as the technical source of truth; these keys are the user-facing
+ * layer and fall back to it if a translation is ever missing.
+ */
+function stateText(lang: Lang, id: InstallStateId): { label: string; explanation: string } {
+  const fb = INSTALL_STATES[id];
+  const l = t(lang, `install.state_${id}_label`);
+  const e = t(lang, `install.state_${id}_desc`);
+  return {
+    label: l === `install.state_${id}_label` ? fb.label : l,
+    explanation: e === `install.state_${id}_desc` ? fb.explanation : e,
+  };
+}
+
 export default function InstallAssistant() {
+  const [lang] = useLang();
   const plat = platform();
   const [done, setDone] = useState<Record<string, boolean>>({ detecting: true, checking: true });
   const [logText, setLogText] = useState("");
@@ -33,15 +51,15 @@ export default function InstallAssistant() {
   const cmd = COMMANDS[plat] ?? COMMANDS.Linux;
   const parsed = showViz ? parseEventLog(logText) : [];
   return (
-    <PortalLayout title="Install" description="Install Genio: detected platform, real commands, honest states. Preview mode." path="/install">
-      <Section title="Install Genio" sub="Installer Preview / Documentation Mode: this page guides a real installation — it does not install anything itself. Every state below mirrors the real installer state machine.">
-        <Card label="detected platform">
-          <p className="text-sm text-white/70">Detected platform (client-side only, nothing transmitted): <strong className="text-white">{plat}</strong></p>
-          <div className="mt-3"><CodeBlock code={cmd} label={plat === "Docker" ? "docker command" : "install command"} /></div>
+    <PortalLayout title={t(lang, "install.page_title")} description={t(lang, "install.sub")} path="/install">
+      <Section title={t(lang, "install.title")} sub={t(lang, "install.sub")}>
+        <Card label={t(lang, "install.platform_card")}>
+          <p className="text-sm text-white/70">{t(lang, "install.platform_line")} <strong className="text-white">{plat}</strong></p>
+          <div className="mt-3"><CodeBlock code={cmd} label={plat === "Docker" ? t(lang, "install.cmd_docker") : t(lang, "install.cmd_install")} /></div>
         </Card>
         <div className="mt-4 grid gap-3">
           {FLOW.map((id) => {
-            const s = INSTALL_STATES[id];
+            const s = stateText(lang, id);
             const ok = !!done[id];
             const sev: Severity = ok ? "ok" : "info";
             return (
@@ -52,9 +70,9 @@ export default function InstallAssistant() {
                     <p className="text-xs text-white/60">{s.explanation}</p>
                   </div>
                   <div className="flex items-center gap-2">
-                    <StatusBadge severity={sev}>{ok ? "UNDERSTOOD" : "PENDING"}</StatusBadge>
-                    <button type="button" onClick={() => toggle(id)} aria-pressed={ok} aria-label={`Mark ${s.label} as ${ok ? "pending" : "understood"}`} className="g5-focusable rounded-full border border-white/15 px-3 py-1 text-xs text-white/80 hover:bg-white/10">
-                      {ok ? "reset" : "got it"}
+                    <StatusBadge severity={sev}>{ok ? t(lang, "install.understood") : t(lang, "install.pending")}</StatusBadge>
+                    <button type="button" onClick={() => toggle(id)} aria-pressed={ok} aria-label={ok ? t(lang, "install.mark_pending") : t(lang, "install.mark_understood")} className="g5-focusable rounded-full border border-white/15 px-3 py-1 text-xs text-white/80 hover:bg-white/10">
+                      {ok ? t(lang, "install.reset") : t(lang, "install.gotit")}
                     </button>
                   </div>
                 </div>
@@ -63,13 +81,11 @@ export default function InstallAssistant() {
           })}
         </div>
         <div className="mt-4">
-          <Accordion title="Visualize a real installer log (paste --json-events output)">
+          <Accordion title={t(lang, "install.viz_title")}>
             <p className="text-xs text-white/60">
-              Run <code className="font-mono text-cyan-200">genio install --json-events …</code> in your
-              terminal, paste the output below. States render deterministically from real
-              events — invalid lines are flagged, never hidden.
+              {t(lang, "install.viz_help")}
             </p>
-            <label htmlFor="event-log" className="sr-only">Installer event log</label>
+            <label htmlFor="event-log" className="sr-only">{t(lang, "install.viz_log_label")}</label>
             <textarea
               id="event-log"
               rows={6}
@@ -83,15 +99,15 @@ export default function InstallAssistant() {
               onClick={() => setShowViz(true)}
               className="g5-focusable mt-2 rounded-full border border-white/15 px-4 py-1.5 text-xs text-white hover:bg-white/10"
             >
-              Render timeline
+              {t(lang, "install.viz_render")}
             </button>
             {showViz && (
-              <div className="mt-3 grid gap-2" role="log" aria-label="Installer event timeline">
-                {parsed.length === 0 && <p className="text-xs text-white/50">Empty log — nothing rendered (honest).</p>}
+              <div className="mt-3 grid gap-2" role="log" aria-label={t(lang, "install.viz_timeline")}>
+                {parsed.length === 0 && <p className="text-xs text-white/50">{t(lang, "install.viz_empty")}</p>}
                 {parsed.map((p, i) => (
                   <div key={i} className="rounded-lg border border-[var(--g5-border)] p-2">
                     {p.invalid ? (
-                      <p role="alert" className="font-mono text-[11px] text-rose-300">INVALID LINE: {p.invalid}</p>
+                      <p role="alert" className="font-mono text-[11px] text-rose-300">{t(lang, "install.viz_invalid")} {p.invalid}</p>
                     ) : (
                       <>
                         <p className="font-mono text-[11px] text-white">
@@ -100,8 +116,8 @@ export default function InstallAssistant() {
                         {p.error && (
                           <div className="mt-1 text-[11px]">
                             <p className="font-mono text-rose-300">{p.error.code}: {p.error.message}</p>
-                            {p.error.recovery && <p className="text-white/70">Recovery: {p.error.recovery}</p>}
-                            {p.error.docs && <a href={p.error.docs} className="g5-focusable text-cyan-300">Docs →</a>}
+                            {p.error.recovery && <p className="text-white/70">{t(lang, "install.viz_recovery")} {p.error.recovery}</p>}
+                            {p.error.docs && <a href={p.error.docs} className="g5-focusable text-cyan-300">{t(lang, "install.viz_docs")}</a>}
                           </div>
                         )}
                       </>
@@ -113,17 +129,17 @@ export default function InstallAssistant() {
           </Accordion>
         </div>
         <div className="mt-4">
-          <Accordion title="Verify, recover, get help (real commands)">
+          <Accordion title={t(lang, "install.help_title")}>
             <div className="grid gap-3">
-              <CodeBlock code="python3 installer/genio doctor --deep" label="verify" />
-              <CodeBlock code="python3 installer/genio repair" label="repair" />
-              <CodeBlock code="python3 installer/genio rollback" label="rollback" />
+              <CodeBlock code="python3 installer/genio doctor --deep" label={t(lang, "install.code_verify")} />
+              <CodeBlock code="python3 installer/genio repair" label={t(lang, "install.code_repair")} />
+              <CodeBlock code="python3 installer/genio rollback" label={t(lang, "install.code_rollback")} />
             </div>
           </Accordion>
         </div>
         <div className="mt-6 flex flex-wrap gap-3">
-          <ActionButton to="/download">Download center</ActionButton>
-          <ActionButton to="/docs">Installation docs</ActionButton>
+          <ActionButton to="/download">{t(lang, "install.go_download")}</ActionButton>
+          <ActionButton to="/docs">{t(lang, "install.go_docs")}</ActionButton>
         </div>
       </Section>
     </PortalLayout>

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { PortalLayout } from "../PortalLayout";
 import { Card, Section } from "../ui";
+import { t, useLang } from "../../lib/lang";
 import docIndexJson from "../docs-content/index.json";
 
 type DocIndex = { slug: string; title: string; source: string }[];
@@ -56,36 +57,38 @@ function renderMarkdown(md: string): string {
 }
 
 export function DocsIndex() {
+  const [lang] = useLang();
   const index = useMemo(getIndex, []);
   const [q, setQ] = useState("");
   const filtered = index.filter((d) => (d.title + d.slug).toLowerCase().includes(q.toLowerCase()));
   return (
-    <PortalLayout title="Docs" description="Genio documentation: install, use, recover. Tested with Genio 4.1.0." path="/docs">
-      <Section title="Documentation" sub="Curated from docs/ at build time. Tested with Genio 4.1.0.">
-        <label htmlFor="docs-search" className="sr-only">Search documentation</label>
+    <PortalLayout title={t(lang, "docs.page_title")} description={t(lang, "docs.sub")} path="/docs">
+      <Section title={t(lang, "docs.title")} sub={t(lang, "docs.sub")}>
+        <label htmlFor="docs-search" className="sr-only">{t(lang, "docs.search_label")}</label>
         <input
           id="docs-search"
           type="search"
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder="Search docs…"
+          placeholder={t(lang, "docs.search_ph")}
           className="g5-focusable w-full max-w-md rounded-full border border-white/15 bg-white/5 px-4 py-2 text-sm text-white placeholder:text-white/40"
         />
         <div className="mt-4 grid gap-3 md:grid-cols-2">
           {filtered.map((d) => (
             <Card key={d.slug} label={d.title}>
               <Link to={`/docs/${d.slug}`} className="g5-focusable text-sm font-bold text-white hover:text-cyan-200">{d.title}</Link>
-              <p className="mt-1 font-mono text-[11px] text-white/40">source: {d.source}</p>
+              <p className="mt-1 font-mono text-[11px] text-white/40">{t(lang, "docs.source")} {d.source}</p>
             </Card>
           ))}
         </div>
-        {filtered.length === 0 && <p role="alert" className="mt-4 text-sm text-white/60">No documentation matches.</p>}
+        {filtered.length === 0 && <p role="alert" className="mt-4 text-sm text-white/60">{t(lang, "docs.empty")}</p>}
       </Section>
     </PortalLayout>
   );
 }
 
 export function DocPage() {
+  const [lang] = useLang();
   const { slug } = useParams();
   const [body, setBody] = useState<string | null>(null);
   useEffect(() => {
@@ -95,18 +98,18 @@ export function DocPage() {
   const index = useMemo(getIndex, []);
   const meta = index.find((d) => d.slug === slug);
   return (
-    <PortalLayout title={meta?.title ?? "Docs"} description="Genio documentation page." path={`/docs/${slug ?? ""}`}>
+    <PortalLayout title={meta?.title ?? t(lang, "docs.page_title")} description={t(lang, "docs.sub")} path={`/docs/${slug ?? ""}`}>
       <nav aria-label="Breadcrumb" className="pt-6 text-xs text-white/50">
-        <Link to="/docs" className="g5-focusable hover:text-white">Docs</Link>
+        <Link to="/docs" className="g5-focusable hover:text-white">{t(lang, "docs.crumb")}</Link>
         <span aria-hidden="true"> / </span>
         <span aria-current="page">{meta?.title ?? slug}</span>
       </nav>
       <section aria-label={meta?.title ?? "document"} className="py-4">
         {body === null ? (
-          <p role="alert" className="text-sm text-white/60">Document not found.</p>
+          <p role="alert" className="text-sm text-white/60">{t(lang, "docs.not_found")}</p>
         ) : (
           <>
-            <p className="font-mono text-[11px] text-white/40">tested with Genio 4.1.0 · source: {meta?.source}</p>
+            <p className="font-mono text-[11px] text-white/40">{t(lang, "docs.tested_with")} {meta?.source}</p>
             <div dangerouslySetInnerHTML={{ __html: renderMarkdown(body) }} />
           </>
         )}

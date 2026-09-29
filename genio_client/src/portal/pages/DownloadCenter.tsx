@@ -1,5 +1,6 @@
 import { PortalLayout } from "../PortalLayout";
 import { ActionButton, Badge, Card, CodeBlock, Section } from "../ui";
+import { t, tt, useLang } from "../../lib/lang";
 import productData from "../../product-data.json";
 
 type Platform = { id: string; label: string; arch: string; status: "supported" | "unavailable"; how?: string; reason?: string };
@@ -16,6 +17,7 @@ function detect(): string {
 }
 
 export default function DownloadCenter() {
+  const [lang] = useLang();
   const pd = productData as {
     version: string; artifacts: Record<string, string>;
     platforms: Record<string, { status: string; reason?: string; arch?: string[]; method?: string; image?: string }>;
@@ -38,32 +40,32 @@ export default function DownloadCenter() {
     { id: "android", label: "Android", arch: "aarch64", status: "unavailable", reason: pd.platforms.android?.reason ?? "Release signing required" },
   ];
   return (
-    <PortalLayout title="Download" description="Get Genio: Linux, Docker, server archive. Only real published artifacts." path="/download">
-      <Section title="Download Genio" sub={`Version ${pd.version}. Detected platform: ${detected} (manual choice always allowed).`}>
+    <PortalLayout title={t(lang, "download.page_title")} description={t(lang, "download.title")} path="/download">
+      <Section title={t(lang, "download.title")} sub={tt(lang, "download.sub", { v: pd.version, p: detected })}>
         <div className="grid gap-4 md:grid-cols-2">
           {cards.map((c) => (
             <Card key={c.id} label={`${c.label} download`}>
               <div className="flex items-center justify-between">
                 <h3 className="font-bold text-white">{c.label}</h3>
                 {c.status === "supported"
-                  ? <Badge tone="ok">AVAILABLE</Badge>
-                  : <Badge tone="neutral">NOT AVAILABLE</Badge>}
+                  ? <Badge tone="ok">{t(lang, "download.available")}</Badge>
+                  : <Badge tone="neutral">{t(lang, "download.unavailable")}</Badge>}
               </div>
               <p className="mt-1 font-mono text-[11px] text-white/50">{c.arch}</p>
               {c.status === "supported" && c.how ? (
-                <div className="mt-3"><CodeBlock code={c.how} label="install command" /></div>
+                <div className="mt-3"><CodeBlock code={c.how} label={t(lang, "download.cmd")} /></div>
               ) : (
                 <p className="mt-3 text-xs text-white/60">
-                  Build currently unavailable — {c.reason}. No fake download button is shown.
+                  {tt(lang, "download.why_unavailable", { r: c.reason ?? "" })}
                 </p>
               )}
             </Card>
           ))}
         </div>
         <div className="mt-6 flex flex-wrap gap-3">
-          <ActionButton href={rel.notes}>Release {rel.tag}</ActionButton>
-          <ActionButton href={rel.manifest}>Release manifest</ActionButton>
-          <ActionButton href={rel.sbom}>SBOM</ActionButton>
+          <ActionButton href={rel.notes}>{tt(lang, "download.release", { t: rel.tag })}</ActionButton>
+          <ActionButton href={rel.manifest}>{t(lang, "download.manifest")}</ActionButton>
+          <ActionButton href={rel.sbom}>{t(lang, "download.sbom")}</ActionButton>
         </div>
       </Section>
     </PortalLayout>

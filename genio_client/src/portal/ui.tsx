@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
+import { t, useLang } from "../lib/lang";
 
 /** Minimal portal primitives on --g5-* tokens. No framework, no magic. */
 
@@ -83,13 +84,14 @@ export function Accordion({ title, children }: { title: string; children: ReactN
 
 export function CodeBlock({ code, label }: { code: string; label?: string }) {
   const [copied, setCopied] = useState(false);
+  const [lang] = useLang();
   return (
-    <div className="min-w-0 max-w-full overflow-hidden rounded-[var(--g5-radius-m)] border border-[var(--g5-border)] bg-black/40">
+    <div className="min-w-0 max-w-full overflow-hidden rounded-[var(--g5-radius-m)] border border-white/15 bg-black/40">
       <div className="flex items-center justify-between gap-2 border-b border-[var(--g5-border)] px-3 py-1.5">
         <span className="min-w-0 flex-1 truncate font-mono text-[11px] text-white/50">{label ?? "command"}</span>
         <button
           type="button"
-          aria-label="Copy command to clipboard"
+          aria-label={t(lang, "a11y.copy")}
           className="g5-focusable min-h-[28px] shrink-0 rounded px-2 font-mono text-[11px] text-cyan-300 hover:text-cyan-200"
           onClick={() => {
             void navigator.clipboard?.writeText(code).then(() => {
@@ -98,7 +100,7 @@ export function CodeBlock({ code, label }: { code: string; label?: string }) {
             });
           }}
         >
-          {copied ? "copied ✓" : "copy"}
+          {copied ? t(lang, "a11y.copied") : t(lang, "a11y.copy")}
         </button>
       </div>
       <pre className="max-w-full overflow-x-auto p-3 font-mono text-xs text-emerald-200"><code>{code}</code></pre>
