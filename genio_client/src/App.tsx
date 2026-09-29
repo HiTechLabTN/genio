@@ -589,7 +589,41 @@ export default function App() {
   // Écran par défaut = mascotte plein écran (MascotStage, Partie A). Mode technique = UI v4.1 existante intacte.
   if (interfaceMode === "mascot") {
     return (
-      <ErrorBoundary name="MascotStage-root">
+      <ErrorBoundary
+        name="MascotStage-root"
+        // Break the reload death-loop: a device that crashes the 3D scene
+        // reopens in technique mode (chat + backend intact). In-session the
+        // fallback below offers the same escape without reload.
+        onCrash={() => {
+          try {
+            localStorage.setItem("genio.interfaceMode", "technique");
+          } catch {
+            /* storage unavailable — in-session buttons still work */
+          }
+        }}
+        fallback={
+          <div className="fixed inset-0 flex flex-col items-center justify-center gap-4 bg-[#020B1E] p-6 text-center">
+            <p className="font-mono text-sm text-amber-300/90">{t(lang, "boundary.crash")}</p>
+            <p className="max-w-md font-mono text-xs leading-relaxed text-white/60">{t(lang, "boundary.mascot_crash_hint")}</p>
+            <div className="mt-2 flex flex-wrap items-center justify-center gap-3">
+              <button
+                type="button"
+                onClick={() => setInterfaceMode("technique")}
+                className="rounded-full border border-white/20 bg-white/10 px-5 py-2.5 text-sm text-white hover:bg-white/15"
+              >
+                {t(lang, "app.mode_technique")}
+              </button>
+              <button
+                type="button"
+                onClick={() => setInterfaceMode("unified")}
+                className="rounded-full border border-cyan-400/30 bg-cyan-400/10 px-5 py-2.5 text-sm text-cyan-100 hover:bg-cyan-400/20"
+              >
+                {t(lang, "app.mode_unified")}
+              </button>
+            </div>
+          </div>
+        }
+      >
         <Suspense
           fallback={
             <div className="fixed inset-0 flex items-center justify-center bg-[#020B1E]">

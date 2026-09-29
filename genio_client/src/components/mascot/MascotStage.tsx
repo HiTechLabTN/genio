@@ -17,7 +17,7 @@ import { nextPose, SPRING_BY_CONTEXT, type PoseTarget } from "../../lib/mascotAn
 import { markPositive, getStats } from "../../lib/mascotMemory";
 import { startVoiceRecording, stopVoiceRecording, setIntermediateTranscript, speechRecognitionSupported } from "../../lib/audio";
 import type { AgentStatus, ChatEvent, Attachment } from "../../lib/types";
-import { useLang, t } from "../../lib/lang";
+import { useLang, t, mapError } from "../../lib/lang";
 
 interface MascotStageProps {
   chat: ChatEvent[];
@@ -175,7 +175,7 @@ export default function MascotStage({ chat, agentStatus, sendPrompt, onSwitchToT
         await startVoiceRecording((text) => setCaption(text));
         setListening(true);
       } catch (err: unknown) {
-        setMicError(err instanceof Error ? err.message : "Micro indisponible");
+        setMicError(mapError(lang, err instanceof Error ? err.message : "microphone").friendly);
       }
     }
   }, [listening, sendPrompt, pose, stopSpeak]);
@@ -258,10 +258,14 @@ export default function MascotStage({ chat, agentStatus, sendPrompt, onSwitchToT
     <div className="relative h-screen w-screen overflow-hidden bg-[#020B1E]">
       <AndalusianBackground />
 
-      {/* Real physics simulation — invisible, only computes position */}
+      {/* Real physics simulation — invisible, only computes position.
+          bare: if rapier/wasm fails (e.g. strict CSP), the boundary renders
+          null — a DOM fallback div inside this Canvas would throw an R3F
+          "Div" error and escalate into a full-screen crash. Without physics
+          the mascot simply stays centered (graceful degradation). */}
       <div className="pointer-events-none absolute inset-0 opacity-0">
         <Canvas>
-          <ErrorBoundary name="MascotPhysics">
+          <ErrorBoundary name="MascotPhysics" bare>
             <PhysicsDriver onPosition={(x, y) => setPos({ x, y })} target={targetRef} gainRef={gainRef} />
           </ErrorBoundary>
         </Canvas>
@@ -336,7 +340,7 @@ export default function MascotStage({ chat, agentStatus, sendPrompt, onSwitchToT
               ? "border-red-400/60 bg-red-500/20 shadow-[0_0_30px_rgba(248,113,113,0.5)]"
               : "border-cyan-400/40 bg-cyan-500/10 shadow-[0_0_24px_rgba(0,229,255,0.3)] hover:bg-cyan-500/20"
           }`}
-          aria-label={listening ? "Arrêter le micro" : "Parler à Genio"}
+          aria-label={listening ? t(lang, "mascot.mic_stop") : t(lang, "mascot.mic_start")}
         >
           {listening ? <MicOff className="h-6 w-6 text-red-200" /> : <Mic className="h-6 w-6 text-cyan-200" />}
         </button>
