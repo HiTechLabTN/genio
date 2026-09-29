@@ -5,6 +5,16 @@ import { VitePWA } from "vite-plugin-pwa";
 // @ts-expect-error process is a nodejs global
 const host = process.env.TAURI_DEV_HOST;
 
+// Local backend proxy (dev + preview ONLY): same-origin /ws + /api → 127.0.0.1:8000.
+// Lets a locally-served frontend reach the local daemon without touching CSP
+// and without inventing any new backend API. Production is unaffected: the
+// shipped static dist is served behind nginx/cloudflared, which already
+// proxies these same paths.
+const localBackendProxy = {
+  "/ws": { target: "ws://127.0.0.1:8000", ws: true, changeOrigin: true },
+  "/api": { target: "http://127.0.0.1:8000", changeOrigin: true },
+};
+
 // https://vite.dev/config/
 export default defineConfig(async () => ({
   plugins: [
@@ -75,6 +85,7 @@ export default defineConfig(async () => ({
     strictPort: true,
     host: "0.0.0.0",
     allowedHosts: ["genio.hitech.tn", "localhost", "127.0.0.1"],
+    proxy: localBackendProxy,
   },
   // Vite options tailored for Tauri development and only applied in `tauri dev` or `tauri build`
   //
@@ -85,6 +96,7 @@ export default defineConfig(async () => ({
     port: 1420,
     strictPort: true,
     host: host || false,
+    proxy: localBackendProxy,
     hmr: host
       ? {
           protocol: "ws",

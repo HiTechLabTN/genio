@@ -53,7 +53,19 @@ export function useGenioSocket(): UseGenioSocket {
     // track agent lifecycle
     if (clean.action === "prompt") setAgentStatus({ kind: "thinking" });
     if (clean.action === "kill") setAgentStatus({ kind: "idle" });
-    return ws.send(clean);
+    const ok = ws.send(clean);
+    if (clean.action === "prompt") {
+      if (ok) {
+        // Pause app-level pings while the run is in flight; resumed on
+        // answer/error/killed/close (protocol keepalive is untouched).
+        ws.setHeartbeatPaused(true);
+      } else {
+        // Never leave eternal "thinking" on a dead socket — caller surfaces it.
+        setAgentStatus({ kind: "idle" });
+      }
+    }
+    if (clean.action === "kill") ws.setHeartbeatPaused(false);
+    return ok;
   }, []);
 
   const sendPrompt = useCallback(
@@ -125,13 +137,15 @@ export function useGenioSocket(): UseGenioSocket {
 
   const scheduleReconnect = useCallback((target: ServerNode) => {
     if (!shouldReconnectRef.current) return;
-    if (document.hidden) return; // wait for visibilitychange
+    // Never drop the reconnect when the tab is hidden (headless/background):
+    // hidden timers are throttled by the browser but still fire, so recovery
+    // is delayed — never dead. The visibilitychange listener accelerates it.
     const attempt = reconnectAttemptsRef.current;
     const delay = Math.min(30000, 1000 * Math.pow(2, attempt));
     reconnectAttemptsRef.current = attempt + 1;
     if (reconnectTimerRef.current !== null) clearTimeout(reconnectTimerRef.current);
     reconnectTimerRef.current = window.setTimeout(async () => {
-      if (!shouldReconnectRef.current || document.hidden) return;
+      if (!shouldReconnectRef.current) return;
       // try reconnect
       try {
         // reuse internal connect without full disconnect reset of shouldReconnect
@@ -179,8 +193,13 @@ export function useGenioSocket(): UseGenioSocket {
               if ((chatEv as Record<string, unknown>).type === "tool_call") {
                 const toolName = extractToolName((chatEv as { command: string }).command || "");
                 setAgentStatus({ kind: "executing", tool: toolName });
-              } else if (chatEv.type === "answer" || chatEv.type === "artifact") setAgentStatus({ kind: "completed" });
-              else if (chatEv.type === "error" || chatEv.type === "killed") setAgentStatus({ kind: "idle" });
+              } else if (chatEv.type === "answer" || chatEv.type === "artifact") {
+                setAgentStatus({ kind: "completed" });
+                socketRef.current?.setHeartbeatPaused(false);
+              } else if (chatEv.type === "error" || chatEv.type === "killed") {
+                setAgentStatus({ kind: "idle" });
+                socketRef.current?.setHeartbeatPaused(false);
+              }
               return;
             }
             // Unknown tolerant fallback — but still purge pong/stats/thought
@@ -258,10 +277,13 @@ export function useGenioSocket(): UseGenioSocket {
               setAgentStatus({ kind: "executing", tool: toolName });
             } else if (chatEv.type === "answer" || chatEv.type === "artifact") {
               setAgentStatus({ kind: "completed" });
+              socketRef.current?.setHeartbeatPaused(false);
             } else if (chatEv.type === "error") {
               setAgentStatus({ kind: "idle" });
+              socketRef.current?.setHeartbeatPaused(false);
             } else if (chatEv.type === "killed") {
               setAgentStatus({ kind: "idle" });
+              socketRef.current?.setHeartbeatPaused(false);
             }
             return;
           }

@@ -30,9 +30,30 @@ export function buildWsUrl(target: ServerNode): string {
     // omit :443 for standard https
     return `${proto}://${host}/ws/agent${qs}`;
   }
+  // Local preview/dev page + local target → same-origin /ws/agent so the
+  // browser never touches :8000 directly (CSP-safe). The local Vite
+  // server proxies /ws → 127.0.0.1:8000; production nginx does the same.
+  // Cloud and explicit remote targets keep their direct URLs below.
+  if (isLocalPage() && LOCAL_DAEMON_HOSTS.has(host)) {
+    const proto = window.location.protocol === "https:" ? "wss" : "ws";
+    return `${proto}://${window.location.host}/ws/agent${qs}`;
+  }
   const proto = "ws";
   return `${proto}://${host}:${target.port}/ws/agent${qs}`;
 }
+
+/** True when the frontend page itself is served from this machine. */
+export function isLocalPage(): boolean {
+  try {
+    const h = window.location.hostname;
+    return h === "localhost" || h === "127.0.0.1";
+  } catch {
+    return false;
+  }
+}
+
+/** Daemon hostnames that live on this machine (Tailscale/DNS or loopback). */
+const LOCAL_DAEMON_HOSTS = new Set(["tn", "pop", "pop-os", "localhost", "127.0.0.1"]);
 
 const PING_INTERVAL_MS = 15_000;
 
@@ -115,9 +136,18 @@ export class GenioSocket {
   private startHeartbeat(): void {
     this.stopHeartbeat();
     const id = window.setInterval(() => {
-      if (this.isOpen) this.send({ action: "ping" });
+      // Paused while a prompt run is in flight (see setHeartbeatPaused):
+      // fewer concurrent sends on a saturated link, resumed when the run ends.
+      if (this.isOpen && !this.heartbeatPaused) this.send({ action: "ping" });
     }, PING_INTERVAL_MS);
     this.pings.add(id);
+  }
+
+  private heartbeatPaused = false;
+
+  /** Pause/resume the 15s app-level ping (protocol keepalive is untouched). */
+  setHeartbeatPaused(paused: boolean): void {
+    this.heartbeatPaused = paused;
   }
 
   private stopHeartbeat(): void {
@@ -142,6 +172,9 @@ export async function streamTelemetry(
     if (typeof window !== "undefined" && window.location.hostname !== "genio.hitech.tn") {
       url = `https://genio.hitech.tn/api/v1/telemetry`;
     }
+  } else if (isLocalPage() && LOCAL_DAEMON_HOSTS.has(target.host.trim())) {
+    // Local preview/dev page → same-origin /api (Vite proxies → 127.0.0.1:8000).
+    url = `/api/v1/telemetry`;
   } else {
     url = `http://${target.host}:${target.port}/api/v1/telemetry`;
   }

@@ -1,1 +1,191 @@
-{"environment":"vite preview :8098 (fresh build with fix), backend :8000 uvicorn (gemma4:12b, RTX 3060), Chrome headless isolated contexts","phase":"F — Proof Completion (continuation from dc81198)","project":"Genio Tunisian-first UX","results":[{"dir":"rtl","evidence":"01-landing-fresh-tn.png","lang":"ar (tu)","notes":"Hero, CTAs (جرّب Genio توة / ركّب Genio توّا), how-it-works, founder all TN. LIMITATION: Product nav Explore/Download/Install/Docs/Security in English.","status":"PASS","test":"landing-fresh-tn","viewport":"desktop"},{"dir":"rtl","evidence":"06-permissions-tunisian.png","language":"tu","notes":"Title, 4 permissions with why-descriptions, actions (أذن لكلّ / كمّل من غير أذونات / تخطّى التأهيل) all TN. Statuses mapped: غير متوفّر على الجهاز هذا / مسموح / متصل. Keyboard-only path verified.","status":"PASS","test":"permissions-tn","viewport":"desktop"},{"dir":"ltr","evidence":"07-language-fr.png","lang":"fr","notes":"Nav: Genio/Explorer/Sécurité/Docs/Télécharger/Installer Genio/App. No state reset (stayed /explore). No exception from switching. Body/footer remain English (portal limitation).","status":"PASS","test":"lang-fr","viewport":"desktop"},{"dir":"ltr","evidence":"08-language-en.png","lang":"en","notes":"Nav: Genio/Explore/Security/Docs/Download/Install Genio now/App.","status":"PASS","test":"lang-en","viewport":"desktop"},{"dir":"rtl","evidence":"09-language-back-tunisian.png","lang":"ar (tu)","notes":"Nav back to جينيو/استكشف/الأمان/الوثائق/تحميل/ركّب Genio توّا/التطبيق. No stale language.","status":"PASS","test":"lang-back-tn","viewport":"desktop"},{"evidence":"04-app-first-screen-stalled.png + console log","notes":"Splash looped forever pre-fix (inline onComplete recreated each render + blocked-:8000 retries re-render). FIXED via useCallback: splash completes ~2.2s on fresh load, verified splashGone:true.","status":"PASS","test":"splash-completes","viewport":"desktop"},{"evidence":"12-error-tunisian.png (toast visible) + chat transcript","notes":"Prompt echoed (you: شنوّة تنجم تعمللي؟), thinking state TN (جينيو يخمّم...), then TN toast, no answer. No raw errors/paths/tokens. mapError + hook toast verified TN.","status":"PASS","test":"prompt-submit-error-tn","viewport":"desktop"},{"evidence":"12-error-tunisian.png","notes":"Toast localized, chat fully TN (دردشة Genio / سكّر الدردشة / اسمع / ابعث / أكتب أو تحدث بالصوت). No secrets/paths/stack traces in UI.","status":"PASS","test":"error-ui-tn","viewport":"desktop"},{"evidence":"ws-direct-supporting.json","notes":"Answer received but drifts: TN opening (عسلامة) then Egyptian forms (بس الوقت ده، تبغين). Model/prompt quality issue; prompt modification forbidden → documented limitation. UI E2E remains BLOCKED by connectivity, NOT by language.","status":"UNVERIFIED","test":"tunisian-response-ui","viewport":"desktop"},{"evidence":"none (code: MascotStage lazy Canvas, R3F Div error msgid=147-149)","notes":"Clicking وضع الماسكوت crashes: R3F Div-in-Canvas bug. 3D arch modification forbidden → NOT fixed. Default fresh-user mode is technique (unaffected). Boundary fallback now TN (boundary.crash).","status":"FAIL","test":"mascot-3d-mode","viewport":"desktop"},{"evidence":"13-technical-mode.png","notes":"Mode buttons + descriptions TN, FAB TN, telemetry chips technical (allowed). Canvas area black in headless (avatar 2D/CSP blob-note, non-language observation).","status":"PASS","test":"technical-mode-dashboard","viewport":"desktop"},{"evidence":"10-mobile-390.png","measured_overflowX":0,"notes":"Measured via JS: scrollWidth==clientWidth==390. No horizontal overflow on app screen.","status":"PASS","test":"mobile-390-app","viewport":"390x844 emulated mobile+touch"},{"evidence":"11-install-tunisian.png","notes":"Loads, nav TN + switcher, honest preview-mode copy, real bootstrap command, no fake progress (PENDING/UNDERSTOOD). Body steps + footer English (portal limitation). Header v4.1.0 vs PUBLIC_RELEASE v5.0.0 noted. External https://genio.hitech.tn/install: HTTP 200, TN title.","status":"PASS","test":"install-page","viewport":"desktop"},{"evidence":"none (live key events + snapshots)","notes":"Tab order logical, visible focus (solid 2px outline), Enter advances auth→permissions→app keyboard-only, Escape closes chat. Labels TN. Live polite region in UnifiedShell; technique chat has none (observation). Reduced-motion toggle present (not exercised). No WCAG certification claimed.","status":"PASS","test":"accessibility-keyboard","viewport":"desktop"},{"evidence":"none (rg over touched UI files)","notes":"No tokens/API keys/secrets/paths/private keys. mapError never leaks raw internals; perm statuses mapped (raw device English never shown); boundary fallback drops component name.","status":"PASS","test":"security-ui","viewport":"n/a"},{"evidence":"build log 6.39s + served-chunk grep","notes":"tsc --noEmit 0 errors.","status":"PASS","test":"typescript"},{"evidence":"vitest output","notes":"10 files.","status":"PASS","test":"frontend","tests":"86/86"},{"evidence":"pytest output","notes":"61.49s, 7 warnings (pre-existing).","status":"PASS","test":"backend","tests":"227/227"},{"evidence":"vite build + served bundle verification","notes":"Served chunks verified to contain new keys (App-eRyjCZ5v.js, lang-BGPhnhzo.js).","status":"PASS","test":"build"}],"starting_commit":"dc81198","verdict":"NOT VERIFIED (with proof of UI localization complete; blockers: UI prompt→response connectivity + mascot 3D crash + model dialect drift)"}
+{
+ "environment": "vite preview :8098 (fresh build with fix), backend :8000 uvicorn (gemma4:12b, RTX 3060), Chrome headless isolated contexts",
+ "phase": "F — Proof Completion (continuation from dc81198)",
+ "project": "Genio Tunisian-first UX",
+ "results": [
+  {
+   "dir": "rtl",
+   "evidence": "01-landing-fresh-tn.png",
+   "lang": "ar (tu)",
+   "notes": "Hero, CTAs (جرّب Genio توة / ركّب Genio توّا), how-it-works, founder all TN. LIMITATION: Product nav Explore/Download/Install/Docs/Security in English.",
+   "status": "PASS",
+   "test": "landing-fresh-tn",
+   "viewport": "desktop"
+  },
+  {
+   "dir": "rtl",
+   "evidence": "06-permissions-tunisian.png",
+   "language": "tu",
+   "notes": "Title, 4 permissions with why-descriptions, actions (أذن لكلّ / كمّل من غير أذونات / تخطّى التأهيل) all TN. Statuses mapped: غير متوفّر على الجهاز هذا / مسموح / متصل. Keyboard-only path verified.",
+   "status": "PASS",
+   "test": "permissions-tn",
+   "viewport": "desktop"
+  },
+  {
+   "dir": "ltr",
+   "evidence": "07-language-fr.png",
+   "lang": "fr",
+   "notes": "Nav: Genio/Explorer/Sécurité/Docs/Télécharger/Installer Genio/App. No state reset (stayed /explore). No exception from switching. Body/footer remain English (portal limitation).",
+   "status": "PASS",
+   "test": "lang-fr",
+   "viewport": "desktop"
+  },
+  {
+   "dir": "ltr",
+   "evidence": "08-language-en.png",
+   "lang": "en",
+   "notes": "Nav: Genio/Explore/Security/Docs/Download/Install Genio now/App.",
+   "status": "PASS",
+   "test": "lang-en",
+   "viewport": "desktop"
+  },
+  {
+   "dir": "rtl",
+   "evidence": "09-language-back-tunisian.png",
+   "lang": "ar (tu)",
+   "notes": "Nav back to جينيو/استكشف/الأمان/الوثائق/تحميل/ركّب Genio توّا/التطبيق. No stale language.",
+   "status": "PASS",
+   "test": "lang-back-tn",
+   "viewport": "desktop"
+  },
+  {
+   "evidence": "04-app-first-screen-stalled.png + console log",
+   "notes": "Splash looped forever pre-fix (inline onComplete recreated each render + blocked-:8000 retries re-render). FIXED via useCallback: splash completes ~2.2s on fresh load, verified splashGone:true.",
+   "status": "PASS",
+   "test": "splash-completes",
+   "viewport": "desktop"
+  },
+  {
+   "evidence": "12-error-tunisian.png (toast visible) + chat transcript",
+   "notes": "Prompt echoed (you: شنوّة تنجم تعمللي؟), thinking state TN (جينيو يخمّم...), then TN toast, no answer. No raw errors/paths/tokens. mapError + hook toast verified TN.",
+   "status": "PASS",
+   "test": "prompt-submit-error-tn",
+   "viewport": "desktop"
+  },
+  {
+   "evidence": "12-error-tunisian.png",
+   "notes": "Toast localized, chat fully TN (دردشة Genio / سكّر الدردشة / اسمع / ابعث / أكتب أو تحدث بالصوت). No secrets/paths/stack traces in UI.",
+   "status": "PASS",
+   "test": "error-ui-tn",
+   "viewport": "desktop"
+  },
+  {
+   "evidence": "ws-direct-supporting.json",
+   "notes": "Answer received but drifts: TN opening (عسلامة) then Egyptian forms (بس الوقت ده، تبغين). Model/prompt quality issue; prompt modification forbidden → documented limitation. UI E2E remains BLOCKED by connectivity, NOT by language.",
+   "status": "UNVERIFIED",
+   "test": "tunisian-response-ui",
+   "viewport": "desktop"
+  },
+  {
+   "evidence": "none (code: MascotStage lazy Canvas, R3F Div error msgid=147-149)",
+   "notes": "Clicking وضع الماسكوت crashes: R3F Div-in-Canvas bug. 3D arch modification forbidden → NOT fixed. Default fresh-user mode is technique (unaffected). Boundary fallback now TN (boundary.crash).",
+   "status": "FAIL",
+   "test": "mascot-3d-mode",
+   "viewport": "desktop"
+  },
+  {
+   "evidence": "13-technical-mode.png",
+   "notes": "Mode buttons + descriptions TN, FAB TN, telemetry chips technical (allowed). Canvas area black in headless (avatar 2D/CSP blob-note, non-language observation).",
+   "status": "PASS",
+   "test": "technical-mode-dashboard",
+   "viewport": "desktop"
+  },
+  {
+   "evidence": "10-mobile-390.png",
+   "measured_overflowX": 0,
+   "notes": "Measured via JS: scrollWidth==clientWidth==390. No horizontal overflow on app screen.",
+   "status": "PASS",
+   "test": "mobile-390-app",
+   "viewport": "390x844 emulated mobile+touch"
+  },
+  {
+   "evidence": "11-install-tunisian.png",
+   "notes": "Loads, nav TN + switcher, honest preview-mode copy, real bootstrap command, no fake progress (PENDING/UNDERSTOOD). Body steps + footer English (portal limitation). Header v4.1.0 vs PUBLIC_RELEASE v5.0.0 noted. External https://genio.hitech.tn/install: HTTP 200, TN title.",
+   "status": "PASS",
+   "test": "install-page",
+   "viewport": "desktop"
+  },
+  {
+   "evidence": "none (live key events + snapshots)",
+   "notes": "Tab order logical, visible focus (solid 2px outline), Enter advances auth→permissions→app keyboard-only, Escape closes chat. Labels TN. Live polite region in UnifiedShell; technique chat has none (observation). Reduced-motion toggle present (not exercised). No WCAG certification claimed.",
+   "status": "PASS",
+   "test": "accessibility-keyboard",
+   "viewport": "desktop"
+  },
+  {
+   "evidence": "none (rg over touched UI files)",
+   "notes": "No tokens/API keys/secrets/paths/private keys. mapError never leaks raw internals; perm statuses mapped (raw device English never shown); boundary fallback drops component name.",
+   "status": "PASS",
+   "test": "security-ui",
+   "viewport": "n/a"
+  },
+  {
+   "evidence": "build log 6.39s + served-chunk grep",
+   "notes": "tsc --noEmit 0 errors.",
+   "status": "PASS",
+   "test": "typescript"
+  },
+  {
+   "evidence": "vitest output",
+   "notes": "10 files.",
+   "status": "PASS",
+   "test": "frontend",
+   "tests": "86/86"
+  },
+  {
+   "evidence": "pytest output",
+   "notes": "61.49s, 7 warnings (pre-existing).",
+   "status": "PASS",
+   "test": "backend",
+   "tests": "227/227"
+  },
+  {
+   "evidence": "vite build + served bundle verification",
+   "notes": "Served chunks verified to contain new keys (App-eRyjCZ5v.js, lang-BGPhnhzo.js).",
+   "status": "PASS",
+   "test": "build"
+  }
+ ],
+ "starting_commit": "dc81198",
+ "verdict": "TUNISIAN-FIRST UX VERIFIED (Gate 2: connectivity fixed, real TN response observed in UI; 3D mascot crash + portal-EN surfaces remain documented limitations)",
+ "gate2": {
+  "starting_commit": "9b8c95b",
+  "diagnosis": [
+   "Cloud WS (wss://genio.hitech.tn/ws/agent) works from sandbox (python OPEN+pong), but app-level answers timed out (~60s cloud path).",
+   "Local :8000 direct was CSP-blocked (connect-src 'self' wss: https:); same-origin /api returned SPA index.html 200 (false-healthy).",
+   "Root cause chain fixed: vite preview+dev proxy /ws+/api -> 127.0.0.1:8000; same-origin WS/API routing for local pages; local default target tn-local; JSON content-type guard.",
+   "Mid-generation socket death ~40-60s with server 1011 keepalive-ping-timeout (proven via python twin: with app-pings dies, without survives). Heartbeat auto-pauses during runs; reconnect no longer drops when hidden; failed sends surface TN error (no eternal thinking)."
+  ],
+  "results": [
+   {
+    "test": "same-origin-proxy-api",
+    "status": "PASS",
+    "notes": "curl /api/v1/status via :8098 returns real backend JSON (not SPA HTML)."
+   },
+   {
+    "test": "same-origin-proxy-ws",
+    "status": "PASS",
+    "notes": "python WS ws://localhost:8098/ws/agent OPEN+pong; full 130s answer through proxy."
+   },
+   {
+    "test": "csp-clean",
+    "status": "PASS",
+    "notes": "Zero connect-src violations after fix (only benign style-src preload notes)."
+   },
+   {
+    "test": "live-telemetry-local",
+    "status": "PASS",
+    "notes": "Browser shows real ping/CPU/RAM/GPU/Net from local daemon."
+   },
+   {
+    "test": "fresh-user-tunisian-response",
+    "status": "PASS",
+    "prompt": "شنوّة تنجم تعمللي؟",
+    "response_observed_in_ui": true,
+    "language_classification": "TUNISIAN",
+    "evidence": "14-tunisian-response.png",
+    "notes": "Full answer in fluent Tunisian Derja (متاع/نجم/برشا/نلوج/باش/شنوّ). Thought accordion TN-labeled. No toast, no error. Earlier Egyptian drift did NOT reproduce."
+   }
+  ]
+ }
+}

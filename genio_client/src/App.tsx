@@ -19,6 +19,7 @@ import IntroCinematic from "./components/intro/IntroCinematic";
 import CinematicPortalSplash from "./components/layout/CinematicPortalSplash";
 import CinematicAvatar from "./components/CinematicAvatar";
 import { t, useLang, mapError } from "./lib/lang";
+import { isLocalPage } from "./lib/ws";
 // MascotStage (graphe Three.js/GLB + useGLTF.preload au niveau module) en
 // lazy : le chunk 3D + les .glb ne se téléchargent QUE si l'utilisateur entre
 // réellement en mode mascotte. Fichiers Partie A intacts (aucune édition).
@@ -325,8 +326,14 @@ export default function App() {
     if (!splashReady) return;
     if (connected) return;
     let alive = true;
+    // Local preview/dev page → default to the local daemon (reached via the
+    // same-origin /ws + /api proxy, CSP-safe). Public web keeps HiTech Cloud.
+    // Native shells keep their Tailscale node. No protocol change.
+    const localPage = isLocalPage();
     const defaultNode: ServerNode = !isNative
-      ? { id: "hitech-cloud", label: "HiTech Cloud", host: "genio.hitech.tn", port: 443 }
+      ? (localPage
+        ? { id: "tn-local", label: "TN Server (local)", host: "127.0.0.1", port: 8000 }
+        : { id: "hitech-cloud", label: "HiTech Cloud", host: "genio.hitech.tn", port: 443 })
       : { id: "tn", label: "TN Server", host: "tn", port: 8000 };
     const statusUrl = !isNative ? "/api/v1/status" : `http://${defaultNode.host}:${defaultNode.port}/api/v1/status`;
     const ctrl = new AbortController();
@@ -335,7 +342,10 @@ export default function App() {
       .then(async (r) => {
         clearTimeout(to);
         if (!alive) return;
-        if (r.ok) {
+        // Guard: a static host may answer 200 with index.html (SPA fallback).
+        // Only treat real backend JSON as healthy, else we would connect blind.
+        const ct = r.headers.get("content-type") ?? "";
+        if (r.ok && ct.includes("json")) {
           try {
             const ok = await connect(defaultNode);
             if (!alive) return;
@@ -374,11 +384,11 @@ export default function App() {
     setTarget(null);
   }
 
-  function handleSendPrompt(text: string, attachments?: Attachment[]) {
+  function handleSendPrompt(text: string, attachments?: Attachment[]): boolean {
     lastPromptRef.current = text;
     taskProc.setIsMinimized(false);
     voice.stop();
-    sendPrompt(text, attachments);
+    return sendPrompt(text, attachments);
   }
 
   const mascotStatus = (() => {
@@ -408,6 +418,7 @@ export default function App() {
   const [fabRecording, setFabRecording] = useState(false);
   const [fabRecTimer, setFabRecTimer] = useState(0);
   const [fabMicError, setFabMicError] = useState<string | null>(null);
+  const [fabSendError, setFabSendError] = useState<string | null>(null);
   const [fabDragOver, setFabDragOver] = useState(false);
   const fabInputRef = useRef<HTMLInputElement>(null);
 
@@ -427,7 +438,10 @@ export default function App() {
   function fabHandleSubmit() {
     const text = fabValue.trim();
     if (!text && fabAttachments.length === 0) return;
-    if (text) handleSendPrompt(text, fabAttachments.length ? fabAttachments : undefined);
+    // Surface a dead socket immediately in Tunisian instead of eternal
+    // "thinking": sendPrompt returns false when nothing was transmitted.
+    const ok = text ? handleSendPrompt(text, fabAttachments.length ? fabAttachments : undefined) : true;
+    setFabSendError(ok ? null : mapError(lang, "network").friendly);
     setFabValue("");
     setFabAttachments([]);
   }
@@ -947,6 +961,7 @@ export default function App() {
               </div>
 
               {fabMicError && <p className="mx-3 pb-2 text-center font-mono text-[11px] text-rose-300">⚠ {fabMicError}</p>}
+              {fabSendError && <p className="mx-3 pb-2 text-center font-mono text-[11px] text-amber-300">⚠ {fabSendError}</p>}
               {fabRecording && (
                 <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mx-3 pb-3 text-center font-mono text-[10px] text-rose-300">
                   ● {t(lang, "errors.recording")} {fabRecTimer}s — {speechRecognitionSupported() ? t(lang, "errors.live_transcription") : t(lang, "errors.release_to_send")}
