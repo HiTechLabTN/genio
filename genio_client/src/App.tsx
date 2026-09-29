@@ -1,6 +1,6 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { Mic, Paperclip, Send, X, MessageCircle, Sparkles } from "lucide-react";
-import { Suspense, useEffect, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import GoogleAuthOnboarding, { shouldShowGoogleAuth } from "./components/GoogleAuthOnboarding";
 import PermissionOnboarding, { shouldShowOnboarding } from "./components/PermissionOnboarding";
 import UpdateModal from "./components/UpdateModal";
@@ -247,11 +247,11 @@ export default function App() {
   const [splashReady] = useState(true);
   // Splash MUST play on every visit to /app — no sessionStorage skip
   const [showCinematic, setShowCinematic] = useState<boolean>(() => true);
-  const handleCinematicComplete = () => {
+  const handleCinematicComplete = useCallback(() => {
     setShowCinematic(false);
     // Seamless handoff: ensure background ready event
     window.dispatchEvent(new CustomEvent("genio:ready"));
-  };
+  }, []);
   const handleIntroDone = () => {
     try {
       localStorage.setItem("genio:intro:seen", "1");
@@ -610,14 +610,14 @@ export default function App() {
             onClick={() => setInterfaceMode("technique")}
             className="rounded-full border border-white/10 bg-black/30 px-3 py-1.5 text-[11px] text-white/60 hover:bg-black/50 hover:text-white/90"
           >
-            ← Mode technique
+            ← {t(lang, "app.mode_technique")}
           </button>
           <button
             type="button"
             onClick={() => setInterfaceMode("mascot")}
             className="rounded-full border border-white/10 bg-black/30 px-3 py-1.5 text-[11px] text-white/60 hover:bg-black/50 hover:text-white/90"
           >
-            Mode mascotte
+            {t(lang, "app.mode_mascot")}
           </button>
         </div>
         <div className="min-h-0 flex-1">
@@ -650,16 +650,16 @@ export default function App() {
       <button
         onClick={() => setInterfaceMode("mascot")}
         className="absolute left-4 top-4 z-[70] flex items-center gap-1.5 rounded-full border border-white/10 bg-black/30 px-3 py-1.5 text-[11px] text-white/60 backdrop-blur hover:bg-black/50 hover:text-white/90"
-        title="Retour à la mascotte plein écran"
+        title={t(lang, "app.mode_mascot_title")}
       >
-        ← Mode mascotte
+        ← {t(lang, "app.mode_mascot")}
       </button>
       <button
         onClick={() => setInterfaceMode("unified")}
         className="absolute left-36 top-4 z-[70] flex items-center gap-1.5 rounded-full border border-cyan-400/20 bg-black/30 px-3 py-1.5 text-[11px] text-cyan-200/80 backdrop-blur hover:bg-black/50 hover:text-cyan-100"
-        title="Vue unifiée : conversation, présence et tâche"
+        title={t(lang, "app.mode_unified_title")}
       >
-        Mode unifié
+        {t(lang, "app.mode_unified")}
       </button>
       {/* z-0 IslamicPatterns — stays mounted for seamless handoff, CinematicPortalSplash reuses same void #020B1E */}
       <ErrorBoundary name="IslamicPatterns">
@@ -708,14 +708,14 @@ export default function App() {
                   <span className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-cyan-400 to-blue-500 text-white shadow-[0_0_12px_rgba(34,211,238,0.5)]">
                     <Sparkles size={14} />
                   </span>
-                  <span className="font-mono text-xs font-bold tracking-[0.18em] text-white">GENIO CHAT</span>
+                  <span className="font-mono text-xs font-bold tracking-[0.18em] text-white">{t(lang, "chat.title")}</span>
                   <span className="flex items-center gap-1.5 rounded-full border border-emerald-400/20 bg-emerald-500/10 px-2 py-0.5">
                     <span className="h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)] animate-pulse" />
                     <span className="font-mono text-[10px] font-bold tracking-[0.14em] text-emerald-200">متصل</span>
                   </span>
                 </div>
                 <button
-                  aria-label="Close chat"
+                  aria-label={t(lang, "errors.close_chat")}
                   onClick={() => setFabOpen(false)}
                   className="flex h-7 w-7 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white/70 backdrop-blur hover:bg-white/10 hover:text-white transition-colors"
                 >
@@ -727,7 +727,7 @@ export default function App() {
               <div className="mx-3 max-h-[32vh] min-h-[96px] overflow-auto rounded-xl border border-white/10 bg-black/25 p-3 backdrop-blur">
                 {chat.length === 0 ? (
                   <p className="text-center font-mono text-[11px] leading-relaxed text-white/40">
-                    ✨ Genio is listening — tape un message or speak ✨
+                    {t(lang, "chat.empty")}
                   </p>
                 ) : (
                   <div className="space-y-2">
@@ -922,7 +922,7 @@ export default function App() {
                     micTouchTsRef.current = Date.now();
                     void fabToggleMic();
                   }}
-                  aria-label={fabRecording ? "Stop recording" : "Microphone"}
+                  aria-label={fabRecording ? t(lang, "input.stop") : t(lang, "input.mic")}
                   className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border backdrop-blur transition-all ${
                     fabRecording
                       ? "border-rose-400 bg-rose-500/20 text-rose-200 shadow-[0_0_16px_rgba(244,63,94,0.4)] animate-pulse"
@@ -934,7 +934,7 @@ export default function App() {
 
                 <button
                   onClick={fabHandleSubmit}
-                  aria-label="Send"
+                  aria-label={t(lang, "input.send")}
                   disabled={!fabValue.trim() && fabAttachments.length === 0}
                   className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border backdrop-blur transition-all ${
                     !fabValue.trim() && fabAttachments.length === 0
@@ -983,14 +983,14 @@ export default function App() {
         {/* Kill/Disconnect kept accessible via keyboard only, hidden */}
         <button
           onClick={() => kill()}
-          aria-label="Kill agent"
+          aria-label={t(lang, "app.kill_agent")}
           className="sr-only"
           tabIndex={-1}
         >
-          Kill
+          {t(lang, "app.kill_agent")}
         </button>
-        <button onClick={handleDisconnect} aria-label="Disconnect" className="sr-only" tabIndex={-1}>
-          Disconnect
+        <button onClick={handleDisconnect} aria-label={t(lang, "app.disconnect")} className="sr-only" tabIndex={-1}>
+          {t(lang, "app.disconnect")}
         </button>
       </div>
 

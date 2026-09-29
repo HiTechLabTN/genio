@@ -2,7 +2,7 @@ import { motion } from "framer-motion";
 import { Camera, Mic, Wifi, HardDrive, ShieldCheck, Loader2, CheckCircle2, XCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 import { verifyCapabilities, requestAll, type PermissionSnapshot } from "../lib/permissions";
-import { useLang, t } from "../lib/lang";
+import { useLang, t, mapPermStatus } from "../lib/lang";
 
 interface Props {
   onComplete: (snapshot: PermissionSnapshot) => void;
@@ -88,7 +88,7 @@ export default function PermissionOnboarding({ onComplete, onSkip }: Props) {
               <Icon className={`h-5 w-5 shrink-0 ${status.granted ? "text-ok" : "text-amber-400"}`} />
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-medium text-slate-100">{label}</p>
-                <p className="truncate font-mono text-[11px] text-slate-500">{desc} — {status.message}</p>
+                <p className="truncate font-mono text-[11px] text-slate-500">{desc} — {mapPermStatus(lang, status.granted, status.message)}</p>
               </div>
               {status.granted ? <CheckCircle2 className="h-5 w-5 text-ok" /> : <XCircle className="h-5 w-5 text-rose-400" />}
             </div>

@@ -181,13 +181,33 @@ const STRINGS: Record<Lang, Record<string, string>> = {
     "mascot.listening": "يسمع...",
     "mascot.speaking": "يحكي...",
     "mascot.tap_to_speak": "اضغط باش تحكي",
-    "mascot.gesture_note": "strokes appris pour cet utilisateur",
+    "mascot.gesture_note": "حركات تعلّمها منك",
     "mascot.technical_mode": "الوضع التقني",
     // telemetry.*
     "telemetry.offline": "🔴 غير متصل",
     "telemetry.thinking": "🟡 جينيو يخمّم...",
     "telemetry.streaming": "🔵 يجاوب",
     "telemetry.ready": "🟢 متصل",
+    // app.* (App shell mode buttons + background actions)
+    "app.mode_technique": "الوضع التقني",
+    "app.mode_mascot": "وضع الماسكوت",
+    "app.mode_unified": "الوضع الموحّد",
+    "app.mode_mascot_title": "ارجع للماسكوت على كامل الشاشة",
+    "app.mode_unified_title": "عرض موحّد: محادثة وحضور ومهمّة",
+    "app.kill_agent": "وقّف الوكيل",
+    "app.disconnect": "افصل الاتصال",
+    // error boundary fallback
+    "boundary.crash": "المشهد طاح — وضع الأمان يخدم.",
+    // permission status values (device messages mapped, never raw English)
+    "perm.status_granted": "مسموح",
+    "perm.status_online": "متصل",
+    "perm.status_offline": "موش متصل",
+    "perm.status_denied": "مرفوض — شوف إعدادات الجهاز",
+    "perm.status_denied_retry": "مرفوض — تنجم تعاود تطلب",
+    "perm.status_unavailable": "غير متوفّر على الجهاز هذا",
+    // chat panel (FAB)
+    "chat.title": "دردشة Genio",
+    "chat.empty": "✨ Genio يسمع — اكتب رسالة ولا احكي ✨",
   },
   fr: {
     nav_home: "Genio",
@@ -355,6 +375,26 @@ const STRINGS: Record<Lang, Record<string, string>> = {
     "telemetry.thinking": "🟡 Genio réfléchit...",
     "telemetry.streaming": "🔵 Répond",
     "telemetry.ready": "🟢 Connecté",
+    // app.* (App shell mode buttons + background actions)
+    "app.mode_technique": "Mode technique",
+    "app.mode_mascot": "Mode mascotte",
+    "app.mode_unified": "Mode unifié",
+    "app.mode_mascot_title": "Retour à la mascotte plein écran",
+    "app.mode_unified_title": "Vue unifiée : conversation, présence et tâche",
+    "app.kill_agent": "Arrêter l'agent",
+    "app.disconnect": "Déconnecter",
+    // error boundary fallback
+    "boundary.crash": "La scène a planté — mode de secours actif.",
+    // permission status values (device messages mapped, never raw English)
+    "perm.status_granted": "Autorisé",
+    "perm.status_online": "En ligne",
+    "perm.status_offline": "Hors ligne",
+    "perm.status_denied": "Refusé — voir réglages système",
+    "perm.status_denied_retry": "Refusé — redemandable",
+    "perm.status_unavailable": "Indisponible sur cet appareil",
+    // chat panel (FAB)
+    "chat.title": "Discussion Genio",
+    "chat.empty": "✨ Genio écoute — écrivez ou parlez ✨",
   },
   en: {
     nav_home: "Genio",
@@ -522,6 +562,26 @@ const STRINGS: Record<Lang, Record<string, string>> = {
     "telemetry.thinking": "🟡 Genio thinking...",
     "telemetry.streaming": "🔵 Streaming",
     "telemetry.ready": "🟢 Ready",
+    // app.* (App shell mode buttons + background actions)
+    "app.mode_technique": "Technical mode",
+    "app.mode_mascot": "Mascot mode",
+    "app.mode_unified": "Unified mode",
+    "app.mode_mascot_title": "Back to fullscreen mascot",
+    "app.mode_unified_title": "Unified view: conversation, presence and task",
+    "app.kill_agent": "Kill agent",
+    "app.disconnect": "Disconnect",
+    // error boundary fallback
+    "boundary.crash": "Scene crashed — fallback active.",
+    // permission status values (device messages mapped, never raw English)
+    "perm.status_granted": "Granted",
+    "perm.status_online": "Online",
+    "perm.status_offline": "Offline",
+    "perm.status_denied": "Denied — check OS settings",
+    "perm.status_denied_retry": "Denied — can request again",
+    "perm.status_unavailable": "Unavailable on this device",
+    // chat panel (FAB)
+    "chat.title": "Genio Chat",
+    "chat.empty": "✨ Genio is listening — type or speak ✨",
   },
 };
 
@@ -607,4 +667,22 @@ export function mapError(lang: Lang, raw: string): { friendly: string; technical
   }
   // Generic fallback — never leak raw internals
   return { friendly: t(lang, "errors.generic"), technical: raw };
+}
+
+/**
+ * Map raw device permission status messages (English, from browser/OS APIs)
+ * to friendly localized labels. Raw strings are never shown to the user.
+ */
+export function mapPermStatus(lang: Lang, granted: boolean, message: string): string {
+  const s = (message || "").toLowerCase();
+  if (s.includes("online")) return t(lang, "perm.status_online");
+  if (s.includes("offline")) return t(lang, "perm.status_offline");
+  if (granted) return t(lang, "perm.status_granted");
+  if (s.includes("denied") && (s.includes("os settings") || s.includes("système") || s.includes("system"))) {
+    return t(lang, "perm.status_denied");
+  }
+  if (s.includes("denied") || s.includes("notallowed") || s.includes("permission")) {
+    return t(lang, "perm.status_denied_retry");
+  }
+  return t(lang, "perm.status_unavailable");
 }

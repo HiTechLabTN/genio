@@ -1,0 +1,10 @@
+{
+  "test": "backend-direct-ws-tunisian-prompt",
+  "role": "SUPPORTING ONLY — does not substitute UI prompt→response",
+  "transport": "ws://localhost:8000/ws/agent",
+  "prompt": "شنوّة تنجم تعمللي؟",
+  "status": "ANSWER_RECEIVED",
+  "answer": "عسلامة! أنا جينيو، المهندس المستقل للذكاء الاصطناعي في هايتيك لاب. بس الوقت ده مش موجود أي أدوات محددة لعمل شيء معين. لو كنت بتفضل تاني، شوّ اللي تبغين؟",
+  "language_assessment": "Arabic with Tunisian opening (عسلامة) but body drifts to Egyptian/Levantine forms (بس الوقت ده، تبغين). NOT pure Tunisian Derja. Model/prompt quality issue — model prompt modification is out of scope (forbidden).",
+  "latency_note": "answered within ~170s window (stats: 63 tokens @ 12.6 tok/s)"
+}
