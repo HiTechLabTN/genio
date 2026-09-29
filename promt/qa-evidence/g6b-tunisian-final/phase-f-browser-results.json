@@ -147,7 +147,7 @@
   }
  ],
  "starting_commit": "dc81198",
- "verdict": "TUNISIAN-FIRST UX VERIFIED (Gate 2: connectivity fixed, real TN response observed in UI; 3D mascot crash + portal-EN surfaces remain documented limitations)",
+ "verdict": "TUNISIAN-FIRST UX VERIFIED (Gate 3: crash isolated + backend lifecycle proven + public surfaces Tunisian-first + README rewritten; documented non-blocking limitations remain)",
  "gate2": {
   "starting_commit": "9b8c95b",
   "diagnosis": [
@@ -186,6 +186,67 @@
     "evidence": "14-tunisian-response.png",
     "notes": "Full answer in fluent Tunisian Derja (متاع/نجم/برشا/نلوج/باش/شنوّ). Thought accordion TN-labeled. No toast, no error. Earlier Egyptian drift did NOT reproduce."
    }
+  ]
+ },
+ "gate3": {
+  "starting_commit": "de9504f",
+  "crash_reproduced": true,
+  "crash_evidence": "fresh context gate3-repro: وضع الماسكوت -> body shows ONLY 'المشهد طاح — وضع الأمان يخدم.'; console R3F Div error + boundary log; user trapped (no buttons).",
+  "root_cause": "ErrorBoundary default fallback renders a DOM <div>; the MascotPhysics boundary sits INSIDE an R3F <Canvas>, so when rapier/wasm fails under strict CSP the fallback div itself throws 'Div is not part of the THREE namespace', escalating to the fullscreen MascotStage-root boundary. Whole app replaced, no escape, reload re-crashes (mode persisted).",
+  "fix": [
+   "ErrorBoundary bare+onCrash props",
+   "MascotPhysics bare (renders null, mascot static-degrades)",
+   "MascotStage-root custom fallback with working technique/unified escape buttons + persist-technique onCrash (breaks reload loop)",
+   "mascot mic aria + micError localized via mapError"
+  ],
+  "crash_fix_verified": "fresh context gate3-fix: mascot mode renders (holo rings, mic TN, escape TN), no crash; escape to technique works, backend still connected; mic aria 'احكي مع Genio' verified on final build.",
+  "e2e_response": "gate3-tunisian-response.png: fresh flow prompt -> full Tunisian answer rendered, no toast.",
+  "public_refactor": [
+   "setLang dispatches genio:lang (body propagation fixed, proven FR switch)",
+   "PortalLayout chrome (skip/menu/dialog/footer) + CodeBlock labels keyed",
+   "Landing converted to landing.* keys + switcher + dynamic dir/lang",
+   "InstallAssistant (install.* + locked-mirror-safe state layer)",
+   "DownloadCenter (download.*)",
+   "SecurityCenter 16 items (security.*)",
+   "ArchitectureExplorer 14 areas (explore.*)",
+   "ApiExplorer (api.*)",
+   "DocsViewer chrome (docs.*)",
+   "README rewritten Tunisian-first (was unrelated ghost content)"
+  ],
+  "routes_verified_tn": [
+   "landing",
+   "install",
+   "download",
+   "security",
+   "explore",
+   "api",
+   "docs"
+  ],
+  "language_roundtrip": "TN->FR->EN->TN on landing + portal with measured dir rtl/ltr/rtl",
+  "mobile_390": "landing + install overflowX=0 measured",
+  "regression": {
+   "tsc": "0 errors",
+   "vitest": "89/89",
+   "pytest": "227/227",
+   "build": "clean"
+  },
+  "evidence": [
+   "gate3-01-landing-tn.png",
+   "gate3-04-install-tn.png",
+   "gate3-07-security-tn.png",
+   "gate3-10-language-fr.png",
+   "gate3-11-language-en.png",
+   "gate3-12-language-back-tn.png",
+   "gate3-16-mobile-390.png",
+   "gate3-mascot-mode.png",
+   "gate3-tunisian-response.png",
+   "gate3-14-quiet-run.png (superseded)"
+  ],
+  "remaining_limitations": [
+   "doc corpus bodies stay as authored (EN); viewer chrome is TN",
+   "explore area titles stay technical EN nouns; prose TN",
+   "3D avatar GLB may not render under strict CSP/WebGL-less envs (degrades to 2.5D/fallback, never traps)",
+   "model dialect varies per generation (prompt frozen)"
   ]
  }
 }

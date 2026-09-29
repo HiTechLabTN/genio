@@ -78,8 +78,14 @@ def test_no_arbitrary_localhost_access():
 
 def test_download_links_official_or_unavailable():
     text = (SRC / "portal" / "pages" / "DownloadCenter.tsx").read_text()
-    assert "NOT AVAILABLE" in text
-    assert "No fake download button" in text
+    # Honesty strings live in the centralized language layer (Tunisian-first);
+    # the component must reference them (no silent English fallback gaps).
+    assert "download.unavailable" in text
+    assert "download.why_unavailable" in text
+    lang = (SRC / "lib" / "lang.ts").read_text()
+    for key in ("download.unavailable", "download.why_unavailable", "download.available"):
+        assert lang.count(f'"{key}"') >= 3, f"missing translation: {key}"
+    assert "No fake download button" in lang  # EN honesty copy preserved
     # artifact URLs come from product-data, not hardcoded mirrors
     assert "product-data" in text or "productData" in text
 

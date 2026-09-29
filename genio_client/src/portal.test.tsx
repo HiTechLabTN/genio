@@ -25,24 +25,24 @@ function renderAt(path: string, el: React.ReactNode): string {
 }
 
 describe("portal routes resolve", () => {
-  it("/download renders real artifacts only", () => {
+  it("/download renders real artifacts only (Tunisian-first)", () => {
     const html = renderAt("/download", <DownloadCenter />);
-    expect(html).toMatch(/Download Genio/);
-    expect(html).toMatch(/NOT AVAILABLE/);
-    expect(html).toMatch(/No fake download button/);
+    expect(html).toMatch(/حمّل Genio/);
+    expect(html).toMatch(/موش متوفّر/);
+    expect(html).toMatch(/ما فماش زر تحميل وهمي/);
     expect(html).toContain("github.com/HiTechLabTN/genio/releases");
     const pd = productData as { artifacts: { archive: string } };
     expect(pd.artifacts.archive).toContain("4.1.0");
   });
-  it("/explore shows blocked areas honestly", () => {
+  it("/explore shows blocked areas honestly (Tunisian-first)", () => {
     const html = renderAt("/explore", <ArchitectureExplorer />);
-    expect(html).toMatch(/BLOCKED/);
-    expect(html).toMatch(/CONTRACT READY \/ IMPL PENDING/);
+    expect(html).toMatch(/محظور/);
+    expect(html).toMatch(/العقد جاهز/);
   });
-  it("/security separates levels, no vague marketing", () => {
+  it("/security separates levels, no vague marketing (Tunisian-first)", () => {
     const html = renderAt("/security", <SecurityCenter />);
-    expect(html).toMatch(/PENDING/);
-    expect(html).toMatch(/Nothing here means/);
+    expect(html).toMatch(/يستنى/);
+    expect(html).toMatch(/آمن 100%/);
     expect(html).not.toMatch(/military-grade|bank-level|unhackable/i);
   });
   it("/api derives from schema (17 paths)", () => {
@@ -52,9 +52,9 @@ describe("portal routes resolve", () => {
     expect(html).toContain("/api/v1/status");
     expect(html).toContain("/ws/agent");
   });
-  it("/install is preview-labeled, no fake progress", () => {
+  it("/install is preview-labeled, no fake progress (Tunisian-first)", () => {
     const html = renderAt("/install", <InstallAssistant />);
-    expect(html).toMatch(/does not install anything itself/);
+    expect(html).toMatch(/هي بيدها ما تثبّت شيء/);
     expect(html).not.toMatch(/Downloading\.\.\./);
   });
   it("/docs index lists bundled guides + search", () => {
@@ -90,9 +90,9 @@ describe("a11y basics", () => {
     expect(html).toContain('href="#portal-main"');
     expect(html).toContain('id="portal-main"');
   });
-  it("copy buttons are labelled", () => {
+  it("copy buttons are labelled (Tunisian-first)", () => {
     const html = renderAt("/install", <InstallAssistant />);
-    expect(html).toContain('aria-label="Copy command to clipboard"');
+    expect(html).toContain('aria-label="انسخ الأمر"');
   });
 });
 
