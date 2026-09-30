@@ -26,10 +26,13 @@ def cmd_version(_args):
 
 
 def cmd_install(args):
-    from installer.detectors import software
     from installer.detectors.system import detect_ports
     from installer.discovery import find as discovery
     from installer.core.paths import DEFAULT_PORTS
+    from installer import i18n as _i18n
+    from installer.flow import run_install as _assistant_flow
+    from installer.flow import smoke as _smoke
+    from installer.assistant import Assistant as _Assistant
     prefix = args.prefix or str(default_prefix())
     runner = _runner(prefix)
     from installer.core.events import Emitter
@@ -37,14 +40,21 @@ def cmd_install(args):
     installs = discovery.discover(runner, prefix,
                                   extra_checkout=args.existing_checkout)
     plan = discovery.summarize(installs)
+    _lang = _i18n.resolve_lang(getattr(args, "lang", None))
+    _a = _Assistant(lang=_lang, interactive=False)
     if plan["action"] == "already-installed" and not args.prefix:
-        print(plan["message"])
+        if getattr(args, "assistant", False):
+            print(_a.t("already_ok"))
+        else:
+            print(plan["message"])
         print("Refusing to create a second installation (exit 11).")
         return EXIT_ALREADY_INSTALLED
     if plan["action"] == "repair-or-update" and not args.force:
         print(plan["message"])
         print("Refusing to overwrite a partial installation. "
               "Use repair/update, or --force to reinstall (backup first).")
+        if getattr(args, "assistant", False):
+            print(_a.t("resume_found"))
         emitter.emit("USER_ACTION_REQUIRED", {"reason": plan["action"]})
         return EXIT_ALREADY_INSTALLED
     if plan["action"] == "reconcile" and not args.prefix and not args.yes:
@@ -54,15 +64,23 @@ def cmd_install(args):
     if args.check:
         print(plan["message"])
         return EXIT_OK
+    if args.prefix and not args.force:
+        from installer.core.manifest import read_manifest as _read_man
+        _existing = _read_man(layout(prefix)["manifest"])
+        if _existing is not None:
+            if _existing.get("health") == "healthy":
+                print(_a.t("already_ok"))
+            else:
+                print(_a.t("resume_found"))
+            print("Refusing to overwrite an existing installation. "
+                  "Use repair/update, or --force to reinstall (backup first).")
+            return EXIT_ALREADY_INSTALLED
     emitter.emit("INSTALL_STARTED", {"prefix": prefix, "source": args.source})
-    emitter.emit("PREFLIGHT_STARTED", {})
-    sw = software.detect(runner)
-    if not sw["ok"]:
-        print(f"Missing required tools: {sw['missing_required']}")
-        emitter.emit("PREFLIGHT_RESULT", {"ok": False, "missing": sw["missing_required"]})
-        emitter.emit("INSTALL_FAILED", {}, error="INSTALL_DEPS_MISSING")
-        return 13
-    emitter.emit("PREFLIGHT_RESULT", {"ok": True})
+    # Assistant preflight: TN report, explain, consent, repair, verify, retry.
+    # Returns (exit_code, report); exit_code None means continue install.
+    flow_rc, flow_rep = _assistant_flow(args, runner, prefix, emitter)
+    if flow_rc is not None:
+        return flow_rc
     ports = dict(DEFAULT_PORTS)
     if args.api_port:
         ports["api"] = args.api_port
@@ -71,9 +89,9 @@ def cmd_install(args):
     for name, info in detect_ports(runner, ports).items():
         if not info["free"]:
             o = info["owner"]
-            print(f"WARN port {name}={info['port']} held by "
-                  f"pid={o.get('pid')} {o.get('process')} svc={o.get('service')}")
-    if not args.yes and not args.check:
+            print(_a.t("port_busy", name=name, port=info["port"]) +
+                  f" (pid={o.get('pid')} {o.get('process')} svc={o.get('service')})")
+    if not args.yes and not args.check and not getattr(args, "assistant", False):
         emitter.emit("USER_ACTION_REQUIRED", {"reason": "confirm-install"})
         ans = input(f"Install Genio into {prefix}? [y/N] ")
         if ans.strip().lower() != "y":
@@ -83,12 +101,14 @@ def cmd_install(args):
         emitter.emit("DOWNLOAD_STARTED", {"origin": args.source.split("/")[2]})
     from installer.installers import standalone
     try:
+        import shutil as _sh
+        _npm_ok = bool(_sh.which("npm") and _sh.which("node"))
         man = standalone.install(
             runner, prefix, args.source, args.version or "standalone",
             {"ports": ports, "api_key": args.api_key or "",
              "checksum": args.checksum or None,
              "force": args.force, "emitter": emitter,
-             "npm_ok": sw["tools"]["npm"]["present"] and sw["tools"]["node"]["present"]})
+             "npm_ok": _npm_ok})
     except InstallerError as e:
         print(f"INSTALL FAILED: {e} {e.hint}")
         emitter.emit("INSTALL_FAILED", {"detail": str(e)[:200]},
@@ -108,15 +128,52 @@ def cmd_install(args):
             print(f"Unit installed: {dest} (enable/start explicitly with systemctl)")
         except InstallerError as e:
             print(f"Service install skipped: {e} {e.hint}")
-    return EXIT_OK
+    # First-run experience: real smoke test + first useful interaction.
+    from installer.flow import smoke as _smoke2
+    from installer.assistant import Assistant as _Assistant2
+    _a2 = _Assistant2(lang=_lang, interactive=bool(getattr(args, "assistant", False)))
+    _assistant_mode = bool(getattr(args, "assistant", False))
+    print(_a2.t("smoke_start"))
+    sm = _smoke2(prefix, runner, lang=_lang)
+    smoke_ok = all(ok for _, ok, _ in sm)
+    for name, ok, detail in sm:
+        print(_a2.t("smoke_ok" if ok else "smoke_fail", detail=f"{name}: {detail}"))
+    if _assistant_mode:
+        print("")
+        print(_a2.t("success_1"))
+        print(_a2.t("success_2"))
+        print(_a2.t("success_3"))
+        print(_a2.t("start_cmd", cmd=f"{prefix}/bin/genio-serve  # or: python3 installer/genio doctor --prefix {prefix}"))
+        try:
+            from installer.assistant import NeedInput as _Need
+            choice = _a2.ask_choice(_a2.t("first_try"), [
+                ("try", _a2.t("first_try_yes")), ("no", _a2.t("first_try_no"))])
+        except _Need:
+            choice = None
+        if choice == "try":
+            print(_a2.t("first_diag"))
+            from installer import preflight as _pre
+            rep = _pre.preflight(runner, prefix=prefix)
+            for name in ("python3", "git", "pip", "venv", "docker"):
+                it = rep["items"].get(name, {})
+                mark = "✓" if it.get("state") == "AVAILABLE" else "⚠"
+                print(f"{mark} {name}: {it.get('detail', '?')}")
+            print(_a2.t("first_bye"))
+    return EXIT_OK if smoke_ok else 17
 
 
 def cmd_doctor(args):
     from installer.health import doctor as doc
+    from installer import i18n as _i18n
+    lang = _i18n.resolve_lang(getattr(args, "lang", None))
     res = doc.doctor(_runner(args.prefix), prefix=args.prefix, deep=args.deep)
+    smap = {"PASS": _i18n.t("doc_pass", lang), "WARN": _i18n.t("doc_warn", lang),
+            "FAIL": _i18n.t("doc_fail", lang), "NOT_APPLICABLE": _i18n.t("doc_na", lang)}
+    print(_i18n.t("doc_title", lang))
     for c in res["checks"]:
-        print(f"[{c['status']:>14}] {c['name']}: {c['detail']}")
-    print(f"verdict: {res['verdict']} ({res['fail']} FAIL)")
+        print(f"[{smap.get(c['status'], c['status']):>14}] {c['name']}: {c['detail']}")
+    verdict = _i18n.t("doc_healthy", lang) if not res["fail"] else _i18n.t("doc_attention", lang)
+    print(f"{_i18n.t('doc_verdict', lang)} {verdict} ({res['fail']} FAIL)")
     if args.json:
         print(json.dumps(res, indent=2))
     return EXIT_OK if not res["fail"] else 17
@@ -232,6 +289,12 @@ def build_parser():
     i.add_argument("--yes", action="store_true")
     i.add_argument("--check", action="store_true")
     i.add_argument("--interactive", action="store_true")
+    i.add_argument("--assistant", action="store_true",
+                   help="Tunisian assistant experience (consent, repair, verify, retry)")
+    i.add_argument("--dry-run", action="store_true",
+                   help="plan + simulate privileged repairs without changing the system")
+    i.add_argument("--lang", default="", choices=["", "tu", "fr", "en"],
+                   help="installer language (default: Tunisian)")
     i.add_argument("--api-key", default="")
     i.add_argument("--checksum", default="")
     i.add_argument("--api-port", type=int, default=0)
@@ -245,6 +308,7 @@ def build_parser():
     d.add_argument("--prefix", default="")
     d.add_argument("--deep", action="store_true")
     d.add_argument("--json", action="store_true")
+    d.add_argument("--lang", default="", choices=["", "tu", "fr", "en"])
     d.set_defaults(fn=cmd_doctor)
     s = sub.add_parser("status")
     s.add_argument("--prefix", default="")

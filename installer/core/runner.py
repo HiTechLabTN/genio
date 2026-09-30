@@ -49,6 +49,14 @@ class Runner:
         except subprocess.TimeoutExpired:
             self._log(f"TIMEOUT after {timeout}s: {check_text}")
             return {"ok": False, "rc": 124, "out": "", "err": "timeout"}
+        except FileNotFoundError as e:
+            # Missing executable is a DETECTED state, never a traceback:
+            # callers map rc=127 to MISSING and continue discovery.
+            self._log(f"NOT FOUND: {argv[0] if argv else '?'} ({e})")
+            return {"ok": False, "rc": 127, "out": "", "err": f"not found: {argv[0] if argv else '?'}"}
+        except OSError as e:
+            self._log(f"OS ERROR: {e}")
+            return {"ok": False, "rc": 126, "out": "", "err": str(e)[:200]}
         self._log(f"rc={p.returncode} out={p.stdout[-800:]} err={p.stderr[-800:]}")
         return {"ok": p.returncode == 0, "rc": p.returncode,
                 "out": p.stdout, "err": p.stderr}
