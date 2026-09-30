@@ -1,0 +1,70 @@
+{
+ "mission": "intelligent-installer",
+ "timestamp": "2026-09-30T13:58:32Z",
+ "starting_commit": "27977a1",
+ "os": {
+  "system": "Linux",
+  "distro": "Pop!_OS 22.04 LTS",
+  "arch": "x86_64",
+  "user": "hitech(non-root,sudo+docker)"
+ },
+ "reproduced_failures": [
+  "Runner FileNotFoundError escapes on missing binary",
+  "bootstrap need-git: raw 'missing required tool: git' exit 13",
+  "install CLI: raw Missing required tools: [...] exit 13",
+  "docker states undistinguished; pip/venv raw; eternal retry loop absent"
+ ],
+ "simulated_missing": {
+  "method": "isolated PATH without git/docker + --dry-run (zero system changes)",
+  "detected": [
+   "git=MISSING",
+   "docker=MISSING"
+  ],
+  "language": "Tunisian throughout, minimal packages git/docker.io, no git-all",
+  "consent": "sudo explanation + what-changes offered, user confirmed",
+  "verify": "honest FAIL after dry-run (nothing really installed): Docker still missing",
+  "retry": "bounded second round, then exit 13",
+  "tracebacks": 0,
+  "git-all": 0
+ },
+ "real_install_prefix": "/tmp/genio-e2e",
+ "real_install": {
+  "exit": 0,
+  "mode": "standalone",
+  "frontend": "PASS",
+  "venv": "Python 3.10.12",
+  "smoke": [
+   "manifest present",
+   "venv-python ok",
+   "doctor HEALTHY (0 FAIL)"
+  ]
+ },
+ "assistant_install_prefix": "/tmp/genio-fresh2",
+ "assistant_install": {
+  "exit": 0,
+  "welcome_tn": true,
+  "preflight_tn": true,
+  "smoke": "3/3",
+  "first_run": "diagnostic + invitation shown"
+ },
+ "resume": {
+  "explicit_prefix_existing": "honest refuse exit 11 with TN message",
+  "repair": "nothing-to-fix on healthy"
+ },
+ "doctor": {
+  "tu": "PASS",
+  "fr": "PASS",
+  "json_contract": "unchanged"
+ },
+ "tests": {
+  "installer": "51 passed",
+  "backend": "227 passed",
+  "frontend": "99 passed"
+ },
+ "limitations_UNVERIFIED": [
+  "real (non-dry) package repair via sudo apt (all present; uninstall forbidden)",
+  "truly clean OS (dev machine is the only host)",
+  "docker daemon repair execution (daemon already healthy)",
+  "curl|bash bootstrap over network (entry point preserved, not re-fetched)"
+ ]
+}

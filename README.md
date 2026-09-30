@@ -61,6 +61,14 @@ docker run -p 8080:8080 ghcr.io/hitechlabtn/genio:5.0.0
 curl -fsSL https://raw.githubusercontent.com/HiTechLabTN/genio/main/installer/bootstrap/install.sh | GENIO_REF=v5.0.0 bash
 ```
 
+**تحب Genio يعاونك خطوة بخطوة؟** (وضع المساعد — بالدارجة: يفحص جهازك، يفسّر الناقص، يطلب إذنك قبل أي تغيير، يصلّح ويتحقق ويعاود):
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/HiTechLabTN/genio/main/installer/bootstrap/install.sh | GENIO_REF=v5.0.0 GENIO_ASSISTANT=1 bash
+```
+
+كان حاجة ناقصة (Git، Docker...)، المساعد يقولك علاش لازمته ويقترح الحزمة الصغيرة المناسبة — و`genio doctor` يوريك حالة جهازك في أي وقت.
+
 **Windows / macOS / Android / iOS** — ❌ غير متوفر حالياً (ما فماش نسخ موقعة منشورة، وما نعرضوش أزرار وهمية).
 
 بعد التثبيت تحقق:
