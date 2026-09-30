@@ -5,20 +5,29 @@ import { effectiveMotion, loadPrefs } from "./preferences";
 import heroBase from "../assets/mascot/genio-hero.webp";
 import heroWave from "../assets/character/genio-wave.webp";
 import heroWink from "../assets/character/genio-wink.webp";
+import stateListen from "../assets/mascot/genio-listen.webp";
+import stateThink from "../assets/mascot/genio-think.webp";
+import stateSpeak from "../assets/mascot/genio-speak.webp";
 
 /**
- * CharacterView (canonical image character layer, G4.2).
+ * CharacterView (canonical image character layer, G4.2 + mascot-revamp).
  * Presence state → canonical reference image, never a reinterpretation:
- *   greeting/listening  → wave (canonical greeting pose)
- *   success/celebrating → wink (canonical playful pose)
- *   everything else     → base (canonical standing pose) + subtle UI treatment
- * (badges/glow/status). The artwork itself is never altered.
+ *   greeting/listening-wave... — see table. The bearded jebba identity
+ *   (hero/listen/think/speak) covers focused states; wave/wink cover
+ *   greeting/success. error/offline/disconnected reuse base with a
+ *   CSS treatment applied by the component (dim + tone ring) — no fake
+ *   assets, the artwork itself is never altered.
  */
 const STATE_IMAGE: Partial<Record<PresenceStateId, string>> = {
   greeting: heroWave,
-  listening: heroWave,
   asking_user: heroWave,
   attention: heroWave,
+  listening: stateListen,
+  understanding: stateThink,
+  thinking: stateThink,
+  planning: stateThink,
+  executing: stateThink,
+  explaining: stateSpeak,
   success: heroWink,
   celebrating: heroWink,
 };

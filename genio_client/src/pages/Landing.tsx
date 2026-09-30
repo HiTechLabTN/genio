@@ -106,7 +106,7 @@ export default function Landing() {
               <img
                 src={genioHero}
                 alt={t(lang, "landing.alt_hero")}
-                className="h-[320px] w-[320px] md:h-[420px] md:w-[420px] object-contain drop-shadow-[0_0_36px_rgba(34,211,238,0.35)]"
+                className="genio-hero-float h-[320px] w-[320px] md:h-[420px] md:w-[420px] object-contain drop-shadow-[0_0_36px_rgba(34,211,238,0.35)]"
                 style={{
                   WebkitMaskImage: "radial-gradient(ellipse at 50% 55%, black 68%, transparent 82%)",
                   maskImage: "radial-gradient(ellipse at 50% 55%, black 68%, transparent 82%)",
@@ -250,8 +250,7 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* FOOTER */}
-      <footer className="relative z-10 border-t border-white/10 bg-slate-950/40 px-5 py-8 text-center backdrop-blur md:px-8">
+      {/* FOOTER */}      <footer className="relative z-10 border-t border-white/10 bg-slate-950/40 px-5 py-8 text-center backdrop-blur md:px-8">
         <p style={{ fontFamily: "Reem Kufi, sans-serif" }} className="text-[13px] font-bold tracking-wide text-white/80">
           {t(lang, "landing.footer_made")}
         </p>
@@ -264,6 +263,9 @@ export default function Landing() {
           <a href="https://github.com/HiTechLabTN/genio" className="text-white/60 hover:text-white">GitHub</a>
         </div>
       </footer>
+      <style>{`@keyframes genio-hero-float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+        .genio-hero-float { animation: genio-hero-float 5s ease-in-out infinite; }
+        @media (prefers-reduced-motion: reduce) { .genio-hero-float { animation: none; } }`}</style>
     </div>
   );
 }

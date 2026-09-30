@@ -274,6 +274,14 @@ export default function UnifiedShell(props: UnifiedProps) {
     return () => window.clearInterval(id);
   }, [runStart === null]);
 
+  const lastAnswer = [...props.chat].reverse().find((e) => e.type === "answer");
+  const lastThought = [...props.chat].reverse().find((e) => e.type === "thought");
+  // Real outcome facts: an answer with no active task and no error IS a
+  // completed run (drives COMPLETE/wink); a real error IS the error state.
+  // Never fabricated: both derive strictly from chat events + error prop.
+  const lastOutcome: "success" | "error" | undefined =
+    props.error ? "error" : (!props.taskActive && lastAnswer?.text ? "success" : undefined);
+
   const presence: GenioPresenceState = resolvePresence({    socket: props.connected ? "connected" : props.socketState,
     agent: props.agentStatusKind,
     streaming: props.streaming,
@@ -281,7 +289,7 @@ export default function UnifiedShell(props: UnifiedProps) {
     taskActive: props.taskActive,
     needsInput: props.agentStatusKind === "awaiting_input",
     error: props.error,
-    lastOutcome: undefined,
+    lastOutcome,
     // Real client-observed session age (mount time) — greeting shows on fresh loads.
     sessionAgeMin: (Date.now() - mountRef.current) / 60000,
   });
@@ -299,7 +307,7 @@ export default function UnifiedShell(props: UnifiedProps) {
     toolActive: props.chat.some((e) => e.type === "tool_call"),
     needsInput: props.agentStatusKind === "awaiting_input",
     error: props.error,
-    lastOutcome: undefined,
+    lastOutcome,
     sessionAgeMin: (Date.now() - mountRef.current) / 60000,
   });
   // Typed task model from real chat events (progress UNKNOWN unless backend measures).
@@ -311,8 +319,6 @@ export default function UnifiedShell(props: UnifiedProps) {
     events: props.chat,
   });
 
-  const lastAnswer = [...props.chat].reverse().find((e) => e.type === "answer");
-  const lastThought = [...props.chat].reverse().find((e) => e.type === "thought");
   const offline = props.online === false || (!props.connected && props.socketState === "disconnected");
   const failed = presence.semanticState === "error" || presence.semanticState === "disconnected";
 

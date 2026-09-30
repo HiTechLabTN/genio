@@ -100,4 +100,43 @@ describe("fresh mount greets honestly", () => {
     expect(html).toContain("عسلامة! أنا Genio");
     expect(html).toContain("genio-wave");
   });
+  it("real completed answer drives success state with wink image (no fake completion)", async () => {
+    const { renderToStaticMarkup: render } = await import("react-dom/server");
+    const React = await import("react");
+    const { default: UnifiedShell } = await import("./unified/UnifiedShell");
+    const done = {
+      chat: [
+        { type: "user", text: "شنوّة تنجم تعمللي؟" },
+        { type: "answer", text: "عسلامة! أنا جينيو." },
+      ],
+      agentStatusKind: "completed", socketState: "connected",
+      streaming: false, connected: true, telemetry: null, taskActive: false,
+    } as const;
+    const html = render(
+      React.createElement(
+        (await import("react-router-dom")).MemoryRouter, null,
+        React.createElement(UnifiedShell, done as never)
+      )
+    );
+    expect(html).toContain("كمّلت المهمّة");
+    expect(html).toContain("genio-wink");
+  });
+  it("active task with no answer never claims completion", async () => {
+    const { renderToStaticMarkup: render } = await import("react-dom/server");
+    const React = await import("react");
+    const { default: UnifiedShell } = await import("./unified/UnifiedShell");
+    const busy = {
+      chat: [{ type: "user", text: "شنوّة تنجم تعمللي؟" }],
+      agentStatusKind: "thinking", socketState: "connected",
+      streaming: false, connected: true, telemetry: null, taskActive: true,
+    } as const;
+    const html = render(
+      React.createElement(
+        (await import("react-router-dom")).MemoryRouter, null,
+        React.createElement(UnifiedShell, busy as never)
+      )
+    );
+    expect(html).not.toContain("كمّلت المهمّة");
+    expect(html).not.toContain("genio-wink");
+  });
 });

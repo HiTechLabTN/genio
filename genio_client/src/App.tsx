@@ -20,6 +20,7 @@ import CinematicPortalSplash from "./components/layout/CinematicPortalSplash";
 import CinematicAvatar from "./components/CinematicAvatar";
 import { t, useLang, mapError } from "./lib/lang";
 import { isLocalPage } from "./lib/ws";
+import LivingMascot, { type LivingVisual } from "./components/mascot/LivingMascot";
 // MascotStage (graphe Three.js/GLB + useGLTF.preload au niveau module) en
 // lazy : le chunk 3D + les .glb ne se téléchargent QUE si l'utilisateur entre
 // réellement en mode mascotte. Fichiers Partie A intacts (aucune édition).
@@ -399,6 +400,24 @@ export default function App() {
     if (agentStatus.kind === "completed") return "completed";
     return "idle";
   })();
+  // Living 2D anchor: real presence → visual state + localized status line.
+  // Offline takes precedence; completed shows success; everything else mirrors.
+  const livingVisual: LivingVisual =
+    !connected && !target ? "offline"
+    : mascotStatus === "listening" ? "listening"
+    : mascotStatus === "thinking" ? "thinking"
+    : mascotStatus === "executing" ? "working"
+    : mascotStatus === "answering" ? "speaking"
+    : mascotStatus === "completed" ? "success"
+    : "idle";
+  const livingText =
+    !connected && !target ? t(lang, "shell.disconnected")
+    : mascotStatus === "listening" ? t(lang, "shell.listening")
+    : mascotStatus === "thinking" ? t(lang, "shell.thinking")
+    : mascotStatus === "executing" ? t(lang, "shell.executing")
+    : mascotStatus === "answering" ? t(lang, "shell.explaining")
+    : mascotStatus === "completed" ? t(lang, "shell.success")
+    : t(lang, "shell.ready");
   const showV3Portal = (connected && target) || isGeminiCloud;
   // Audio reactivity: answering/executing + listening -> pulsing 0.38-0.63 for LiveGenio
   const [audioLevelBump, setAudioLevelBump] = useState(0);
@@ -709,6 +728,12 @@ export default function App() {
       >
         {t(lang, "app.mode_unified")}
       </button>
+      {/* Living 2D anchor — canonical character mapped to real presence.
+          Pure DOM/CSS (never Canvas): fills the void when WebGL/3D is down,
+          pointer-events-none so chat/FAB stay fully usable. */}
+      <div className="pointer-events-none absolute left-1/2 top-16 z-[55] -translate-x-1/2 origin-top scale-[0.6] sm:scale-90 lg:scale-100">
+        <LivingMascot visual={livingVisual} statusText={livingText} size={230} />
+      </div>
       {/* z-0 IslamicPatterns — stays mounted for seamless handoff, CinematicPortalSplash reuses same void #020B1E */}
       <ErrorBoundary name="IslamicPatterns">
         <div className="absolute inset-0 z-0">

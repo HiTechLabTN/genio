@@ -94,20 +94,25 @@ describe("canonical image mapping", () => {
   it("maps key states to canonical reference images", async () => {
     const { imageForState } = await import("./PresenceAvatar");
     expect(imageForState("greeting")).toMatch(/genio-wave/);
-    expect(imageForState("listening")).toMatch(/genio-wave/);
+    expect(imageForState("listening")).toMatch(/genio-listen/);
     expect(imageForState("success")).toMatch(/genio-wink/);
     expect(imageForState("celebrating")).toMatch(/genio-wink/);
-    expect(imageForState("thinking")).toMatch(/genio-hero/);
-    expect(imageForState("executing")).toMatch(/genio-hero/);
+    expect(imageForState("thinking")).toMatch(/genio-think/);
+    expect(imageForState("executing")).toMatch(/genio-think/);
+    expect(imageForState("explaining")).toMatch(/genio-speak/);
+    expect(imageForState("understanding")).toMatch(/genio-think/);
+    expect(imageForState("idle")).toMatch(/genio-hero/);
+    expect(imageForState("error")).toMatch(/genio-hero/);
+    expect(imageForState("disconnected")).toMatch(/genio-hero/);
   });
-  it("greeting avatar renders the wave image, thinking the base", async () => {
+  it("greeting avatar renders the wave image, thinking the think image", async () => {
     const { renderToStaticMarkup: render } = await import("react-dom/server");
     const React = await import("react");
     const { default: PresenceAvatar } = await import("./PresenceAvatar");
     const wave = render(React.createElement(PresenceAvatar, { presence: { semanticState: "greeting", intensity: "low" } }));
     expect(wave).toContain("genio-wave");
-    const base = render(React.createElement(PresenceAvatar, { presence: { semanticState: "thinking", intensity: "low" } }));
-    expect(base).toContain("genio-hero");
-    expect(base).not.toContain("genio-wave");
+    const think = render(React.createElement(PresenceAvatar, { presence: { semanticState: "thinking", intensity: "low" } }));
+    expect(think).toContain("genio-think");
+    expect(think).not.toContain("genio-wave");
   });
 });

@@ -43,18 +43,18 @@ describe("sanitization", () => {
 });
 
 describe("mascot", () => {
-  it("renders canonical image with state label, keyboard operable", () => {
+  it("renders canonical image with localized state label, keyboard operable", () => {
     const html = render(
       <MemoryRouter><Mascot presence={{ semanticState: "thinking", intensity: "low" }} engine="THINKING" size={72} /></MemoryRouter>
     );
-    expect(html).toContain('aria-label="Genio, thinking (thinking)"');
-    expect(html).toContain("genio-hero");
+    expect(html).toContain('aria-label="Genio يخمّم"');
+    expect(html).toContain("genio-think");
     expect(html).toContain("tabindex=\"0\"");
   });
   it("interaction never changes system state (no handlers beyond attention)", () => {
     const html = render(
       <MemoryRouter><Mascot presence={{ semanticState: "idle", intensity: "low" }} engine="READY" size={56} /></MemoryRouter>
     );
-    expect(html).toContain("visual attention only");
+    expect(html).toContain('aria-label="Genio حاضر"');
   });
 });
