@@ -66,5 +66,46 @@
   "truly clean OS (dev machine is the only host)",
   "docker daemon repair execution (daemon already healthy)",
   "curl|bash bootstrap over network (entry point preserved, not re-fetched)"
- ]
+ ],
+ "final_gate": {
+  "timestamp": "2026-09-30T21:44:41Z",
+  "ref_matrix": {
+   "main": "branch -> a3499846ff388869151a2971a1404692c2adc177",
+   "v5.0.0": "tag -> 891c5efbd2cca805cf6ffdc137483581cdc262b7",
+   "full_SHA_4991070": "commit -> exact match",
+   "short_SHA_4991070": "commit via GitHub API -> full SHA -> match",
+   "bogus": "fail-closed TN message, exit 14"
+  },
+  "curl_bash_assistant": {
+   "exit": 0,
+   "lang": "fr (locale fallback, correct)",
+   "install": "real, frontend PASS, smoke 3/3"
+  },
+  "docker_states_live": {
+   "daemon_down": "proven via dead socket (real CLI message)",
+   "permission": "unit-tested verbatim message (no spare user available)"
+  },
+  "doctor_json_clean": true,
+  "doctor_shared_engine": true,
+  "start_cmd_fixed": "venv/bin/python repo/genio_server.py (was invented bin/genio-serve)",
+  "regression": {
+   "tsc": "0 errors",
+   "installer": "54 passed",
+   "backend": "227 passed",
+   "frontend": "99 passed",
+   "build": "clean 9.39s"
+  },
+  "exit_codes": {
+   "OK": 0,
+   "DEPS_MISSING": 13,
+   "USER_ABORT": 22,
+   "ALREADY": 11,
+   "UNKNOWN_REF": 14
+  },
+  "unverified": [
+   "real sudo package repair (present deps; uninstall forbidden)",
+   "truly clean OS",
+   "docker daemon repair execution"
+  ]
+ }
 }

@@ -61,6 +61,8 @@ docker run -p 8080:8080 ghcr.io/hitechlabtn/genio:5.0.0
 curl -fsSL https://raw.githubusercontent.com/HiTechLabTN/genio/main/installer/bootstrap/install.sh | GENIO_REF=v5.0.0 bash
 ```
 
+`GENIO_REF` يقبل branch (`main`) ولا tag (`v5.0.0`) ولا commit SHA (كامل ولا مختصر) — المثبت يفرّق بينهم ويتحقق من الـ SHA. للتحقق من ref بدون تثبيت: `GENIO_REF=<ref> GENIO_RESOLVE_ONLY=1 bash installer/bootstrap/install.sh`.
+
 **تحب Genio يعاونك خطوة بخطوة؟** (وضع المساعد — بالدارجة: يفحص جهازك، يفسّر الناقص، يطلب إذنك قبل أي تغيير، يصلّح ويتحقق ويعاود):
 
 ```bash
