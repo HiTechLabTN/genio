@@ -215,3 +215,34 @@ def test_p_smoke_structure():
         assert "manifest" in names and "venv-python" in names
         # Empty prefix: manifest missing -> detected, not crashed.
         assert res[0][1] is False
+
+
+def test_l_doctor_shares_preflight_engine():
+    import pathlib
+    src = pathlib.Path("installer/health/doctor.py").read_text()
+    assert "preflight.preflight" in src or "preflight import" in src or "import preflight" in src
+    from installer.health import doctor as doc
+    res = doc.doctor(Runner())
+    names = [c["name"] for c in res["checks"]]
+    assert "tool:git" in names and "tool:docker" in names
+    assert all(c["status"] in ("PASS", "WARN", "FAIL", "NOT_APPLICABLE") for c in res["checks"])
+
+
+def test_m_doctor_json_clean():
+    import json
+    import subprocess
+    import sys
+    p = subprocess.run([sys.executable, "installer/genio", "doctor", "--json"],
+                       capture_output=True, text=True, timeout=120)
+    # stdout must be pure JSON (human lines go to stderr in --json mode).
+    d = json.loads(p.stdout)
+    assert "checks" in d and "verdict" in d
+
+
+def test_ref_kinds_never_branch_for_sha():
+    import pathlib
+    src = pathlib.Path("installer/bootstrap/install.sh").read_text()
+    assert 'REF_KIND="commit"' in src
+    assert "clone --branch" in src
+    # The SHA path must not pass the ref to --branch.
+    assert src.count('fetch --depth 1 origin "$GENIO_REF"') >= 1

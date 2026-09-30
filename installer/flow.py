@@ -252,14 +252,31 @@ def run_install(args, runner, prefix, emitter):
                     return EXIT_DEPS_MISSING, rep
         else:
             # Non-interactive: report everything + exact minimal fix, no sudo.
+            from installer import packages as _pkg3
             from installer.core.errors import EXIT_DEPS_MISSING as _ED
+            _fam3 = _pkg3.family_for(rep["os"].get("distro_id"),
+                                     rep["os"].get("package_manager"))
+            _hint3 = " / ".join(" ".join(c) for c in
+                                _pkg3.plan_install(_fam3, ["git"])[:1]) if _fam3 else \
+                "install git + python3 + docker manually for your OS"
+            a.say(a.t("deps_final_fail", missing=", ".join(rep["needs_repair"]),
+                      hint=_hint3))
             emitter.emit("PREFLIGHT_RESULT", {"ok": False,
                                              "missing": rep["needs_repair"]})
             return _ED, rep
         if rep.get("needs_repair"):
+            from installer import packages as _pkg2
+            _fam = _pkg2.family_for(rep["os"].get("distro_id"),
+                                    rep["os"].get("package_manager"))
+            _hint = " / ".join(" ".join(c) for c in
+                               _pkg2.plan_install(_fam, ["git"])[:1]) if _fam else \
+                "install git + python3 + docker manually for your OS"
+            a.say(a.t("deps_final_fail", missing=", ".join(rep["needs_repair"]),
+                      hint=_hint))
             emitter.emit("PREFLIGHT_RESULT", {"ok": False,
                                              "missing": rep["needs_repair"]})
-            return EXIT_DEPS_MISSING, rep
+            from installer.core.errors import EXIT_DEPS_MISSING as _EDM
+            return _EDM, rep
     emitter.emit("PREFLIGHT_RESULT", {"ok": True})
     if a.interactive:
         a.say(a.t("device_ready"))

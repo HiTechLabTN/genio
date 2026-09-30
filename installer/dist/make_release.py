@@ -16,7 +16,12 @@ from pathlib import Path
 
 
 def _run(argv, cwd):
-    p = subprocess.run(argv, cwd=str(cwd), capture_output=True, text=True, timeout=300)
+    try:
+        p = subprocess.run(argv, cwd=str(cwd), capture_output=True, text=True, timeout=300)
+    except FileNotFoundError:
+        raise SystemExit(f"missing required tool: {argv[0]}")
+    except (OSError, subprocess.TimeoutExpired) as e:
+        raise SystemExit(f"command failed: {' '.join(argv)}: {e}")
     if p.returncode != 0:
         raise SystemExit(f"command failed: {' '.join(argv)}: {p.stderr[-300:]}")
     return p.stdout.strip()

@@ -47,12 +47,11 @@ def cmd_install(args):
             print(_a.t("already_ok"))
         else:
             print(plan["message"])
-        print("Refusing to create a second installation (exit 11).")
+        print(_a.t("refuse_second"))
         return EXIT_ALREADY_INSTALLED
     if plan["action"] == "repair-or-update" and not args.force:
         print(plan["message"])
-        print("Refusing to overwrite a partial installation. "
-              "Use repair/update, or --force to reinstall (backup first).")
+        print(_a.t("refuse_overwrite"))
         if getattr(args, "assistant", False):
             print(_a.t("resume_found"))
         emitter.emit("USER_ACTION_REQUIRED", {"reason": plan["action"]})
@@ -72,8 +71,7 @@ def cmd_install(args):
                 print(_a.t("already_ok"))
             else:
                 print(_a.t("resume_found"))
-            print("Refusing to overwrite an existing installation. "
-                  "Use repair/update, or --force to reinstall (backup first).")
+            print(_a.t("refuse_overwrite"))
             return EXIT_ALREADY_INSTALLED
     emitter.emit("INSTALL_STARTED", {"prefix": prefix, "source": args.source})
     # Assistant preflight: TN report, explain, consent, repair, verify, retry.
@@ -125,9 +123,9 @@ def cmd_install(args):
             text = systemd.unit_text(prefix, lay["repo"], lay["venv"],
                                      lay["env_file"], ports.get("api", 8000))
             dest = systemd.install_unit(runner, "genio-standalone.service", text)
-            print(f"Unit installed: {dest} (enable/start explicitly with systemctl)")
+            print(_a.t("service_installed", v=dest))
         except InstallerError as e:
-            print(f"Service install skipped: {e} {e.hint}")
+            print(_a.t("service_skipped"), f"{e} {e.hint}")
     # First-run experience: real smoke test + first useful interaction.
     from installer.flow import smoke as _smoke2
     from installer.assistant import Assistant as _Assistant2
@@ -143,7 +141,7 @@ def cmd_install(args):
         print(_a2.t("success_1"))
         print(_a2.t("success_2"))
         print(_a2.t("success_3"))
-        print(_a2.t("start_cmd", cmd=f"{prefix}/bin/genio-serve  # or: python3 installer/genio doctor --prefix {prefix}"))
+        print(_a2.t("start_cmd", cmd=_a2.t("start_cmd_real", prefix=prefix)))
         try:
             from installer.assistant import NeedInput as _Need
             choice = _a2.ask_choice(_a2.t("first_try"), [
@@ -165,15 +163,20 @@ def cmd_install(args):
 def cmd_doctor(args):
     from installer.health import doctor as doc
     from installer import i18n as _i18n
+    import sys as _sys
     lang = _i18n.resolve_lang(getattr(args, "lang", None))
     res = doc.doctor(_runner(args.prefix), prefix=args.prefix, deep=args.deep)
     smap = {"PASS": _i18n.t("doc_pass", lang), "WARN": _i18n.t("doc_warn", lang),
             "FAIL": _i18n.t("doc_fail", lang), "NOT_APPLICABLE": _i18n.t("doc_na", lang)}
-    print(_i18n.t("doc_title", lang))
+    # --json stays machine-clean: human lines go to stderr, JSON to stdout.
+    _human = _sys.stderr if args.json else None
+    def _emit(text):
+        print(text, file=_human) if _human else print(text)
+    _emit(_i18n.t("doc_title", lang))
     for c in res["checks"]:
-        print(f"[{smap.get(c['status'], c['status']):>14}] {c['name']}: {c['detail']}")
+        _emit(f"[{smap.get(c['status'], c['status']):>14}] {c['name']}: {c['detail']}")
     verdict = _i18n.t("doc_healthy", lang) if not res["fail"] else _i18n.t("doc_attention", lang)
-    print(f"{_i18n.t('doc_verdict', lang)} {verdict} ({res['fail']} FAIL)")
+    _emit(f"{_i18n.t('doc_verdict', lang)} {verdict} ({res['fail']} FAIL)")
     if args.json:
         print(json.dumps(res, indent=2))
     return EXIT_OK if not res["fail"] else 17
@@ -250,21 +253,25 @@ def cmd_uninstall(args):
     prefix = args.prefix or str(default_prefix())
     lay = layout(prefix)
     man = read_manifest(lay["manifest"])
+    from installer import i18n as _i18n_u
+    _lu = _i18n_u.resolve_lang(None)
     if man is None and not lay["prefix"].exists():
-        print("Nothing installed at prefix.")
+        print(_i18n_u.t("nothing_here", _lu))
         return EXIT_OK
     if not args.yes:
+        from installer import i18n as _i18n_u2
+        _lu2 = _i18n_u2.resolve_lang(None)
         if args.purge_data:
             # Données utilisateur : confirmation tapée, jamais un simple y/N.
-            ans = input(f"Type PURGE to delete user data in {prefix}/data: ")
+            ans = input(_i18n_u2.t("uninstall_purge_ask", _lu2, p=prefix) + " ")
             if ans.strip() != "PURGE":
                 return EXIT_USER_ABORT
         else:
-            ans = input(f"Remove installation at {prefix}? (data/ PRESERVED) [y/N] ")
+            ans = input(_i18n_u2.t("uninstall_ask", _lu2, p=prefix) + " ")
             if ans.strip().lower() != "y":
                 return EXIT_USER_ABORT
     elif args.purge_data:
-        print(f"WARNING: --yes --purge-data will delete {prefix}/data (explicit flags)")
+        print(_i18n_u2.t("uninstall_purge_warn", _lu2, p=prefix))
     keep = []
     for child in lay["prefix"].iterdir():
         if child.name == "data" and not args.purge_data:
@@ -274,7 +281,8 @@ def cmd_uninstall(args):
             shutil.rmtree(child, ignore_errors=True)
         else:
             child.unlink(missing_ok=True)
-    print(f"uninstalled {prefix} (preserved: {keep or 'nothing'})")
+    from installer import i18n as _i18n_u3
+    print(_i18n_u3.t("uninstalled_ok", _i18n_u3.resolve_lang(None), p=prefix, k=keep or "nothing"))
     return EXIT_OK
 
 

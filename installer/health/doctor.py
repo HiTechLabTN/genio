@@ -2,13 +2,16 @@
 
 Distinguishes PROCESS ALIVE / SERVICE READY / APPLICATION HEALTHY /
 DEPENDENCIES HEALTHY / SECURITY HEALTHY. Never a misleading green.
-"""
 
+Tool detection is consumed from the single authoritative engine
+(installer.preflight) — install, doctor and assistant share states.
+"""
 from installer.core.manifest import read_manifest
 from installer.core.paths import DEFAULT_PORTS, layout
-from installer.detectors import hardware, software
+from installer.detectors import hardware
 from installer.detectors import osinfo as platform
 from installer.detectors.system import detect_network, detect_permissions, detect_ports
+from installer import preflight as _preflight
 
 
 def _check(name, status, detail=""):
@@ -42,18 +45,33 @@ def doctor(runner, prefix=None, deep=False):
     gpu = hw["gpu"]
     checks.append(_check("gpu", "PASS" if gpu["present"] else "NOT_APPLICABLE",
                          f"{gpu['vendor']} {gpu['memory_mb']}MB" if gpu["present"] else "no GPU"))
-    sw = software.detect(runner)
+    sw = _preflight.preflight(runner)
+    _statemap = {
+        _preflight.AVAILABLE: "PASS",
+        _preflight.MISSING: "FAIL",
+        _preflight.BROKEN: "FAIL",
+        _preflight.DAEMON_DOWN: "FAIL",
+        _preflight.PERMISSION_DENIED: "FAIL",
+        _preflight.VERSION_TOO_OLD: "WARN",
+        _preflight.UNKNOWN: "WARN",
+    }
     for name in ("python3", "git", "pip", "venv"):
-        r = sw["tools"][name]
-        if r.get("version"):
-            detail = f"v={r['version']}"
+        it = sw["items"].get(name, {"state": _preflight.UNKNOWN, "detail": "?"})
+        checks.append(_check(f"tool:{name}", _statemap.get(it["state"], "WARN"),
+                             it.get("detail", "")))
+    dock = sw["items"].get("docker", {"state": _preflight.UNKNOWN, "detail": "?"})
+    checks.append(_check("tool:docker", _statemap.get(dock["state"], "WARN"),
+                         dock.get("detail", "")))
+    import re as _re
+    import shutil as _sh
+    for name in ("node", "npm", "ffmpeg", "curl"):
+        if _sh.which(name):
+            r = runner.run([name, "--version"], timeout=15)
+            m = _re.search(r"(\d+\.\d+(?:\.\d+)?)", (r.get("out") or "") + (r.get("err") or ""))
+            checks.append(_check(f"tool:{name}", "PASS" if r["ok"] else "WARN",
+                                 f"v={m.group(1)}" if m else "present"))
         else:
-            detail = r.get("note") or ("present" if r["ok"] else "missing")
-        checks.append(_check(f"tool:{name}", "PASS" if r["ok"] else "FAIL", detail))
-    for name in ("docker", "node", "npm", "ffmpeg", "curl"):
-        r = sw["tools"][name]
-        st = "PASS" if r["present"] else ("FAIL" if not r["ok"] and r["kind"] == "required" else "NOT_APPLICABLE")
-        checks.append(_check(f"tool:{name}", st, f"v={r['version']}" if r["version"] else r["kind"]))
+            checks.append(_check(f"tool:{name}", "NOT_APPLICABLE", "optional"))
     net = detect_network(runner)
     checks.append(_check("network", "PASS" if net["https"] else ("WARN" if net["dns"] else "FAIL"),
                          "offline" if net["offline"] else "online"))
