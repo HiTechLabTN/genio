@@ -43,9 +43,13 @@ class Runner:
     def run(self, argv, cwd=None, env=None, timeout=600, check_text=""):
         self._log(f"$ {' '.join(str(a) for a in argv)} (cwd={cwd})")
         try:
+            # stdin=DEVNULL: child tools (apt, debconf, pip) must never
+            # consume the terminal buffer that carries user answers.
+            # Interactive reads use /dev/tty explicitly, never stdin.
             p = subprocess.run(
                 [str(a) for a in argv], cwd=str(cwd) if cwd else None,
-                env=env, capture_output=True, text=True, timeout=timeout)
+                env=env, capture_output=True, text=True, timeout=timeout,
+                stdin=subprocess.DEVNULL)
         except subprocess.TimeoutExpired:
             self._log(f"TIMEOUT after {timeout}s: {check_text}")
             return {"ok": False, "rc": 124, "out": "", "err": "timeout"}

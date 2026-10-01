@@ -136,15 +136,23 @@ def repair_missing(a, runner, rep, family, emitter=None, dry_run=False):
                 a.technical(dlog)
             rep2 = pre.preflight(runner)
             dst = rep2["items"].get("docker", {}).get("state")
+            if dst == AVAILABLE:
+                a.progress("ok", a.t("verify_ok", name="Docker daemon"))
         if dst == PERMISSION_DENIED:
             import os
             user = os.environ.get("USER") or os.environ.get("LOGNAME") or "you"
             a.say(a.t("abort_repair_impossible", hint=f"sudo usermod -aG docker {user} # then log out/in"))
-            return False
-        if dst != AVAILABLE:
+            a.say(a.t("docker_skip_warn"))
+            still = [n for n in still if n != "docker"]
+            rep["needs_repair"] = [n for n in rep.get("needs_repair", []) if n != "docker"]
+        elif dst != AVAILABLE:
+            # Docker is recommended, not required: warn honestly and
+            # continue without it (local Tier A) instead of aborting.
             a.progress("fail", a.t("verify_fail", name="Docker",
                                    detail=rep2["items"].get("docker", {}).get("detail", "?")))
-            return False
+            a.say(a.t("docker_skip_warn"))
+            still = [n for n in still if n != "docker"]
+            rep["needs_repair"] = [n for n in rep.get("needs_repair", []) if n != "docker"]
         still = [n for n in still if n != "docker"]
     for n in need_names:
         if n not in still:

@@ -97,7 +97,8 @@ class Executor:
         import subprocess
         try:
             p = subprocess.run([str(a) for a in argv], capture_output=True,
-                               text=True, timeout=kw.get("timeout", 600))
+                               text=True, timeout=kw.get("timeout", 600),
+                               stdin=subprocess.DEVNULL)
             return {"ok": p.returncode == 0, "rc": p.returncode,
                     "out": p.stdout, "err": p.stderr}
         except FileNotFoundError:
@@ -137,14 +138,21 @@ def plan_install(family, need):
 
 def install_needs(executor, family, need, sudo=True, timeout=900):
     """Execute a planned install. Returns (ok, log_lines)."""
+    import os as _os
     pre = sudo_prefix() if sudo else []
     if sudo and pre is None:
         return False, ["no privilege escalation path (not root, no sudo)"]
     log = []
+    # Debian-family installers must never interrogate the terminal
+    # (debconf reads /dev/tty and would swallow the user's next answer).
+    env = None
+    if family in ("apt",):
+        env = dict(_os.environ)
+        env["DEBIAN_FRONTEND"] = "noninteractive"
     for cmd in plan_install(family, need):
         full = pre + cmd
         log.append("$ " + " ".join(full))
-        r = executor.run(full, timeout=timeout)
+        r = executor.run(full, timeout=timeout, env=env) if env else executor.run(full, timeout=timeout)
         log.append(f"rc={r['rc']}")
         if not r["ok"]:
             return False, log

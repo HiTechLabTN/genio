@@ -78,6 +78,39 @@ def test_c_docker_daemon_down_diagnosis():
         shutil.which = real
 
 
+def test_docker_unfixable_warns_and_continues():
+    """Docker is recommended, not required: unfixable docker must warn
+    (docker_skip_warn) and let the install continue, never abort."""
+    from installer.flow import repair_missing
+    import io as _io
+    a = Assistant(lang="tu", interactive=True, out=_io.StringIO())
+    a._readline = lambda prompt: "1"  # consent yes
+    rep = {"items": {"docker": {"state": "DAEMON_DOWN", "detail": "x"}},
+           "needs_repair": ["docker"], "os": {}}
+    ok = repair_missing(a, FakeRunner(), rep, None, dry_run=True)
+    assert ok is False  # no family -> cannot even try
+    # With a family but failing verify, docker must be dropped, not fatal.
+    # Force the re-detection to stay DAEMON_DOWN (as on machines where the
+    # daemon cannot start) to exercise the skip branch deterministically.
+    import installer.preflight as _pre
+    _real_preflight = _pre.preflight
+    _pre.preflight = lambda runner, prefix=None: {
+        "items": {"docker": {"state": "DAEMON_DOWN", "detail": "daemon not running"}},
+        "needs_repair": ["docker"], "os": {}, "network": {}, "permissions": {}}
+    try:
+        rep2 = {"items": {"docker": {"state": "MISSING", "detail": "x"}},
+                "needs_repair": ["docker"], "os": {}}
+        out2 = _io.StringIO()
+        a2 = Assistant(lang="en", interactive=True, out=out2)
+        a2._readline = lambda prompt: "1"
+        ok2 = repair_missing(a2, FakeRunner(), rep2, "apt", dry_run=True)
+    finally:
+        _pre.preflight = _real_preflight
+    assert ok2 is True
+    assert rep2["needs_repair"] == []
+    assert "Docker" in out2.getvalue()
+
+
 def test_d_docker_permission_denied_diagnosis():
     class R(FakeRunner):
         def run(self, argv, **kw):
@@ -206,6 +239,26 @@ def test_consent_flow_yes_no_details():
     assert "sudo apt-get install -y git" in out.getvalue()
 
 
+def test_enter_counts_as_yes():
+    a = Assistant(lang="tu", interactive=True, out=io.StringIO())
+    a._readline = lambda prompt: ""
+    assert a.ask_yes_no("نكمّل؟") is True
+    a2 = Assistant(lang="fr", interactive=True, out=io.StringIO())
+    a2._readline = lambda prompt: ""
+    assert a2.ask_yes_no("continuer ?") is True
+
+
+def test_reject_sudo_runs_nothing():
+    import io as _io
+    from installer import packages as pkg
+    ex = pkg.Executor(dry_run=True)
+    a = Assistant(lang="tu", interactive=True, out=_io.StringIO())
+    a._readline = lambda prompt: "لا"
+    from installer.flow import consent_for
+    assert consent_for(a, [["sudo", "apt-get", "install", "-y", "git"]], what="git") is False
+    assert ex.commands == []
+
+
 def test_p_smoke_structure():
     import tempfile
     from installer.flow import smoke
@@ -246,3 +299,24 @@ def test_ref_kinds_never_branch_for_sha():
     assert "clone --branch" in src
     # The SHA path must not pass the ref to --branch.
     assert src.count('fetch --depth 1 origin "$GENIO_REF"') >= 1
+
+
+def test_bootstrap_two_stage_and_tty_default():
+    import pathlib
+    src = pathlib.Path("installer/bootstrap/install.sh").read_text()
+    # Stage A: tool self-repair with consent, tiny, no Python.
+    assert "ensure_tool" in src
+    assert "ask_tty" in src
+    assert "/dev/tty" in src
+    # TTY-aware default: assistant unless --yes/GENIO_YES/no-tty.
+    assert "GENIO_YES" in src
+    assert "--assistant" in src
+    # No eval-based execution, no git-all anywhere near bootstrap.
+    assert "eval " not in src.replace("# ", "")
+    assert "git-all" not in src
+    # wget fallback documented for curl-less machines.
+    assert "wget -qO-" in src
+    # Local-path repos across user namespaces must not misclassify.
+    assert "safe.directory" in src
+    # Subprocess children must not eat the terminal answer buffer.
+    assert "/dev/null" in src
