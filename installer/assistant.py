@@ -48,9 +48,12 @@ class Assistant:
         return (s or "").strip().lower()
 
     def ask_yes_no(self, question, details=None):
-        """Ask [yes / no] (plus [details] when provided). Returns True/False/None(details-shown-then-ask-again loop, max 3)."""
+        """Ask [yes / no] (plus [details] when provided). Empty answer
+        (bare Enter) counts as YES. Returns True/False."""
         for _ in range(4):
             ans = self._norm(self._readline(question + " "))
+            if ans == "":
+                return True
             yes = i18n.wordlist(self.lang, "yes_words")
             no = i18n.wordlist(self.lang, "no_words")
             det = i18n.wordlist(self.lang, "details_word")
