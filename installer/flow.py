@@ -126,6 +126,8 @@ def repair_missing(a, runner, rep, family, emitter=None, dry_run=False):
     still = [n for n in need_names
              if rep2["items"].get(n, {}).get("state") != "AVAILABLE"]
     # Docker needs daemon/permission handling beyond packages.
+    # Skipped (not repaired) items must never receive ok lines below.
+    skipped = set()
     if "docker" in need_names:
         from installer.preflight import DAEMON_DOWN, PERMISSION_DENIED, AVAILABLE
         dst = rep2["items"].get("docker", {}).get("state")
@@ -145,6 +147,7 @@ def repair_missing(a, runner, rep, family, emitter=None, dry_run=False):
             a.say(a.t("docker_skip_warn"))
             still = [n for n in still if n != "docker"]
             rep["needs_repair"] = [n for n in rep.get("needs_repair", []) if n != "docker"]
+            skipped.add("docker")
         elif dst != AVAILABLE:
             # Docker is recommended, not required: warn honestly and
             # continue without it (local Tier A) instead of aborting.
@@ -153,9 +156,10 @@ def repair_missing(a, runner, rep, family, emitter=None, dry_run=False):
             a.say(a.t("docker_skip_warn"))
             still = [n for n in still if n != "docker"]
             rep["needs_repair"] = [n for n in rep.get("needs_repair", []) if n != "docker"]
+            skipped.add("docker")
         still = [n for n in still if n != "docker"]
     for n in need_names:
-        if n not in still:
+        if n not in still and n not in skipped:
             a.progress("ok", a.t("installed_ok", name=n))
             a.progress("ok", a.t("verify_ok", name=n))
     for n in still:

@@ -24,13 +24,17 @@ def _docker_state(runner):
     """Distinguish CLI missing / daemon stopped / permission / working."""
     if not shutil.which("docker"):
         return {"state": MISSING, "detail": "no docker executable"}
-    r = runner.run(["docker", "info", "--format", "{{.ServerVersion}}"], timeout=20)
+    r = runner.run(["docker", "info"], timeout=20)
     if r["ok"]:
-        return {"state": AVAILABLE, "detail": f"daemon ok ({r['out'].strip()[:20]})"}
+        import re
+        m = re.search(r"Server Version:\s*(\S+)", r.get("out") or "")
+        return {"state": AVAILABLE,
+                "detail": f"daemon ok ({m.group(1)[:20]})" if m else "daemon ok"}
     blob = ((r.get("err") or "") + (r.get("out") or "")).lower()
     if "permission denied" in blob or "permissiondenied" in blob or "got permission denied" in blob:
         return {"state": PERMISSION_DENIED, "detail": "user cannot talk to the daemon"}
-    if "cannot connect" in blob or "is the docker daemon running" in blob or "no such file" in blob:
+    if ("cannot connect" in blob or "is the docker daemon running" in blob
+            or "no such file" in blob or "connection refused" in blob):
         return {"state": DAEMON_DOWN, "detail": "daemon not running"}
     if r.get("rc") == 127:
         return {"state": MISSING, "detail": "docker vanished mid-check"}
