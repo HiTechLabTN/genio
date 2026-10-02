@@ -139,7 +139,12 @@ def cmd_install(args):
     if _assistant_mode:
         print("")
         print(_a2.t("success_1"))
-        print(_a2.t("success_2"))
+        if smoke_ok:
+            print(_a2.t("success_2"))
+        else:
+            # Partial health (e.g. Docker skipped): celebrate the install,
+            # restate the caveat, never claim failed services work.
+            print(_a2.t("docker_skip_warn"))
         print(_a2.t("success_3"))
         print(_a2.t("start_cmd", cmd=_a2.t("start_cmd_real", prefix=prefix)))
         try:
