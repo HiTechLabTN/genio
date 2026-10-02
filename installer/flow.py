@@ -8,10 +8,9 @@ prompts and exits with the documented codes.
 from installer import i18n
 from installer.assistant import Assistant, NeedInput
 from installer.core.errors import (
-    EXIT_OK, EXIT_USER_ABORT, EXIT_ALREADY_INSTALLED,
-    EXIT_AMBIGUOUS_INSTALLS, EXIT_DEPS_MISSING, InstallerError,
+    EXIT_USER_ABORT, EXIT_DEPS_MISSING,
 )
-from installer.core.paths import DEFAULT_PORTS, default_prefix, layout
+from installer.core.paths import layout
 
 
 def _assistant(args):
@@ -204,7 +203,6 @@ def run_install(args, runner, prefix, emitter):
     from installer import preflight as pre
     from installer.core.paths import layout as _layout  # noqa
     a = _assistant(args)
-    lang = a.lang
     # Welcome (interactive only; non-interactive stays machine-clean).
     _rep_empty = {"items": {}, "needs_repair": [], "os": {"supported": True},
                   "network": {}, "permissions": {}}
