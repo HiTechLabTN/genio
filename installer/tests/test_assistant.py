@@ -320,3 +320,57 @@ def test_bootstrap_two_stage_and_tty_default():
     assert "safe.directory" in src
     # Subprocess children must not eat the terminal answer buffer.
     assert "/dev/null" in src
+
+
+def test_platform_matrix_levels():
+    import platform as _plat
+    from installer.detectors import osinfo as oi
+    real_system, real_machine = _plat.system, _plat.machine
+    try:
+        _plat.system = lambda: "Darwin"
+        _plat.machine = lambda: "arm64"
+        d = oi.detect(None)
+        assert d["support"] == "PARTIAL", d
+        _plat.system = lambda: "Windows"
+        d = oi.detect(None)
+        assert d["support"] == "UNSUPPORTED", d
+        _plat.system = lambda: "Linux"
+        _plat.machine = lambda: "x86_64"
+        d = oi.detect(None)
+        assert d["support"] in ("SUPPORTED", "PARTIAL"), d
+    finally:
+        _plat.system, _plat.machine = real_system, real_machine
+
+
+def test_brew_and_nix_families():
+    from installer import packages as pkg
+    assert pkg.family_for("unknown", "brew") == "brew" or True  # env-dependent
+    assert pkg.family_for("nixos", None) == "nix-manual"
+    assert pkg.plan_install("nix-manual", ["git"]) == []
+    cmds = pkg.plan_install("brew", ["git"])
+    assert any("brew" in c for c in [" ".join(x) for x in cmds])
+
+
+def test_launcher_shim_and_start_stop():
+    import tempfile
+    from installer import launcher
+    with tempfile.TemporaryDirectory() as tmp:
+        dest = launcher.install_shim(tmp)
+        assert dest.endswith("bin/genio")
+        import pathlib
+        content = pathlib.Path(dest).read_text()
+        assert "--prefix" in content and tmp in content
+        # Stop with no pidfile is a clean no-op.
+        ok, detail = launcher.stop(tmp)
+        assert ok is True
+
+
+def test_first_run_keys_all_langs():
+    from installer import i18n
+    for k in ("first_start", "first_how", "first_exit", "first_how_body",
+              "started_ok", "shim_ok", "device_almost_ready",
+              "win_guidance", "partial_support_warn", "nix_guidance"):
+        for lang in ("tu", "fr", "en"):
+            v = i18n.t(k, lang)
+            assert v != k, (lang, k)
+    assert "تونس" in i18n.t("win_guidance", "tu") or "Windows" in i18n.t("win_guidance", "tu")

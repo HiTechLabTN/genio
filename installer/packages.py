@@ -56,6 +56,15 @@ FAMILIES = {
         "python": ["python3", "py3-pip"],
         "docker": ["docker"],
     },
+    "brew": {
+        "manager": "brew",
+        "ids": set(),
+        "update": ["brew", "update"],
+        "git": ["git"],
+        "python": ["python3"],
+        "docker": ["docker"],
+        "docker_cask": True,
+    },
 }
 
 INSTALL_FLAGS = {
@@ -65,11 +74,15 @@ INSTALL_FLAGS = {
     "pacman": ["pacman", "-S", "--noconfirm"],
     "zypper": ["zypper", "--non-interactive", "install", "-y"],
     "apk": ["apk", "add"],
+    "brew": ["brew", "install"],
 }
 
 
 def family_for(distro_id, manager_bin=None):
     did = (distro_id or "").lower()
+    # NixOS is declarative: never auto-install, guide instead.
+    if did in ("nixos",):
+        return "nix-manual"
     for fam, spec in FAMILIES.items():
         if did in spec["ids"]:
             return fam
@@ -77,6 +90,10 @@ def family_for(distro_id, manager_bin=None):
     for fam, spec in FAMILIES.items():
         if manager_bin == spec["manager"]:
             return fam
+    # Homebrew on macOS (no /etc/os-release id to match on).
+    import shutil as _sh
+    if manager_bin is None and _sh.which("brew"):
+        return "brew"
     return None
 
 
@@ -118,9 +135,12 @@ def sudo_prefix():
 
 def plan_install(family, need):
     """Return the exact argv command lists (previewable, no execution)."""
-    spec = FAMILIES[family]
+    spec = FAMILIES.get(family)
+    if not spec:
+        return []
+    # Homebrew Docker ships as a cask, not a formula.
     cmds = []
-    if spec["update"]:
+    if spec.get("update"):
         cmds.append(spec["update"])
     pkgs = []
     for n in need:
@@ -132,7 +152,11 @@ def plan_install(family, need):
         if p not in seen:
             seen.add(p)
             minimal.append(p)
-    cmds.append(INSTALL_FLAGS[spec["manager"]] + minimal)
+    if spec.get("docker_cask") and "docker" in need:
+        minimal = [p for p in minimal if p != "docker"]
+        cmds.append(["brew", "install", "--cask", "docker"])
+    if minimal:
+        cmds.append(INSTALL_FLAGS[spec["manager"]] + minimal)
     return cmds
 
 

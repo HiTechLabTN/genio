@@ -108,6 +108,9 @@ def repair_missing(a, runner, rep, family, emitter=None, dry_run=False):
     for n in need_names:
         need.extend([{"git": "git", "docker": "docker"}.get(n, "python")])
     need = list(dict.fromkeys(need))
+    if family == "nix-manual":
+        a.say(a.t("nix_guidance"))
+        return False
     cmds = pkg.plan_install(family, need)
     if not consent_for(a, cmds, what=", ".join(need)):
         a.say(a.t("cancelled"))
@@ -219,23 +222,37 @@ def run_install(args, runner, prefix, emitter):
             return EXIT_USER_ABORT, _rep_empty
     emitter.emit("PREFLIGHT_STARTED", {})
     rep = pre.preflight(runner, prefix=prefix)
+    if a.interactive:
+        a.say(a.t("phase_1"))
     report_preflight(a, rep)
     plat = rep["os"]
-    if not plat.get("supported"):
-        a.say(a.t("unsupported_os", v=plat.get("distribution", "?")))
-        a.say("  - Debian/Ubuntu: sudo apt-get install -y git python3 python3-venv python3-pip")
-        a.say("  - Fedora: sudo dnf install -y git python3 python3-pip")
-        a.say("  - Arch: sudo pacman -S --noconfirm git python python-pip")
+    _support = plat.get("support", "SUPPORTED" if plat.get("supported") else "UNSUPPORTED")
+    if _support == "UNSUPPORTED":
+        if plat.get("system") == "Windows":
+            a.say(a.t("win_guidance"))
+        else:
+            a.say(a.t("unsupported_os", v=plat.get("distribution", "?")))
+            a.say("  - Debian/Ubuntu: sudo apt-get install -y git python3 python3-venv python3-pip")
+            a.say("  - Fedora: sudo dnf install -y git python3 python3-pip")
+            a.say("  - Arch: sudo pacman -S --noconfirm git python python-pip")
+            a.say("  - macOS: brew install git python3")
         emitter.emit("PREFLIGHT_RESULT", {"ok": False, "reason": "unsupported-os"})
         from installer.core.errors import EXIT_UNSUPPORTED
         return EXIT_UNSUPPORTED, rep
+    if _support == "PARTIAL":
+        a.say(a.t("partial_support_warn", v=plat.get("support_reason", "?")))
     net = rep.get("network", {})
     if net.get("offline") and not rep.get("needs_repair"):
         # Offline with nothing to repair: can only continue from local source.
         a.say(a.t("net_fail"))
     family = pkg.family_for(plat.get("distro_id"), plat.get("package_manager"))
+    initial_needs = list(rep.get("needs_repair", []))
     if rep.get("needs_repair"):
+        if a.interactive:
+            a.say(a.t("phase_2"))
         explain_missing(a, rep, family)
+        if a.interactive:
+            a.say(a.t("phase_3"))
         if a.interactive:
             try:
                 ok = repair_missing(a, runner, rep, family, emitter,
@@ -288,7 +305,16 @@ def run_install(args, runner, prefix, emitter):
             from installer.core.errors import EXIT_DEPS_MISSING as _EDM
             return _EDM, rep
     emitter.emit("PREFLIGHT_RESULT", {"ok": True})
+    from installer.preflight import AVAILABLE as _AV
+    _docker_ok = rep["items"].get("docker", {}).get("state") == _AV
+    _docker_was_needed = "docker" in initial_needs
     if a.interactive:
-        a.say(a.t("device_ready"))
+        a.say(a.t("phase_4"))
+        a.say(a.t("phase_4_ok"))
+        if _docker_was_needed and not _docker_ok:
+            a.say(a.t("device_almost_ready"))
+        else:
+            a.say(a.t("device_ready"))
+        a.say(a.t("phase_5"))
         a.say(a.t("installing_genio"))
     return None, rep  # caller continues with the standard install stages

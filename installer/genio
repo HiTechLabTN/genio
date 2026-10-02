@@ -129,6 +129,7 @@ def cmd_install(args):
     # First-run experience: real smoke test + first useful interaction.
     from installer.flow import smoke as _smoke2
     from installer.assistant import Assistant as _Assistant2
+    from installer import launcher as _launcher
     _a2 = _Assistant2(lang=_lang, interactive=bool(getattr(args, "assistant", False)))
     _assistant_mode = bool(getattr(args, "assistant", False))
     print(_a2.t("smoke_start"))
@@ -136,6 +137,10 @@ def cmd_install(args):
     smoke_ok = all(ok for _, ok, _ in sm)
     for name, ok, detail in sm:
         print(_a2.t("smoke_ok" if ok else "smoke_fail", detail=f"{name}: {detail}"))
+    # Launcher shim (best-effort, never fails the install).
+    _shim = _launcher.install_shim(prefix)
+    if _shim:
+        print(_a2.t("shim_ok", v=_shim))
     if _assistant_mode:
         print("")
         print(_a2.t("success_1"))
@@ -150,17 +155,22 @@ def cmd_install(args):
         try:
             from installer.assistant import NeedInput as _Need
             choice = _a2.ask_choice(_a2.t("first_try"), [
-                ("try", _a2.t("first_try_yes")), ("no", _a2.t("first_try_no"))])
+                ("start", _a2.t("first_start")),
+                ("how", _a2.t("first_how")),
+                ("no", _a2.t("first_exit"))])
         except _Need:
             choice = None
-        if choice == "try":
-            print(_a2.t("first_diag"))
-            from installer import preflight as _pre
-            rep = _pre.preflight(runner, prefix=prefix)
-            for name in ("python3", "git", "pip", "venv", "docker"):
-                it = rep["items"].get(name, {})
-                mark = "✓" if it.get("state") == "AVAILABLE" else "⚠"
-                print(f"{mark} {name}: {it.get('detail', '?')}")
+        if choice == "start":
+            ok, detail = _launcher.start(prefix)
+            print(detail)
+            if ok:
+                print(_a2.t("started_ok"))
+                print(_a2.t("first_bye"))
+            else:
+                print(_a2.t("smoke_fail", detail=detail))
+                print(_a2.t("start_hint", cmd=f"genio start --prefix {prefix}"))
+        elif choice == "how":
+            print(_a2.t("first_how_body"))
             print(_a2.t("first_bye"))
     return EXIT_OK if smoke_ok else 17
 
@@ -185,6 +195,22 @@ def cmd_doctor(args):
     if args.json:
         print(json.dumps(res, indent=2))
     return EXIT_OK if not res["fail"] else 17
+
+
+def cmd_start(args):
+    from installer import launcher
+    prefix = args.prefix or str(default_prefix())
+    ok, detail = launcher.start(prefix, timeout=args.timeout)
+    print(detail)
+    return EXIT_OK if ok else 17
+
+
+def cmd_stop(args):
+    from installer import launcher
+    prefix = args.prefix or str(default_prefix())
+    ok, detail = launcher.stop(prefix)
+    print(detail)
+    return EXIT_OK if ok else 17
 
 
 def cmd_status(args):
@@ -326,6 +352,13 @@ def build_parser():
     s = sub.add_parser("status")
     s.add_argument("--prefix", default="")
     s.set_defaults(fn=cmd_status)
+    st = sub.add_parser("start")
+    st.add_argument("--prefix", default="")
+    st.add_argument("--timeout", type=int, default=60)
+    st.set_defaults(fn=cmd_start)
+    sp = sub.add_parser("stop")
+    sp.add_argument("--prefix", default="")
+    sp.set_defaults(fn=cmd_stop)
     for name, fn in (("repair", cmd_repair), ("update", cmd_update),
                      ("rollback", cmd_rollback), ("uninstall", cmd_uninstall)):
         q = sub.add_parser(name)

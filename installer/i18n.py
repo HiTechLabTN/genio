@@ -59,6 +59,13 @@ STRINGS = {
         "smoke_ok": "✓ الفحص سليم: {detail}",
         "smoke_fail": "✗ الفحص لقى مشكل: {detail}",
         "first_try": "تحب نجربو حاجة صغيرة؟",
+        "first_start": "إي، شغّل Genio",
+        "first_how": "ورّيني كيفاش نستعملو",
+        "first_exit": "نخرج توّا",
+        "first_how_body": "بعد التشغيل: افتح http://127.0.0.1:8098/app في المتصفح، ولا استعمل `genio status` و`genio doctor` باش تتفقد. للمساعدة: `genio --help`.",
+        "started_ok": "Genio يخدم توّا.",
+        "start_hint": "باش تشغّلو: {cmd}",
+        "shim_ok": "المشغّل تركّب: {v} (زيدو للـ PATH باش تستعمل `genio` من أي مكان)",
         "first_try_yes": "جرّب",
         "first_try_no": "لا",
         "first_diag": "قريت جهازك ونجم نفسرلك الحالة متاعو:",
@@ -79,6 +86,16 @@ STRINGS = {
         "tech_details": "[التفاصيل التقنية]",
         "abort_repair_impossible": "الإصلاح الآلي موش ممكن هنا. هاو شنوّة تعمل يدوياً: {hint}",
         "docker_skip_warn": "Docker ما زال موش خدام — نكمّل من غيرو (Genio يخدم محلي Tier A)، وتنجم تصلّحو بعد بـ genio doctor.",
+        "nix_guidance": "النظام هذا NixOS — الحزم تتدار بالتصريح (declarative)، ما نركّبش وحدي. زيد للـ configuration.nix متاعك: git, python3, docker، ثم nixos-rebuild switch.",
+        "win_guidance": "لقيتك على Windows. Genio ما يتركّبش مباشرة على Windows توا — الطريق المدعومة هي WSL2 (Ubuntu من Microsoft Store)، ثم ركّب Genio داخل WSL.",
+        "partial_support_warn": "ملاحظة: {v} — نكمّل، أما بعض الخطوات الآلية قد تحتاج تدخلك.",
+        "phase_1": "🧞 المرحلة 1/5 — نتعرّف على جهازك",
+        "phase_2": "🧞 المرحلة 2/5 — نشوف شنوّة ناقص",
+        "phase_3": "🧞 المرحلة 3/5 — نصلّحو اللي ناقص",
+        "phase_4": "🧞 المرحلة 4/5 — نتثبتو",
+        "phase_5": "🧞 المرحلة 5/5 — نركّبو Genio",
+        "phase_4_ok": "✓ كل شيء متحقق منو.",
+        "device_almost_ready": "🧞 تقريب وصلنا — Genio تركّب، أما Docker مازال موش متاح. الوضع المحلي يخدم، وتنجم تصلّح Docker بعد.",
         "deps_final_fail": "ما نجمتش نكمّل: {missing} ما زالو ناقصين بعد المحاولة. هاو أمر يدوي آمن: {hint}",
         "refuse_second": "ما نعملش تركيب ثاني (exit 11).",
         "refuse_overwrite": "ما نعوّضش تركيب ناقص. استعمل repair/update، ولا --force باش تعاود (نسخة احتياطية أولاً).",
@@ -147,6 +164,13 @@ STRINGS = {
         "smoke_ok": "✓ Contrôle OK : {detail}",
         "smoke_fail": "✗ Problème détecté : {detail}",
         "first_try": "On essaie quelque chose de petit ?",
+        "first_start": "Oui, lancer Genio",
+        "first_how": "Montrez-moi comment l'utiliser",
+        "first_exit": "Quitter",
+        "first_how_body": "Après le lancement : ouvrez http://127.0.0.1:8098/app, ou utilisez `genio status` et `genio doctor`. Aide : `genio --help`.",
+        "started_ok": "Genio tourne maintenant.",
+        "start_hint": "Pour le lancer : {cmd}",
+        "shim_ok": "Lanceur installé : {v} (ajoutez-le au PATH pour `genio` partout)",
         "first_try_yes": "Essayer",
         "first_try_no": "Non",
         "first_diag": "J'ai lu votre machine, voici son état :",
@@ -167,6 +191,16 @@ STRINGS = {
         "tech_details": "[Détails techniques]",
         "abort_repair_impossible": "Réparation auto impossible ici. Marche manuelle : {hint}",
         "docker_skip_warn": "Docker toujours indisponible — on continue sans (Genio marche en local Tier A), réparable plus tard via genio doctor.",
+        "nix_guidance": "NixOS : gestion déclarative, pas d'installation auto. Ajoutez git, python3, docker à votre configuration.nix, puis nixos-rebuild switch.",
+        "win_guidance": "Windows détecté. Genio ne s'installe pas nativement pour le moment — utilisez WSL2 (Ubuntu du Microsoft Store), puis installez Genio dans WSL.",
+        "partial_support_warn": "Note : {v} — on continue, certaines étapes auto peuvent demander votre aide.",
+        "phase_1": "🧞 Étape 1/5 — je découvre votre machine",
+        "phase_2": "🧞 Étape 2/5 — je regarde ce qui manque",
+        "phase_3": "🧞 Étape 3/5 — je répare ce qui manque",
+        "phase_4": "🧞 Étape 4/5 — je vérifie",
+        "phase_5": "🧞 Étape 5/5 — j'installe Genio",
+        "phase_4_ok": "✓ Tout est vérifié.",
+        "device_almost_ready": "🧞 Presque fini — Genio est installé, mais Docker reste indisponible. Le mode local fonctionne, réparable plus tard.",
         "deps_final_fail": "Impossible de continuer : {missing} manquent toujours. Commande manuelle sûre : {hint}",
         "refuse_second": "Pas de seconde installation (exit 11).",
         "refuse_overwrite": "Pas d'écrasement partiel. Utilisez repair/update, ou --force (sauvegarde d'abord).",
@@ -235,6 +269,13 @@ STRINGS = {
         "smoke_ok": "✓ Check OK: {detail}",
         "smoke_fail": "✗ Problem found: {detail}",
         "first_try": "Try something small?",
+        "first_start": "Yes, start Genio",
+        "first_how": "Show me how to use it",
+        "first_exit": "Exit for now",
+        "first_how_body": "After starting: open http://127.0.0.1:8098/app, or use `genio status` and `genio doctor`. Help: `genio --help`.",
+        "started_ok": "Genio is running now.",
+        "start_hint": "To start it: {cmd}",
+        "shim_ok": "Launcher installed: {v} (add to PATH to use `genio` anywhere)",
         "first_try_yes": "Try",
         "first_try_no": "No",
         "first_diag": "I've read your machine, here's its state:",
@@ -255,6 +296,16 @@ STRINGS = {
         "tech_details": "[Technical details]",
         "abort_repair_impossible": "Auto-repair impossible here. Manual path: {hint}",
         "docker_skip_warn": "Docker still unavailable — continuing without it (Genio works local Tier A), fixable later via genio doctor.",
+        "nix_guidance": "NixOS uses declarative management, no auto-install. Add git, python3, docker to your configuration.nix, then nixos-rebuild switch.",
+        "win_guidance": "Windows detected. Genio does not install natively yet — use WSL2 (Ubuntu from Microsoft Store), then install Genio inside WSL.",
+        "partial_support_warn": "Note: {v} — continuing, some automated steps may need your help.",
+        "phase_1": "🧞 Step 1/5 — learning your machine",
+        "phase_2": "🧞 Step 2/5 — checking what's missing",
+        "phase_3": "🧞 Step 3/5 — fixing what's missing",
+        "phase_4": "🧞 Step 4/5 — verifying",
+        "phase_5": "🧞 Step 5/5 — installing Genio",
+        "phase_4_ok": "✓ Everything verified.",
+        "device_almost_ready": "🧞 Almost there — Genio is installed, but Docker is still unavailable. Local mode works, fixable later.",
         "deps_final_fail": "Cannot continue: {missing} still missing. Safe manual command: {hint}",
         "refuse_second": "Refusing to create a second installation (exit 11).",
         "refuse_overwrite": "Refusing to overwrite a partial installation. Use repair/update, or --force to reinstall (backup first).",
@@ -277,16 +328,14 @@ STRINGS = {
 
 
 def resolve_lang(explicit=None):
+    """Tunisian is the default, always. Only an explicit choice
+    (--lang or GENIO_LANG) selects French/English. The bare OS locale
+    (LANG/LC_ALL) must NOT silently switch the product language."""
     if explicit in LANGS:
         return explicit
     env = (os.environ.get("GENIO_LANG") or "").strip().lower()
     if env in LANGS:
         return env
-    loc = (os.environ.get("LANG") or os.environ.get("LC_ALL") or "").lower()
-    if loc.startswith("fr"):
-        return "fr"
-    if loc.startswith("en"):
-        return "en"
     return "tu"
 
 
