@@ -69,7 +69,7 @@ curl -fsSL https://raw.githubusercontent.com/HiTechLabTN/genio/main/installer/bo
 curl -fsSL https://raw.githubusercontent.com/HiTechLabTN/genio/main/installer/bootstrap/install.sh | GENIO_REF=v5.0.0 GENIO_ASSISTANT=1 bash
 ```
 
-كان حاجة ناقصة (Git، Docker...)، المساعد يقولك علاش لازمته ويقترح الحزمة الصغيرة المناسبة — و`genio doctor` يوريك حالة جهازك في أي وقت.
+كان حاجة ناقصة (Git، Docker...)، المساعد يقولك علاش لازمته ويقترح الحزمة الصغيرة المناسبة — و`genio doctor` يوريك حالة جهازك في أي وقت. Docker مستحسن أما موش إجباري: من غيرو Genio يخدم محلي (Tier A)، وتنجم تصلّحو بعد.
 
 **Windows / macOS / Android / iOS** — ❌ غير متوفر حالياً (ما فماش نسخ موقعة منشورة، وما نعرضوش أزرار وهمية).
 

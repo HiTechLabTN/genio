@@ -1,107 +1,112 @@
-# GENIO INTELLIGENT INSTALLER REPORT
+# GENIO INTELLIGENT INSTALLER REPORT (repair mission)
 
-# Executive Summary
+This extends `GENIO_INTELLIGENT_INSTALLER_FINAL_REPORT.md` (which ended
+NOT VERIFIED for want of a live privileged repair). That exact repair has
+now been demonstrated on a real fresh Debian 12 container.
 
-The Genio installer now behaves like a first meeting with Genio instead of a
-Linux-expert gate. Same deterministic engine and contracts, new
-Tunisian-first assistant layer: full preflight, plain explanations, explicit
-consent before privileged changes, minimal packages only, verify-after-repair,
-bounded auto-retry, real smoke test, and a first useful interaction. Proven by
-a real install (exit 0), a real interactive install (exit 0), a simulated
-missing-git/docker recovery loop (honest exit 13), and 51 + 227 + 99 green tests.
+# Initial Failure
 
-# Previous Installation UX
+Fresh Debian 12 + `curl|bash`: assistant detected pip-missing, venv-broken,
+docker-missing, then stopped with a manual command. Root cause: bootstrap
+always forced `--yes` (non-interactive), so the repair branch never ran.
 
-- `curl … | bash` → `missing required tool: git` (exit 13), no explanation.
-- `genio install` → `Missing required tools: ['pip', 'venv']` (exit 13).
-- Any missing binary inside `Runner.run` → raw `FileNotFoundError` traceback.
-- Docker: present/absent only (daemon stopped vs permission denied identical).
-- Fix-one → retry → discover-next loop; no verify-after-repair; success ended
-  with a flat `Installed …` line and no smoke test or first interaction.
+# Root Cause
 
-# Root Causes
+1. Bootstrap mode selection ignored TTY (always `--yes` unless
+   `GENIO_ASSISTANT=1`).
+2. Stage A covered git only; python3 missing killed the installer launch.
+3. `head -n 1` over-read the terminal answer buffer (later answers lost).
+4. apt/debconf consumed `/dev/tty` answers mid-repair.
+5. `ls-remote` misclassified local-path repos under foreign UIDs.
+6. Docker verify used `--format` (misleading template errors) and skipped
+   items still received ok-lines (false success).
+7. Success block claimed full health even when smoke reported ATTENTION.
 
-1. `Runner.run` caught only `TimeoutExpired`; `FileNotFoundError`/`OSError` escaped.
-2. Bootstrap `need()` printed a bare English line and quit.
-3. `cmd_install` aborted on the first missing list with zero diagnosis/repair.
-4. No package-manager abstraction (apt assumed); no minimal-package maps.
-5. No consent step, no verify step, no retry loop, no first-run.
+# Architecture Changed
 
-# New Architecture
+- Bootstrap: TTY-aware default (assistant when usable TTY, `--yes` only
+  with `GENIO_YES=1`/`--yes`/no-TTY); Stage A generalized to
+  `ensure_tool` (git + python3); `ask_tty` via `IFS read`; apt stdin
+  `/dev/null` + `DEBIAN_FRONTEND=noninteractive`; `safe.directory` guards.
+- `Runner.run` + `packages.Executor`: `stdin=DEVNULL` always.
+- `packages.install_needs`: noninteractive frontend for apt family.
+- `preflight._docker_state`: plain `docker info` classification.
+- `flow.repair_missing`: skipped-docker set (no ok-lines for skipped).
+- `genio` CLI: partial-health success caveat; real `start_cmd`.
+- `assistant.ask_yes_no`: bare Enter = yes.
 
-- `installer/i18n.py` — deterministic TN/FR/EN strings (TU default; GENIO_LANG/--lang/LANG). No LLM anywhere.
-- `installer/preflight.py` — full machine report with states AVAILABLE/MISSING/BROKEN/DAEMON_DOWN/PERMISSION_DENIED/VERSION_TOO_OLD/UNKNOWN; never raises on missing binaries.
-- `installer/packages.py` — pm families (apt/dnf/yum/pacman/zypper/apk), minimal maps (git NOT git-all, no sudo pip), argv-only commands, injectable Executor + dry-run, docker daemon enable/start.
-- `installer/assistant.py` — TN conversation UI (yes/no/details, progress ✓/→/⚠/✗, tech-details gate); reads /dev/tty under curl|bash; `NeedInput` instead of prompts when non-interactive.
-- `installer/flow.py` — welcome → preflight → report → explain → consent → repair → verify → bounded retry → install → smoke → first-run. Emits legacy event names.
-- `installer/genio` — `--assistant`, `--lang`, `--dry-run`; TN port warnings; TN success/smoke/first-run; TN doctor rendering (`--json` unchanged); explicit-prefix existing install refused honestly (exit 11, health-aware message).
-- `installer/bootstrap/install.sh` — TN missing-tool guidance + exact minimal fix command; `GENIO_ASSISTANT=1` selects assistant mode; trust model unchanged.
+# Bootstrap Changes
 
-# Preflight System
+Two-stage + TTY default + wget fallback + ref matrix intact
+(branch/tag/full/short SHA re-verified) + `GENIO_RESOLVE_ONLY`.
 
-OS/distro/arch/kernel/pm, python+version, pip, venv (real creation probe), git, docker CLI, network (DNS/HTTPS/offline), ports+owners, permissions, hardware (cpu/ram/disk/gpu), existing installs. All crash-safe.
+# Preflight Changes
 
-# Dependency Detection
+Docker probe without `--format`; daemon/permission split preserved and
+proven live (dead socket → DAEMON_DOWN).
 
-Per-tool states incl. docker CLI-vs-daemon-vs-permission split (info-format parsing, rc-127 aware). Version floors preserved from existing REQUIREMENTS.
+# Package Mappings
 
-# Package Manager Handling
+Unchanged minimal maps (git / python3+venv+pip / docker.io per family);
+`apt-get update` precedes installs; no git-all, no sudo pip, argv-only
+(AST-tested).
 
-Family detection by distro-id with binary fallback; honest unsupported-OS exit with manual commands. `yum` added to the family table.
+# Sudo/TTY Behavior
 
-# Interactive Tunisian UX
+Consent with what/why/exact-commands; `/dev/tty` under pipe; EOF-safe;
+no-TTY → clean abort (exit 22), never hangs. Answers no longer eaten
+(read builtin, DEVNULL children, noninteractive debconf).
 
-Full transcript captured in `e2e-assistant.log`: greeting → machine report → ready → install → smoke → celebration → start command → optional diagnostic → invitation. Non-technical wording throughout.
+# Docker Behavior
 
-# Consent Model
+Install docker.io → verify CLI → daemon ensure (systemctl/service) →
+permission triage → DAEMON_DOWN/PERMISSION unfixable ⇒ honest warn +
+continue without Docker (Tier A), never abort, never false success.
 
-`consent_sudo` + `consent_changes` + [yes / no / what-changes] (exact commands shown on request). Non-interactive never consents (reports + exits 13).
+# GENIO_REF Behavior
 
-# Repair / Verify / Retry
-
-Repair installs minimal sets, then RE-DETECTS (never trusts blindly); docker gets daemon-start + permission triage (`usermod -aG docker` guidance, re-login noted). One bounded retry round, then honest exit 13. Demonstrated in `e2e-missing-git.log` (simulated missing git+docker, dry-run).
-
-# Resume / Idempotency
-
-Discovery kept; explicit-prefix existing installs refuse with health-aware TN message (exit 11); `repair`/`update`/`rollback` untouched; reinstall requires `--force` (backup first).
-
-# Doctor
-
-TN/FR/EN rendering (`--lang`), same checks, same `--json` contract, same exit codes.
-
-# First-Run Experience
-
-Real smoke (manifest, venv python, doctor verdict) + celebration + start command + optional machine diagnostic + invitation. No faked AI: diagnostic is the deterministic preflight summary.
-
-# Security
-
-No new distribution mechanism; checksums/manifests path untouched; argv-only execution (AST-tested, no `shell=True`); no `sudo pip`; secrets scrubbed by existing Runner (tested); consent before every privileged change; non-interactive performs zero repairs.
+Unchanged and re-verified: branch/tag/full/short-SHA matrix green,
+bogus fail-closed TN, never `--branch <SHA>`.
 
 # Tests
 
-- New `installer/tests/test_assistant.py` (16): A–P matrix incl. git-all ban, daemon/permission states, pm maps, unsupported OS, resume/skip, network-mock shape, non-interactive silence, secrets, no-shell, TN-default, consent details, smoke structure.
-- Full: installer 51 passed, backend 227 passed, frontend 99 passed.
+- installer: 58 passed (added: Enter=yes, bootstrap TTY/ensure/safe-dir/
+  DEVNULL assertions, docker-skip determinism).
+- backend: 227 passed. frontend: 99 passed. tsc: 0 errors. build: clean.
 
-# Clean-Machine E2E
+# Real Human-Visible Evidence
 
-No clean OS available (dev machine only) — marked UNVERIFIED where applicable:
-1. ✅ Real install to isolated prefix (local source, --yes): exit 0, venv+pip+frontend PASS, smoke 3/3, doctor HEALTHY.
-2. ✅ Real interactive install via pty: exit 0, full TN conversation + first-run.
-3. ✅ Simulated missing git+docker (PATH isolation + dry-run): detect→explain→consent→repair→verify-FAIL→retry→exit 13, zero tracebacks, zero git-all, zero system changes.
-4. ✅ Resume/refuse paths, repair-nothing-to-fix, doctor TN/FR/JSON.
-5. ⏸ UNVERIFIED: real (non-dry) sudo package repair; truly clean OS; docker-daemon repair execution; network-fetched bootstrap.
+- `e2e-debian12-final.log`: fresh Debian 12 (curl only) → Stage A git →
+  Stage A python3 → clone → TN preflight (pip MISSING, venv BROKEN,
+  docker MISSING) → single sudo consent → real apt repair → Docker
+  DAEMON_DOWN honest skip → install → manifest healthy → smoke →
+  success + first-run invitation. Zero tracebacks, zero git-all.
+- `installer-e2e-results.json`: machine-readable index (incl. this run).
 
-# Evidence
+# Exact Commands Tested
 
-`promt/qa-evidence/installer-intelligent/`: `e2e-install.log`, `e2e-assistant.log`, `e2e-missing-git.log`, `installer-e2e-results.json`. No secrets in evidence.
+- `docker run -d debian:12 sleep …` + curl-only prep + piped bootstrap
+  with pty answers (full transcript in evidence).
+- `GENIO_REF=<main|v5.0.0|full|short> GENIO_RESOLVE_ONLY=1 bash …`
+- `python3 installer/genio install --assistant [--dry-run] …`
+- `python3 installer/genio doctor [--json] [--lang …]`
+- `pytest installer/tests/ tests/`, `vitest run`, `tsc --noEmit`, build.
 
 # Known Limitations
 
-- Repair of truly missing system packages needs sudo + network and is dry-run-only in this environment (unit-covered, not live-executed).
-- `docker.io` (Debian) vs Docker CE: distro package chosen deliberately for minimalism; documented in code.
-- Venv probe costs up to ~60 s per full preflight on slow disks (honest check, not faked).
-- Assistant reads /dev/tty when piped; without any TTY it aborts cleanly (exit 22) instead of hanging (EOF-hardened).
+1. Docker daemon cannot start without systemd (containers/limited hosts):
+   handled by honest skip, not fixed (needs real host init).
+2. Permission-denied live run needs a spare OS user (message-verbatim
+   unit test instead).
+3. First-run diagnostic answer lost when the E2E container's sleep
+   expired; invitation + diagnostic path proven in prior pty run.
+4. Model-dialect variance: out of installer scope (frozen).
 
-# Final Verdict
+# Explicit Final Verdict
 
-NOT VERIFIED (strict §28: clean-machine E2E with live privileged repair was impossible on the dev host). Everything verifiable was verified: detection without crashing, Tunisian communication, consent, minimal packages, no git-all, no FileNotFoundError, repair/verify/retry loop, real completion, real smoke, first-run, green tests, real evidence. Remaining item is exactly one environment-gated live repair run.
+PARTIALLY VERIFIED — the complete privileged repair flow is demonstrated
+end to end on real Debian 12 (detect → explain → consent → repair →
+verify → retry-safe → install → smoke → first-run invitation) with zero
+tracebacks and zero bundle installs. Withheld from VERIFIED only for:
+live permission-denied execution (no spare user) and daemon-start on a
+systemd host (no such host available).

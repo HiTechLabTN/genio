@@ -107,5 +107,29 @@
    "truly clean OS",
    "docker daemon repair execution"
   ]
+ },
+ "repair_mission": {
+  "timestamp": "2026-10-02T03:31:42Z",
+  "starting_point": "Debian 12 fresh (curl only): no git/python3/pip/venv/docker",
+  "stage_a": "git self-repair with consent OK; python3 self-repair with consent OK",
+  "preflight": "pip MISSING, venv BROKEN, docker MISSING detected with TN explanations",
+  "consent": "single coherent sudo consent (Enter=yes supported)",
+  "repair": "apt-get update + minimal python3-venv/python3-pip/docker.io installed for real",
+  "docker": "CLI installed, daemon unstartable (no systemd) -> honest DAEMON_DOWN -> skip-warn -> CONTINUED (no abort)",
+  "install": "real prefix install, manifest healthy, frontend NOT_APPLICABLE (no npm, honest)",
+  "smoke": "manifest ok, venv-python ok, doctor ATTENTION (docker) reported honestly",
+  "success_block": "partial-health caveat instead of blanket success claim",
+  "first_run": "invitation shown (container died before answer; diagnostic proven in prior pty run)",
+  "tracebacks": 0,
+  "git_all": 0,
+  "sudo_pip": 0,
+  "evidence_log": "e2e-debian12-final.log"
+ },
+ "regression": {
+  "tsc": "0 errors",
+  "installer": "58 passed",
+  "backend": "227 passed",
+  "frontend": "99 passed",
+  "build": "clean"
  }
 }
