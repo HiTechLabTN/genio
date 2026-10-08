@@ -1,0 +1,5 @@
+OS: "Debian GNU/Linux 12 (bookworm)"
+ARCH: x86_64 KERNEL: 7.1.1-76070101-generic
+USER: root SUDO: none
+SYSTEMD: no
+DOCKER: missing

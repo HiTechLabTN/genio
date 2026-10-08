@@ -1,0 +1,54 @@
+{
+ "head": "0d8e26ebd453cf87ebe2ff9c510592f6736af5f7\nmain",
+ "timestamp": "2026-10-08T14:48:57Z",
+ "tests": {
+  "fresh_install": [
+   "PASS",
+   "fresh-debian-v2.log"
+  ],
+  "tn_assistant": [
+   "PASS",
+   "fresh-debian-v2.log"
+  ],
+  "prerequisite_repair": [
+   "PASS",
+   "fresh-debian-v2.log"
+  ],
+  "genio_start": [
+   "PASS",
+   "start2.log"
+  ],
+  "genio_status": [
+   "PASS",
+   "status.log"
+  ],
+  "genio_stop": [
+   "PASS",
+   "stop2.log"
+  ],
+  "first_run_menu": [
+   "PASS",
+   "fresh-debian-v2.log"
+  ],
+  "first_conversation": [
+   "BLOCKED",
+   "no model runtime in container; TN response proven on dev host in prior gate"
+  ],
+  "docker_missing": [
+   "PASS",
+   "fresh-debian-v2.log"
+  ],
+  "docker_permission_denied": [
+   "PASS",
+   "docker-permission-denied.log"
+  ],
+  "docker_daemon_down": [
+   "PASS",
+   "docker-daemon-down.log"
+  ],
+  "non_tty_sudo_safety": [
+   "PASS",
+   "non-tty.log + non-tty2.log (exit 13/22, no hang)"
+  ]
+ }
+}
