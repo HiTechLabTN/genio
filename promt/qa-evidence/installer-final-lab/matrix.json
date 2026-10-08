@@ -1,0 +1,22 @@
+{
+ "head": "6aee04165c1b13d134b8b93e21544b84350e1b04",
+ "lab": "debian:12 privileged systemd + GPU, spare user genioqa, ollama 0.40.1",
+ "tests": {
+  "fresh_install": "PASS",
+  "tn_assistant": "PASS",
+  "prerequisite_repair": "PASS",
+  "genio_start": "PASS",
+  "genio_status": "PASS",
+  "genio_stop": "PASS",
+  "first_run_menu": "PASS",
+  "first_conversation_gemma4_12b": "PASS (TUNISIAN, thought+answer, exit 0)",
+  "first_conversation_qwen2_5_7b": "PASS-execution/MIXED-language",
+  "docker_missing": "PASS",
+  "docker_permission_denied": "PASS",
+  "docker_daemon_down": "PASS",
+  "non_tty_sudo_safety": "PASS",
+  "restart_cycle": "PASS",
+  "doctor_deep_daemon_down": "PASS",
+  "ollama_down": "PASS (explicit error + TN fallback, no fake)"
+ }
+}

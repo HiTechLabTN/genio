@@ -1,0 +1,6 @@
+PRETTY_NAME="Debian GNU/Linux 12 (bookworm)"
+NAME="Debian GNU/Linux"
+7.1.1-76070101-generic
+12
+running
+12288 MiB
