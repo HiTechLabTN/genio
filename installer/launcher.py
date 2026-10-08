@@ -11,7 +11,6 @@ import signal
 import subprocess
 import sys
 import time
-from pathlib import Path
 
 SHIM_TEMPLATE = """#!/usr/bin/env sh
 # Genio launcher — dispatches to this installation. Do not edit by hand.

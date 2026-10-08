@@ -279,24 +279,33 @@ def run_install(args, runner, prefix, emitter):
                     return EXIT_DEPS_MISSING, rep
         else:
             # Non-interactive: report everything + exact minimal fix, no sudo.
-            from installer import packages as _pkg3
-            from installer.core.errors import EXIT_DEPS_MISSING as _ED
-            _fam3 = _pkg3.family_for(rep["os"].get("distro_id"),
-                                     rep["os"].get("package_manager"))
-            _hint3 = " / ".join(" ".join(c) for c in
-                                _pkg3.plan_install(_fam3, ["git"])[:1]) if _fam3 else \
-                "install git + python3 + docker manually for your OS"
-            a.say(a.t("deps_final_fail", missing=", ".join(rep["needs_repair"]),
-                      hint=_hint3))
-            emitter.emit("PREFLIGHT_RESULT", {"ok": False,
-                                             "missing": rep["needs_repair"]})
-            return _ED, rep
+            # Docker is recommended, not required: docker-only gaps warn and
+            # continue (same policy as interactive skip), required gaps abort.
+            _only_docker = [n for n in rep.get("needs_repair", [])] == ["docker"]
+            if _only_docker:
+                a.say(a.t("docker_skip_warn"))
+                rep["needs_repair"] = []
+                emitter.emit("PREFLIGHT_RESULT", {"ok": True, "docker": "skipped"})
+                # fall through to install stages below
+            else:
+                from installer import packages as _pkg3
+                from installer.core.errors import EXIT_DEPS_MISSING as _ED
+                _fam3 = _pkg3.family_for(rep["os"].get("distro_id"),
+                                         rep["os"].get("package_manager"))
+                _plan3 = _pkg3.plan_install(_fam3, ["git"]) if _fam3 else []
+                _hint3 = " / ".join(" ".join(c) for c in _plan3) if _plan3 else \
+                    "install git + python3 + docker manually for your OS"
+                a.say(a.t("deps_final_fail", missing=", ".join(rep["needs_repair"]),
+                          hint=_hint3))
+                emitter.emit("PREFLIGHT_RESULT", {"ok": False,
+                                                 "missing": rep["needs_repair"]})
+                return _ED, rep
         if rep.get("needs_repair"):
             from installer import packages as _pkg2
             _fam = _pkg2.family_for(rep["os"].get("distro_id"),
                                     rep["os"].get("package_manager"))
-            _hint = " / ".join(" ".join(c) for c in
-                               _pkg2.plan_install(_fam, ["git"])[:1]) if _fam else \
+            _plan = _pkg2.plan_install(_fam, ["git"]) if _fam else []
+            _hint = " / ".join(" ".join(c) for c in _plan) if _plan else \
                 "install git + python3 + docker manually for your OS"
             a.say(a.t("deps_final_fail", missing=", ".join(rep["needs_repair"]),
                       hint=_hint))

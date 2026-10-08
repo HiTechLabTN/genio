@@ -20,6 +20,23 @@ def _runner(prefix):
     return Runner(log_path=layout(prefix)["log"] if prefix else None)
 
 
+def _read_answer(prompt):
+    """Prompt-safe input: stdin TTY first, else /dev/tty (curl|bash pipes
+    consume stdin), else empty (caller treats as abort, never hangs)."""
+    try:
+        if sys.stdin.isatty():
+            return input(prompt)
+    except (EOFError, OSError):
+        return ""
+    try:
+        sys.stdout.write(prompt)
+        sys.stdout.flush()
+        with open("/dev/tty", "r") as fh:
+            return fh.readline()
+    except OSError:
+        return ""
+
+
 def cmd_version(_args):
     print(f"genio installer {INSTALLER_VERSION}")
     return EXIT_OK
@@ -91,7 +108,7 @@ def cmd_install(args):
                   f" (pid={o.get('pid')} {o.get('process')} svc={o.get('service')})")
     if not args.yes and not args.check and not getattr(args, "assistant", False):
         emitter.emit("USER_ACTION_REQUIRED", {"reason": "confirm-install"})
-        ans = input(f"Install Genio into {prefix}? [y/N] ")
+        ans = _read_answer(_a.t("confirm_install", prefix=prefix) + " ")
         if ans.strip().lower() != "y":
             emitter.emit("INSTALL_FAILED", {}, error="INSTALL_CANCELLED")
             return EXIT_USER_ABORT
@@ -114,6 +131,8 @@ def cmd_install(args):
         return e.code
     emitter.emit("INSTALL_COMPLETED", {"installation_id": man["installation_id"],
                                        "commit": man["commit"]})
+    if getattr(args, "assistant", False):
+        print(_a.t("install_complete"))
     print(f"Installed {man['installation_id'][:8]} commit={man['commit']} "
           f"frontend={man.get('_frontend', {}).get('status')}")
     if args.with_services:
@@ -238,9 +257,11 @@ def cmd_repair(args):
     try:
         res = repair(runner, prefix)
     except InstallerError as e:
-        print(f"REPAIR FAILED: {e} {e.hint}")
+        from installer import i18n as _i18n_r
+        print(_i18n_r.t("repair_failed", _i18n_r.resolve_lang(None)), f"{e} {e.hint}")
         return e.code
-    print(f"repaired: {res['fixed'] or 'nothing-to-fix'} (backup {res['backup']})")
+    from installer import i18n as _i18n_r2
+    print(_i18n_r2.t("repaired_ok", _i18n_r2.resolve_lang(None), v=res['fixed'] or 'nothing-to-fix', b=res['backup']))
     return EXIT_OK
 
 
@@ -255,10 +276,12 @@ def cmd_update(args):
                      checksum=args.checksum or None,
                      allow_downgrade=args.allow_downgrade)
     except InstallerError as e:
-        print(f"UPDATE FAILED (rolled back): {e} {e.hint}")
+        from installer import i18n as _i18n_up
+        print(_i18n_up.t("update_failed", _i18n_up.resolve_lang(None)), f"{e} {e.hint}")
         emitter.emit("ROLLBACK_COMPLETED", {"after": "update-failure"})
         return e.code
-    print(f"updated {res['old']} -> {res['new']}")
+    from installer import i18n as _i18n_up2
+    print(_i18n_up2.t("updated_ok", _i18n_up2.resolve_lang(None), a=res['old'], b=res['new']))
     return EXIT_OK
 
 
@@ -271,10 +294,12 @@ def cmd_rollback(args):
     try:
         man = rollback(_runner(prefix), prefix, which=args.backup)
     except InstallerError as e:
-        print(f"ROLLBACK FAILED: {e} {e.hint}")
+        from installer import i18n as _i18n_rb
+        print(_i18n_rb.t("rollback_failed", _i18n_rb.resolve_lang(None)), f"{e} {e.hint}")
         return e.code
     emitter.emit("ROLLBACK_COMPLETED", {"commit": man.get("commit")})
-    print(f"rolled back, commit={man.get('commit')}")
+    from installer import i18n as _i18n_rb2
+    print(_i18n_rb2.t("rolledback_ok", _i18n_rb2.resolve_lang(None), v=man.get('commit')))
     return EXIT_OK
 
 
@@ -294,11 +319,11 @@ def cmd_uninstall(args):
         _lu2 = _i18n_u2.resolve_lang(None)
         if args.purge_data:
             # Données utilisateur : confirmation tapée, jamais un simple y/N.
-            ans = input(_i18n_u2.t("uninstall_purge_ask", _lu2, p=prefix) + " ")
+            ans = _read_answer(_i18n_u2.t("uninstall_purge_ask", _lu2, p=prefix) + " ")
             if ans.strip() != "PURGE":
                 return EXIT_USER_ABORT
         else:
-            ans = input(_i18n_u2.t("uninstall_ask", _lu2, p=prefix) + " ")
+            ans = _read_answer(_i18n_u2.t("uninstall_ask", _lu2, p=prefix) + " ")
             if ans.strip().lower() != "y":
                 return EXIT_USER_ABORT
     elif args.purge_data:
@@ -319,10 +344,13 @@ def cmd_uninstall(args):
 
 def build_parser():
     p = argparse.ArgumentParser(prog="genio", description="Genio smart installer")
+    # Global --prefix so the launcher shim (genio --prefix P <cmd>) and
+    # humans (genio <cmd> --prefix P) both work; subparsers refine it.
+    p.add_argument("--prefix", default=argparse.SUPPRESS)
     sub = p.add_subparsers(dest="cmd", required=True)
     sub.add_parser("version").set_defaults(fn=cmd_version)
     i = sub.add_parser("install")
-    i.add_argument("--prefix", default="")
+    i.add_argument("--prefix", default=argparse.SUPPRESS)
     i.add_argument("--source", default="https://github.com/HiTechLabTN/genio.git")
     i.add_argument("--version", default="")
     i.add_argument("--yes", action="store_true")
@@ -344,25 +372,25 @@ def build_parser():
     i.add_argument("--existing-checkout", default="")
     i.set_defaults(fn=cmd_install)
     d = sub.add_parser("doctor")
-    d.add_argument("--prefix", default="")
+    d.add_argument("--prefix", default=argparse.SUPPRESS)
     d.add_argument("--deep", action="store_true")
     d.add_argument("--json", action="store_true")
     d.add_argument("--lang", default="", choices=["", "tu", "fr", "en"])
     d.set_defaults(fn=cmd_doctor)
     s = sub.add_parser("status")
-    s.add_argument("--prefix", default="")
+    s.add_argument("--prefix", default=argparse.SUPPRESS)
     s.set_defaults(fn=cmd_status)
     st = sub.add_parser("start")
-    st.add_argument("--prefix", default="")
+    st.add_argument("--prefix", default=argparse.SUPPRESS)
     st.add_argument("--timeout", type=int, default=60)
     st.set_defaults(fn=cmd_start)
     sp = sub.add_parser("stop")
-    sp.add_argument("--prefix", default="")
+    sp.add_argument("--prefix", default=argparse.SUPPRESS)
     sp.set_defaults(fn=cmd_stop)
     for name, fn in (("repair", cmd_repair), ("update", cmd_update),
                      ("rollback", cmd_rollback), ("uninstall", cmd_uninstall)):
         q = sub.add_parser(name)
-        q.add_argument("--prefix", default="")
+        q.add_argument("--prefix", default=argparse.SUPPRESS)
         if name == "update":
             q.add_argument("--to", default="HEAD")
             q.add_argument("--archive", default="")
@@ -395,6 +423,10 @@ def _code_for(exit_code):
 
 def main(argv=None):
     args = build_parser().parse_args(argv)
+    # Subparser --prefix uses SUPPRESS so the launcher shim's global
+    # --prefix survives; normalize the absent case back to "" here.
+    if getattr(args, "prefix", None) is None:
+        args.prefix = ""
     try:
         return args.fn(args)
     except KeyboardInterrupt:
@@ -406,7 +438,8 @@ def main(argv=None):
             for tmpname in ("_archive_tmp", "_update_tmp"):
                 shutil.rmtree(str(layout(prefix)["prefix"] / tmpname),
                               ignore_errors=True)
-        print("CANCELLED by user — partial state left repairable, nothing deleted.")
+        from installer import i18n as _i18n_cx
+        print(_i18n_cx.t("cancelled", _i18n_cx.resolve_lang(None)))
         if getattr(args, "json_events", False):
             from installer.core.events import Emitter
             Emitter(enabled=True).emit("INSTALL_FAILED", {},

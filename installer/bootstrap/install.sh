@@ -105,20 +105,25 @@ ensure_tool() {
   export DEBIAN_FRONTEND=noninteractive
   # Execute as argv-like words (no eval). Debian-family needs fresh
   # lists on new systems, so update first. Sudo prefix stripped for root.
+  # Package-manager chatter goes to a log file, never into the human
+  # conversation; only a Tunisian summary is shown (errors stay in the log).
+  _log="/tmp/genio-bootstrap-apt.log"
+  : > "$_log" 2>/dev/null || true
   _pre=""
   case "$fix" in
     "sudo apt-get install"*) _pre="sudo apt-get update" ;;
   esac
+  echo "→ نركّب $_pkg..." >&2
   if [ "$(id -u)" = "0" ]; then
     # shellcheck disable=SC2086
-    { [ -z "$_pre" ] || ${_pre#sudo } </dev/null; } || true
+    { [ -z "$_pre" ] || ${_pre#sudo } </dev/null >>"$_log" 2>&1; } || true
     # shellcheck disable=SC2086
-    ${fix#sudo } </dev/null || true
+    ${fix#sudo } </dev/null >>"$_log" 2>&1 || true
   else
     # shellcheck disable=SC2086
-    { [ -z "$_pre" ] || $_pre </dev/null; } || true
+    { [ -z "$_pre" ] || $_pre </dev/null >>"$_log" 2>&1; } || true
     # shellcheck disable=SC2086
-    $fix </dev/null || true
+    $fix </dev/null >>"$_log" 2>&1 || true
   fi
   if command -v "$_cmd" >/dev/null 2>&1; then
     echo "✓ $_pkg تتركّب" >&2
@@ -126,6 +131,7 @@ ensure_tool() {
   fi
   echo "ما نجمتش نركّب $_pkg وحدي. نفّذ الأمر هذا ثم عاود:" >&2
   echo "  $fix" >&2
+  echo "  (التفاصيل في $_log)" >&2
   exit 13
 }
 
