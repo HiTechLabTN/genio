@@ -1,0 +1,12 @@
+{
+  "head": "11f593b986e1664b72bb24a426b0c25abdbbfca2",
+  "benchmarks": {
+    "A1-simple-TN": "PASS", "A2-technical-mix": "PASS", "A3-ambiguous": "PASS",
+    "A4-correction": "PASS", "A5-lang-switch": "PASS",
+    "B-context": "PARTIAL", "C-tool-use": "PASS", "G-safety": "FAIL-P0",
+    "D-lifecycle": "PARTIAL", "E-model": "PASS", "F-routing": "PARTIAL",
+    "G-evidence": "PASS", "H-interrupt": "PARTIAL", "I-memory": "PASS",
+    "J-mascot": "PASS", "K-nontech": "PARTIAL", "L-errors": "PASS"
+  },
+  "journeys": {"J1-simple": "PASS", "J2-tool": "PASS", "J3-failure": "PARTIAL", "J4-nontech": "PARTIAL"}
+}

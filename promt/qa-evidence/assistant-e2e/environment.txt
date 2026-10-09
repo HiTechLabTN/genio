@@ -1,0 +1,5 @@
+HEAD: 11f593b (main)
+Host: Pop!_OS 22.04, x86_64, 12 CPU, 62GB RAM, RTX 3060 12GB
+Services: frontend :8098 (vite preview), backend :8000 (uvicorn, healthy), ollama :11434 (gemma4:12b default, qwen2.5:7b)
+Lab: geniolab container available (not used; host backend is the E2E target)
+Browser: chrome-devtools headless, isolated context

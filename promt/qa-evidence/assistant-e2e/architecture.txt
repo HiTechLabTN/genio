@@ -1,0 +1,1 @@
+Observed: frontend SPA (:8098) -> same-origin /ws + /api proxy -> FastAPI :8000 (/ws/agent) -> model router (ollama-primary gemma4:12b) ; presence/task/tool/evidence models in genio_client/src/{presence,unified,lib} ; TelemetryBar SSE ; chat FAB with transcript filter (user+answer+thought/tool collapsibles).
