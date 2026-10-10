@@ -103,6 +103,25 @@ def test_workspace_invalid_falls_back(monkeypatch):
     assert "nonexistent-genio-ws-xyz" not in str(res["stdout"])
 
 
+def test_final_text_never_empty_nor_misleading():
+    # P1-a closure: the end-of-run answer path can never yield an empty
+    # (or whitespace-only) "success" — real answer, else synthesis, else
+    # an explicit TN could-not-complete fallback.
+    from genio_server.core.agent_loop import AgentLoop
+    loop = AgentLoop()
+    assert loop._final_text("  done  ", []) == "  done  "
+    synth = loop._final_text("", [{"command": "ls",
+                                   "result": {"returncode": 0,
+                                              "stdout": "x"}}])
+    assert synth.strip()
+    assert "ls" in synth
+    fallback = loop._final_text("", None)  # malformed trajectory
+    assert fallback.strip()
+    assert "ما نجمتش" in fallback
+    for claim in ("نجاح", "تمت", "بنحاح"):
+        assert claim not in fallback
+
+
 def test_reflex_skill_with_destructive_step_refused_not_executed(tmp_path):
     # P0 2nd hole: fast-path skills bypass the policy gate (no human in
     # the loop) -> destructive steps must be REFUSED pre-exec, rc != 0.
@@ -139,11 +158,13 @@ def test_compile_skill_refuses_destructive_trajectory():
                                 traj) is False
 
 
-def test_explicit_relative_rm_still_gated_at_policy():
-    # Trou tool-layer documenté: `rm -rf <relatif>` passe is_dangerous,
-    # mais la policy gate l'escalade (agent loop) et le reflex le refuse.
-    from genio_server.tools.bash_tool import is_dangerous
-    assert is_dangerous("rm -rf ./build_cache") is None  # état actuel
+def test_explicit_relative_rm_closed_at_both_layers():
+    # Closure: `rm -rf <relatif>` no longer passes EITHER layer silently.
+    # Tool layer refuses (SCOPED, approval-overridable); policy escalates.
+    from genio_server.tools.bash_tool import is_dangerous, refusal_overridable
+    reason = is_dangerous("rm -rf ./build_cache")
+    assert reason is not None
+    assert refusal_overridable(reason) is True
     d = PolicyRegistry.decide_tool("bash", False, "development",
                                    command="rm -rf ./build_cache")
     assert d == Decision.REQUIRE_CONFIRMATION

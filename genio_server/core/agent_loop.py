@@ -594,6 +594,25 @@ class AgentLoop:
             f"{prefix}وقفت بعد {len(trajectory)} خطوات باش ما ندورش في حلقة. "
             f"آخر الخطوات:\n{body}\nقولي كيفاش نكمل.")
 
+    def _final_text(self, final_answer: str,
+                    trajectory: List[Dict[str, object]]) -> str:
+        """Guaranteed non-empty user-facing final text (closure gate P1-a).
+
+        Priority: real final answer → trajectory synthesis → honest TN
+        fallback. A run NEVER completes with an empty/misleading success:
+        the fallback explicitly says the task could not be completed.
+        Pure (no I/O) — directly unit-tested.
+        """
+        if final_answer and final_answer.strip():
+            return final_answer
+        try:
+            synth = self._quota_synthesis(trajectory)
+        except Exception:
+            synth = ""
+        if synth and synth.strip():
+            return synth
+        return ("ما نجمتش نكمّل المهمّة — عاود صيغ الطلب ولا جرّب مرّة أخرى.")
+
     async def _wait_cancel(self):
         """Wait until cancel_event is set — for race with chat."""
         while not self.cancelled():
@@ -951,6 +970,8 @@ class AgentLoop:
                     continue
                 # Phase 5: interrupteur de confirmation — REQUIRE_CONFIRMATION
                 # suspend le tour et attend l'opérateur (timeout = refus).
+                # approval_token ne vit que sur ce tour (None par défaut).
+                approval_token = None
                 if cap_info["decision"] == "REQUIRE_CONFIRMATION":
                     try:
                         from core.policy_engine import get_policy_engine
@@ -970,17 +991,31 @@ class AgentLoop:
                         continue
                     engine = get_policy_engine()
                     pend = engine.request_confirmation(tool_name, command)
+                    try:
+                        from genio_server.tools.bash_tool import (
+                            _resolve_cwd as _approval_cwd)
+                        _appr_cwd, _, _ = _approval_cwd()
+                    except Exception:
+                        _appr_cwd = ""
                     yield {"type": "action_confirmation_required",
                            "tool": tool_name,
                            "capability": cap_info["capability"],
                            "risk": cap_info["risk"],
                            "command": str(command)[:500],
+                           "cwd": _appr_cwd,
                            "nonce": pend.nonce,
                            "expires_in_s": float(os.getenv(
                                "GENIO_CONFIRM_TIMEOUT", "120"))}
                     approved = await asyncio.to_thread(
                         engine.await_decision, pend.nonce)
+                    # Token travels with the approved call only; run_command
+                    # consumes it single-use against this exact command.
+                    approval_token = None
+                    if approved:
+                        approval_token = {"nonce": pend.nonce,
+                                          "command": command}
                     if not approved:
+                        engine.release(pend.nonce)
                         msg = (f"POLICY REQUIRE_CONFIRMATION unapproved for "
                                f"'{tool_name}' (timeout/refus) — refused.")
                         yield {"type": "error", "message": msg}
@@ -1010,10 +1045,14 @@ class AgentLoop:
                 # Tools (playwright / pyautogui / mss) are blocking — run them
                 # in a worker thread so the async loop stays responsive.
                 # Phase 3: budget individuel par outil (timeout dur).
+                # Closure gate: approval_token (REQUIRE_CONFIRMATION approuvé)
+                # voyage avec l'appel ; run_command le consomme single-use
+                # contre la MÊME chaîne command (pas de TOCTOU : cible
+                # altérée après approbation = refus fermé).
                 try:
                     result = await asyncio.wait_for(
                         asyncio.to_thread(invoke, tool_name, command,
-                                          self.session_id),
+                                          self.session_id, approval_token),
                         timeout=TOOL_TIMEOUT_SECONDS,
                     )
                 except asyncio.TimeoutError:
@@ -1101,8 +1140,7 @@ class AgentLoop:
 
             yield {
                 "type": "answer",
-                "text": final_answer or self._quota_synthesis(trajectory)
-                or "ما نجمتش نكمّل المهمّة — عاود صيغ الطلب ولا جرّب مرّة أخرى.",
+                "text": self._final_text(final_answer, trajectory),
             }
             # Phase 2 v2.1: Trajectory compiler — a >1 tool-turn run that ended
             # with a final answer qualifies for skill serialization.

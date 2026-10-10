@@ -53,6 +53,10 @@ def test_nonce_unique_and_pending_visible():
     e.resolve(d2.nonce, False)
     assert e.await_decision(d1.nonce, timeout_s=1) is True
     assert e.await_decision(d2.nonce, timeout_s=1) is False
+    # Closure gate: await no longer pops (execution consumes single-use
+    # against the exact command). Complete the lifecycle explicitly.
+    assert e.consume(d1.nonce, "click 1 2") is True
+    assert e.release(d2.nonce) is True
     assert e.pending_count() == 0
 
 
@@ -77,6 +81,9 @@ def test_approval_timeout_denies():
     e = PolicyEngine()
     d = e.request_confirmation("bash", "echo hi", timeout_s=0.3)
     assert e.await_decision(d.nonce) is False
+    # Closure gate: timed-out entries linger for explicit
+    # consume/release/purge (no silent pop) — then purge reaps them.
+    assert e.purge_expired() == 1
     assert e.pending_count() == 0
 
 

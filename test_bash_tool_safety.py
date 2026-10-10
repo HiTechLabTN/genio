@@ -50,9 +50,6 @@ def test_dangerous_blocked(cmd: str):
     [
         "git status",
         "ls -la",
-        "rm -rf ./build",
-        "rm -rf build",
-        "rm -f tmp/old.log",
         "python3 -m pip install requests",
         "npm install",
         "mkdir -p /work/repo/src",
@@ -65,6 +62,40 @@ def test_dangerous_blocked(cmd: str):
 )
 def test_safe_passes(cmd: str):
     assert is_dangerous(cmd) is None, f"unexpected refusal for: {cmd!r}"
+
+
+# --------------------------------------------------------------------------- #
+# Closure gate: relative recursive/force rm is no longer silently safe.
+# Without an explicit disposable workspace these need operator approval
+# (SCOPED refusal); inside one they execute. Bare single-file rm stays
+# allowed at the tool layer (interactive policy gate still escalates).
+# --------------------------------------------------------------------------- #
+@pytest.mark.parametrize(
+    "cmd",
+    [
+        "rm -rf ./build",
+        "rm -rf build",
+        "rm -f tmp/old.log",
+        "rm -rf sub/dir",
+        "rm -fr *",
+    ],
+)
+def test_relative_destructive_needs_approval_by_default(cmd: str):
+    from genio_server.tools.bash_tool import refusal_overridable
+    reason = is_dangerous(cmd)
+    assert reason is not None, f"expected SCOPED refusal for: {cmd!r}"
+    assert refusal_overridable(reason) is True, (cmd, reason)
+
+
+def test_relative_destructive_allowed_in_explicit_workspace(tmp_path, monkeypatch):
+    import os
+    from genio_server.tools.bash_tool import run_command
+    (tmp_path / "build").mkdir()
+    (tmp_path / "build" / "x.o").write_text("obj")
+    monkeypatch.setenv("GENIO_WORKSPACE", str(tmp_path))
+    res = run_command("rm -rf build")
+    assert res["returncode"] == 0, res
+    assert not (tmp_path / "build").exists()
 
 
 def test_empty_command_is_safe():

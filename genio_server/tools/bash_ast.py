@@ -188,7 +188,11 @@ def classify(command: str) -> Dict[str, Any]:
             rooted = any(a == "/" or a == "/*" for a in args)
             if rec and wide and rooted:
                 reasons.append("chmod recursive world-writable on /")
-        # 2c. rm destructif hors périmètre (/work seul est sûr).
+        # 2c. rm destructif : racines/globs/ambiguous/homeuska-system
+        # refusés ici ; les autres cibles absolues sont DÉFÉRÉES à la
+        # couche canonique workspace (bash_tool._rm_workspace_reason) qui
+        # résout symlinks/.. et connaît le workspace effectif (l'exemption
+        # historique "/work" fixe est supprimée — voir closure gate).
         if prog == "rm":
             rec_force = any(a in ("-r", "-R", "-f", "--recursive", "--force",
                                   "-rf", "-fr") for a in args)
@@ -196,12 +200,15 @@ def classify(command: str) -> Dict[str, Any]:
                 if t.startswith("-"):
                     continue
                 if t in ("/", "/*", "*", ".", "..", "~") \
-                        or t.startswith("~/") \
-                        or (t.startswith("/") and t != "/work"
-                            and not t.startswith("/work/")):
+                        or t.startswith("~/"):
                     if rec_force or t in ("/", "/*", "*"):
                         reasons.append(f"destructive rm target: {t}")
                         break
+                elif t.startswith("/") and (
+                        t.startswith(_SENSITIVE_ABS)
+                        or t in ("/root", "/etc")):
+                    reasons.append(f"destructive rm target: {t}")
+                    break
         # 3. socket Docker n'importe où dans les args (curl --unix-socket…).
         if any("/var/run/docker.sock" in a or "//./pipe" in a
                for a in seg.argv):

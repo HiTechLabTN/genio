@@ -88,6 +88,7 @@ class PolicyEngine:
                 nonce=nonce, tool=tool, capability=cap, risk=risk,
                 command=str(command or "")[:500], created=time.monotonic(),
                 timeout_s=timeout_s)
+        self.purge_expired()
         return PolicyDecision("REQUIRE_CONFIRMATION",
                               f"awaiting operator approval (nonce {nonce})",
                               cap, risk, nonce)
@@ -104,18 +105,35 @@ class PolicyEngine:
                         0.0, p.timeout_s - (time.monotonic() - p.created))}
 
     def resolve(self, nonce: str, approved: bool) -> bool:
-        """Approbation explicite de l'opérateur. Retourne False si inconnu."""
+        """Approbation explicite de l'opérateur. Retourne False si inconnu.
+
+        Single-use + expiry enforced HERE (pas seulement à l'attente) :
+        un nonce déjà décidé ou expiré ne peut plus autoriser quoi que
+        ce soit (anti-rejeu, anti-décision-tardive). N'exécute jamais rien
+        lui-même — l'exécution vérifie via consume().
+        """
         with self._lock:
             p = self._pending.get(nonce)
             if p is None:
                 return False
+            if p.approved is not None:
+                return False  # déjà décidé : le premier verdict gagne
+            if p.expired():
+                self._pending.pop(nonce, None)
+                p.event.set()
+                return False  # expiré : refus fail-closed
             p.approved = bool(approved)
             p.event.set()
             return True
 
     def await_decision(self, nonce: str,
                        timeout_s: Optional[float] = None) -> bool:
-        """Bloque jusqu'à approbation/refus/timeout. False = refus/timeout."""
+        """Bloque jusqu'à approbation/refus/timeout. False = refus/timeout.
+
+        Ne consomme PAS le nonce : l'exécution doit appeler consume()
+        avec la commande exacte (liaison commande↔approbation, anti-TOCTOU).
+        Les entrées orphelines expirent (purge_expired / resolve).
+        """
         with self._lock:
             p = self._pending.get(nonce)
             if p is None:
@@ -123,9 +141,39 @@ class PolicyEngine:
             wait = p.timeout_s if timeout_s is None else timeout_s
         ok = p.event.wait(timeout=wait)
         with self._lock:
-            approved = bool(ok and p.approved is True)
+            p2 = self._pending.get(nonce)
+            if p2 is None:
+                return False
+            return bool(ok and p2.approved is True and not p2.expired())
+
+    def consume(self, nonce: str, command: str) -> bool:
+        """Valide single-use qu'un nonce approuvé couvre EXACTEMENT
+        ``command`` (la chaîne montrée à l'opérateur, tronquée à 500 comme
+        au request). Pop atomique : rejouer le même nonce échoue ; une
+        commande altérée après approbation échoue (anti-TOCTOU).
+        """
+        with self._lock:
+            p = self._pending.get(nonce)
+            if p is None:
+                return False
+            if p.approved is not True or p.expired():
+                if p.expired():
+                    self._pending.pop(nonce, None)
+                    p.event.set()
+                return False
+            if str(command or "")[:500] != p.command:
+                return False  # cible modifiée après approbation : refus
             self._pending.pop(nonce, None)
-        return approved
+            return True
+
+    def release(self, nonce: str) -> bool:
+        """Abandonne une demande sans décider (l'attente tombe en refus)."""
+        with self._lock:
+            p = self._pending.pop(nonce, None)
+            if p is None:
+                return False
+            p.event.set()
+            return True
 
     def pending_count(self) -> int:
         with self._lock:

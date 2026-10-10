@@ -115,9 +115,9 @@ def _real_invoke_spy(monkeypatch):
     real = mod.invoke
     calls = []
 
-    def spy(tool, payload, session_id=None):
+    def spy(tool, payload, session_id=None, *args, **kwargs):
         calls.append((tool, payload))
-        return real(tool, payload, session_id)
+        return real(tool, payload, session_id, *args, **kwargs)
     monkeypatch.setattr(mod, "invoke", spy)
     return calls
 

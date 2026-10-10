@@ -117,6 +117,7 @@ export default function App() {
   const isGeminiCloud = !connected;
 
   const {
+    status: wsStatus,
     agentStatus: wsAgentStatus,
     telemetry,
     chat: wsChat,
@@ -130,6 +131,17 @@ export default function App() {
     pendingApproval,
     connectionToast,
   } = useGenioSocket();
+
+  // Closure gate (silent-offline fix): App-level `connected` used to stay
+  // true forever after the socket died (green badge, failing sends). Bind
+  // it to real socket liveness — dropping to false re-arms the
+  // auto-connect effect above, so recovery is automatic and honest.
+  useEffect(() => {
+    if (connected && (wsStatus.kind === "error" || wsStatus.kind === "idle")) {
+      setConnected(false);
+      setTarget(null);
+    }
+  }, [connected, wsStatus]);
 
   const [geminiChat, setGeminiChat] = useState<typeof wsChat>([]);
   const [geminiStatus, setGeminiStatus] = useState<typeof wsAgentStatus>({ kind: "idle" });
@@ -339,9 +351,16 @@ export default function App() {
         : { id: "hitech-cloud", label: "HiTech Cloud", host: "genio.hitech.tn", port: 443 })
       : { id: "tn", label: "TN Server", host: "tn", port: 8000 };
     const statusUrl = !isNative ? "/api/v1/status" : `http://${defaultNode.host}:${defaultNode.port}/api/v1/status`;
-    const ctrl = new AbortController();
-    const to = window.setTimeout(() => ctrl.abort(), 2500);
-    fetch(statusUrl, { signal: ctrl.signal })
+    // Closure gate (recovery): single-shot connect left the app red
+    // forever if the attempt landed in a backend downtime window.
+    // Retry every 10 s while disconnected (alive-guarded, effect
+    // cleanup clears the timer; a successful connect flips `connected`
+    // and tears this effect down).
+    const attempt = () => {
+      if (!alive) return;
+      const ctrl = new AbortController();
+      const to = window.setTimeout(() => ctrl.abort(), 2500);
+      fetch(statusUrl, { signal: ctrl.signal })
       .then(async (r) => {
         clearTimeout(to);
         if (!alive) return;
@@ -365,13 +384,14 @@ export default function App() {
         } else setHealthStatus("offline");
       })
       .catch(() => {
-        clearTimeout(to);
         if (alive) setHealthStatus("offline");
       });
+    };
+    void attempt();
+    const retryId = window.setInterval(attempt, 10000);
     return () => {
       alive = false;
-      clearTimeout(to);
-      ctrl.abort();
+      window.clearInterval(retryId);
     };
   }, [splashReady, connected, connect, isNative]);
 
@@ -1087,6 +1107,12 @@ export default function App() {
             </div>
             <p className="mt-3 text-xs font-semibold text-zinc-400">{t(lang, "approval.command_label")}</p>
             <pre dir="ltr" className="mt-1 max-h-40 overflow-auto rounded-lg bg-black/70 p-3 text-left font-mono text-sm text-amber-200">{pendingApproval.command}</pre>
+            {pendingApproval.cwd && (
+              <>
+                <p className="mt-2 text-xs font-semibold text-zinc-400">{t(lang, "approval.cwd_label")}</p>
+                <pre dir="ltr" className="mt-1 max-h-16 overflow-auto rounded-lg bg-black/70 p-2 text-left font-mono text-xs text-zinc-300">{pendingApproval.cwd}</pre>
+              </>
+            )}
             {pendingApproval.decided ? (
               <p className="mt-4 text-sm text-zinc-300">
                 {pendingApproval.decided === "approved" ? t(lang, "approval.sent") : t(lang, "approval.denied_note")}

@@ -1,4 +1,4 @@
-# GENIO SAFETY REVIEW — reliability gate (2026-10-09)
+# GENIO SAFETY REVIEW — reliability gate (2026-10-09) + closure (2026-10-10)
 
 Branch: `fix/safety-reliability-gate` (from `986e25f`). Baseline CI green.
 Backend: systemd `genio.service` :8000 (respawned with fix), isolated
@@ -15,7 +15,9 @@ Frontend: rebuilt `dist`, preview :8098. Model: `gemma4:12b`.
 | P0-4 | Same-connection approval deadlock (1011) | **FIXED, proven live** | `approval_resolved {known:true}` same connection (v5) |
 | P1-a | Empty assistant answers | **FIXED (code), not triggered E2E** | fast-path empty→LLM fall-through + final TN fallback (`agent_loop.py`); no empty answer observed in 8 live runs |
 | P1-b | Raw tool output (`[ردّ سريع من جينيو] top…`) | **PARTIAL** | honest prefix kept (it IS the label); truncation exists; TN segue sentence NOT added — follow-up |
-| P1-c | Kill control hidden (`sr-only`) | **FIXED, seen live** | visible red button while active (84 px, snapshots `50_9`/`51_2`); kill-CLICK mid-run NOT tested — follow-up |
+| P1-c | Kill control hidden (`sr-only`) | **FIXED, proven live** | visible red button while active (84 px); kill-CLICK mid-run → idle, no answer (closure E2E) |
+| P1-d (closure) | Silent-offline (green badge, dead socket) | **FIXED, proven live** | liveness binding effect; drop → 🔴 + recovery accepts + green (screenshot `journey-offline-badge.png`); 10 s reconnect retry |
+| P1-e (closure) | `clients` metric reads 0 | **LIMITATION, classified** | counts running agent turns, not WS connections (historic misnomer; code comment added, no behavior change) |
 
 ## What changed (files)
 
@@ -76,34 +78,58 @@ Frontend: rebuilt `dist`, preview :8098. Model: `gemma4:12b`.
    (explicit-paths variant); two clicked denies + one timeout-refusal
    across three model variants; zero executions; repo + target intact.
 
-## Residuals / follow-ups ( NOT fixed tonight)
+## Residuals / follow-ups (closure update 2026-10-10)
 
-- `is_dangerous()` still allows relative `rm -rf <explicit-path>`
-  (tool layer); covered above it by policy gate (interactive) +
-  reflex refusal (fast-path). Direct tool-API callers bypass
-  confirmation — unchanged historic behavior, document for operators.
-- `>`-redirection clobbering of regular files is not gated (only
-  `/dev/*`); same rationale as above.
-- `GENIO_WORKSPACE` is opt-in and NOT set on the production unit
-  (systemd edit needs operator + sudo); default CWD is still the repo.
-- Approval does not survive reconnects (orphaned runs fail-closed via
-  timeout; dialog state is per-socket). Re-fetchable approval = P2.
-- `clients` metric in `/api/v1/status` reads 0 with live WS clients
-  (broken counter, unrelated to this gate).
-- One silent-offline episode observed (green telemetry, dead WS,
-  generic send error) — auto-connect retry worth hardening (P1).
-- Frontend `error` events (e.g. POLICY DENIED) stay EN/raw; TN mapping
-  via `mapError()` is a P2 UX pass.
+- CLOSED: tool-layer relative-`rm` hole — `is_dangerous()` now enforces
+  workspace-canonicalized scoping (symlink/`..`-aware) at the shared
+  exec boundary (`run_command`/`async_run_command`, container path
+  inherits); SCOPED refusals execute only on fresh single-use approval
+  bound to the exact command; HARD list (roots, system, devices,
+  privesc, fork, mkfs) never overridable. Matrix: `test_tool_boundary.py`
+  (24 tests, real fixtures, zero-destruction assertions).
+- CLOSED: approval TOCTOU/replay — `resolve` single-use + expiry,
+  `consume(nonce, command)` exact-match, `await` no longer pops;
+  `agent_loop` threads the token and executes the identical string.
+- CLOSED: `async_run_command` workspace parity (was `os.getcwd()` only).
+- DECIDED: `GENIO_WORKSPACE` OPTIONAL, deliberately UNSET on
+  `genio.service` (verified absent from unit env) — setting it would
+  redirect all agent cwd and break repo-relative work; omitting is safe
+  under the new enforcement (destructive needs approval; invalid value
+  fails closed with warning, never silently broadens).
+- CLOSED: approval dialog shows execution cwd (`التنفيذ في …`, live
+  screenshot `journey-B-dialog-cwd.png`); alias-import bug that blanked
+  it caught by live E2E.
+- CLOSED: stuck dialog on expired nonce (terminal-event + TTL clear).
+- CLOSED: quarantine holds post-restart; 2 further benign read-only
+  skills compiled safely since (compile guard working as designed).
+- CLOSED: empty-answer path unit-pinned (`_final_text`: answer →
+  synthesis → explicit TN non-success fallback).
+- `>`-redirection clobbering of regular files, `git clean -fdx` /
+  `find -delete` / interpreter-rmtree class: documented residuals —
+  string matching cannot sandbox a shell; real isolation is
+  `GENIO_SANDBOX_MODE=container` (exists, operator choice).
+- Approval does not survive reconnects (orphans fail closed via
+  timeout; proven live) — re-fetchable approval stays P2.
+- Frontend `error` events stay EN/raw (`mapError()` pass = P2).
+- Kill-switch/backend-kill logging of WS actions is absent from the
+  journal (observability P2).
+- Service-worker aggressively caches old bundles after rebuild
+  (manual unregister needed in tests) — deployment P2.
 - `state/skills_library/patterns.json` + `feedback_memory.json` +
-  `GENIO_INSTALLER_UX_AUDIT.md` are live-mutated at runtime; left
-  untouched except the 2-skill quarantine (this review commits it
-  deliberately — see evidence backups).
+  `GENIO_INSTALLER_UX_AUDIT.md` + `genio_gestures/gestures.db` are
+  live-mutated at runtime; patterns quarantine applied worktree-only
+  (HEAD never contained poison); all four left uncommitted with
+  gate-start backups in `/tmp/closure-gate/`.
 
-## Regression status
+## Regression status (closure 2026-10-10)
 
-- Backend: 472 passed + 13 new; 2 failures pre-exist on clean HEAD
-  (`test_genio_core.py::TestPlanning::test_parse_plan_injects_auditor`,
-  `TestEndToEndDryRun::test_pipeline_dispatch`) — unrelated, not
-  introduced here.
+- Backend: **504 passed, 0 failed** (2 pre-existing environmental
+  deselected with clean-copy evidence:
+  `regression-tests/prefail-clean-copy-comparison.md`).
+  `TestPlanning::test_parse_plan_injects_auditor` (external
+  `/data/ai_tools/llm_utils.py` config gap) and
+  `TestEndToEndDryRun::test_pipeline_dispatch` (`preflight_env`
+  'Critical service(s) down' — live-service probe) fail identically on
+  pristine `986e25f` and branch HEAD `22e772f`.
 - Frontend: `tsc --noEmit` 0 errors; vitest 100/100 (incl. new
   approval-localization test).

@@ -117,7 +117,7 @@ def test_capability_event_emitted_and_bash_allowed_dev(monkeypatch):
     real = mod.invoke
     calls = []
     monkeypatch.setattr(mod, "invoke",
-                        lambda t, p, s=None: (calls.append(t), real(t, p, s))[1])
+                        lambda t, p, s=None, *a, **k: (calls.append(t), real(t, p, s, *a, **k))[1])
     monkeypatch.delenv("GENIO_SECURITY_MODE", raising=False)
     events = _run(_Scripted(['{"tool": "bash", "command": "echo cap"}',
                              "تمام."]))
@@ -133,7 +133,7 @@ def test_strict_mode_denies_bash_without_sandbox(monkeypatch):
     real = mod.invoke
     calls = []
     monkeypatch.setattr(mod, "invoke",
-                        lambda t, p, s=None: (calls.append(t), real(t, p, s))[1])
+                        lambda t, p, s=None, *a, **k: (calls.append(t), real(t, p, s, *a, **k))[1])
     monkeypatch.setenv("GENIO_SECURITY_MODE", "strict")
     monkeypatch.delenv("GENIO_SANDBOX_MODE", raising=False)
     events = _run(_Scripted(['{"tool": "bash", "command": "echo no"}',

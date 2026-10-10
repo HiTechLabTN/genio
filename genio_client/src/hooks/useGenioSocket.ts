@@ -57,6 +57,7 @@ export function useGenioSocket(): UseGenioSocket {
           capability: String(ev.capability ?? ""),
           risk: String(ev.risk ?? ""),
           command: String(ev.command ?? "").slice(0, 500),
+          cwd: String(ev.cwd ?? ""),
           nonce,
           expires_in_s: Number(ev.expires_in_s ?? 120) || 120,
           receivedAt: Date.now(),

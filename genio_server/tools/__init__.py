@@ -55,11 +55,14 @@ def parse_payload(payload: Any) -> Any:
     return payload
 
 
-def invoke(tool: str, payload: Any, session_id: str | None = None) -> Dict[str, object]:
+def invoke(tool: str, payload: Any, session_id: str | None = None,
+           approval: Dict[str, object] | None = None) -> Dict[str, object]:
     """Dispatch a tool call returned by the LLM.
 
     ``bash`` accepts a command string (or ``{"command": ...}``);
     ``social_post`` accepts a JSON string (or dict) of its arguments.
+    ``approval`` ({"nonce","command"}) carries a fresh single-use operator
+    approval for ``bash`` SCOPED refusals; HARD refusals stand regardless.
     """
     # Phase 17 : halted => aucun dispatch (re-arm explicite requis).
     try:
@@ -88,7 +91,8 @@ def invoke(tool: str, payload: Any, session_id: str | None = None) -> Dict[str, 
                 command = str(payload.get("command", ""))
             else:
                 command = str(payload or "")
-            return run_command(command, session_id=session_id)
+            return run_command(command, session_id=session_id,
+                               approval=approval)
         if tool == "social_post":
             return invoke_social_post(payload)
         if tool == "browser":

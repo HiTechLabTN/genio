@@ -34,6 +34,7 @@ export interface ApprovalRequest {
   capability: string;
   risk: string;
   command: string;
+  cwd: string;
   nonce: string;
   expires_in_s: number;
   receivedAt: number;

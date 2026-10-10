@@ -311,6 +311,8 @@ async def _telemetry_snapshot_async() -> Dict[str, Any]:
         "model": AgentLoop().model,
         "mode": os.environ.get("GENIO_MODE", "autonomous"),
         "last_tok_per_s": float(LAST_STATS.get("tok_per_s", 0.0)),
+        # NOTE (closure gate): "clients" counts RUNNING AGENT TURNS, not
+        # websocket connections (historic misnomer, kept for compat).
         "clients": sum(_ACTIVE_RUNS.values()),
         "armed": SAFETY.armed,
         "router": router_health,
