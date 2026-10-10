@@ -22,11 +22,14 @@ Gating: ``GENIO_REFLEX_FASTPATH=1`` enables the fast path. Default on.
 from __future__ import annotations
 
 import json
+import logging
 import os
 import re
 import time
 from pathlib import Path
 from typing import Dict, List, Optional
+
+logger = logging.getLogger(__name__)
 
 from genio_server.tools.bash_tool import MAX_OUTPUT, TRUNCATE_MARKER
 
@@ -57,6 +60,24 @@ def _invoke_bash(command: str, session_id: Optional[str] = None) -> Dict[str, ob
         res = dict(res)  # shallow copy
         res["reflex"] = True
     return res
+
+
+def _destructive_reason(command: str) -> Optional[str]:
+    """Policy pre-check for the reflex fast path (P0 fix, 2nd hole).
+
+    The fast path has no human in the loop by design, so destructive
+    content can never execute here — not even with confirmation (there
+    is no confirmation channel in match()). Returns a refusal reason,
+    else None. Pure + fast (regex only, no exec).
+    """
+    try:
+        from genio_server.core.registries import _looks_destructive
+    except Exception:
+        return None
+    if _looks_destructive(command):
+        return ("refused: destructive content — explicit user confirmation "
+                "required (policy gate, main loop only)")
+    return None
 
 
 # --------------------------------------------------------------------------- #
@@ -240,6 +261,16 @@ class ReflexEngine:
         for step in steps:
             cmd = str(step.get("command") or "")
             cmd = self._substitute_prompt_params(cmd, prompt, skill)
+            # P0: pre-check APRÈS substitution (payloads paramétrés) — le
+            # fast-path n'exécute jamais de contenu destructif (pas de
+            # canal de confirmation ici) ; refus visible, fail-safe break.
+            pre = _destructive_reason(cmd)
+            if pre:
+                if worst_rc == 0:
+                    worst_rc = 126
+                    worst_err = pre
+                outputs.append(f"$ {cmd}\n[REFUSED] {pre}")
+                break
             res = _invoke_bash(cmd, session_id=session_id)
             rc = int(res.get("returncode", -1)) if isinstance(res.get("returncode"), int) or str(res.get("returncode")).lstrip("-").isdigit() else -1
             # is_dangerous refusal (126) or explicit error must surface
@@ -292,6 +323,22 @@ class ReflexEngine:
     @staticmethod
     def _finalize(pattern: Dict[str, object], command: str,
                   started: float, session_id: Optional[str] = None) -> Dict[str, object]:
+        # P0: même garde pour les patterns built-in (jamais d'exécution
+        # destructive en fast-path) ; refus visible rc=126.
+        pre = _destructive_reason(command)
+        if pre:
+            return {
+                "type": "tool_result",
+                "result": {
+                    "command": command,
+                    "stdout": f"$ {command}\n[REFUSED] {pre}",
+                    "stderr": pre,
+                    "returncode": 126,
+                    "duration": round(time.monotonic() - started, 3),
+                    "reflex": True,
+                    "handler": pattern.get("name"),
+                },
+            }
         res = _invoke_bash(command, session_id=session_id)
         return {
             "type": "tool_result",
@@ -343,6 +390,14 @@ class ReflexEngine:
             steps.append({"command": str(command)})
         if not steps:
             return False
+        # P0: on ne compile JAMAIS une séquence destructive — un skill
+        # fast-path n'a pas de canal de confirmation, le poison se
+        # répliquerait à chaque prompt correspondant (incident auto-*).
+        for st in steps:
+            if _destructive_reason(str(st.get("command") or "")):
+                logger.warning("compile_skill refused: destructive step in %r",
+                               name)
+                return False
         key_tokens = re.findall(r"[\w]{3,}", prompt.lower())
         # Q2 strict: pick 3 most discriminative tokens (longest) and require ALL.
         # Mitigates single-word false positives like "please" triggering any skill.

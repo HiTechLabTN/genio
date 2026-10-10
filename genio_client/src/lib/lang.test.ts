@@ -38,6 +38,18 @@ describe("language alternatives", () => {
       }
     }
   });
+  it("safety-gate approval dialog is fully localized (timely consent must be readable)", () => {
+    const keys = ["approval.title", "approval.body", "approval.command_label", "approval.approve", "approval.deny", "approval.sent", "approval.denied_note", "shell.awaiting_approval"];
+    for (const k of keys) {
+      for (const l of ["tu", "fr", "en"] as Lang[]) {
+        expect(t(l, k), `${l}.${k}`).toBeTruthy();
+        expect(t(l, k)).not.toBe(k);
+      }
+    }
+    // Tunisian default must not leak French/English for the safety gate
+    expect(t("tu", "approval.deny")).toBe("أرفض");
+    expect(t("tu", "approval.approve")).toBe("نفّذ");
+  });
   it("Tunisian is actually Tunisian (not MSA-generic, not English)", () => {
     expect(t("tu", "nav_install")).toMatch(/ركّب/);
     expect(t("tu", "offline")).toMatch(/ما فماش/);

@@ -1,0 +1,83 @@
+[
+  {
+    "name": "auto-1790120464",
+    "description": "compiled from prompt: شوف شنو فما في dossier /data/ai_tools/genio/export، ومبعد قولي قداش من fichier",
+    "prompt_re": "(?=.*\\bai_tools\\b)(?=.*\\bdossier\\b)(?=.*\\bfichier\\b).*",
+    "params": [],
+    "steps": [
+      {
+        "command": "ls -1 /data/ai_tools/genio/export"
+      },
+      {
+        "command": "ls -1 /data/ai_tools/genio/export | wc -l"
+      }
+    ],
+    "compiled_at": "2026-09-22T23:41:04Z"
+  },
+  {
+    "name": "auto-1790916251",
+    "description": "compiled from prompt: chna7wel el serveur mta3na",
+    "prompt_re": "(?=.*\\bchna7wel\\b)(?=.*\\bserveur\\b)(?=.*\\bmta3na\\b).*",
+    "params": [],
+    "steps": [
+      {
+        "command": "netstat -tuln | grep -E ':80|:443|:8000|:5000'"
+      },
+      {
+        "command": "free -h && df -h / && uptime"
+      }
+    ],
+    "compiled_at": "2026-10-02T04:44:11Z"
+  },
+  {
+    "name": "auto-1791495870",
+    "description": "compiled from prompt: نحب نعمل backup للـdocuments متاعي.",
+    "prompt_re": "(?=.*\\bللـdocuments\\b)(?=.*\\bbackup\\b)(?=.*\\bمتاعي\\b).*",
+    "params": [],
+    "steps": [
+      {
+        "command": "ls -R ~/Documents"
+      },
+      {
+        "command": "mkdir -p ~/backup_documents && tar -czvf ~/backup_documents/documents_backup_$(date +%Y%m%d).tar.gz -C /home/hitech/Documents ."
+      }
+    ],
+    "compiled_at": "2026-10-08T21:44:30Z"
+  },
+  {
+    "name": "auto-1791502820",
+    "description": "compiled from prompt: جينيو، الحاسوب متاعي بطيء برشة، تنجم تشوفلي علاش؟",
+    "prompt_re": "(?=.*\\bالحاسوب\\b)(?=.*\\bتشوفلي\\b)(?=.*\\bجينيو\\b).*",
+    "params": [],
+    "steps": [
+      {
+        "command": "top -bn1 | head -n 20"
+      },
+      {
+        "command": "ps -up 2460256"
+      },
+      {
+        "command": "ps aux | grep python"
+      }
+    ],
+    "compiled_at": "2026-10-08T23:40:20Z"
+  },
+  {
+    "name": "auto-1791503317",
+    "description": "compiled from prompt: الحاسوب متاعي بطيء، شنوّة نعمل؟",
+    "prompt_re": "(?=.*\\bالحاسوب\\b)(?=.*\\bمتاعي\\b)(?=.*\\bبطيء\\b).*",
+    "params": [],
+    "steps": [
+      {
+        "command": "top -bn 1 | head -n 20"
+      },
+      {
+        "command": "ps -fp 2521013 -o args="
+      },
+      {
+        "command": "ps aux | grep python | grep -v grep"
+      }
+    ],
+    "compiled_at": "2026-10-08T23:48:37Z"
+  }
+]

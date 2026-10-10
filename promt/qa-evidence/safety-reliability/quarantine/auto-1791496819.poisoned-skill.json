@@ -1,0 +1,20 @@
+[
+  {
+    "name": "auto-1791496819",
+    "description": "compiled from prompt: امسحلي الملفات الكل.",
+    "prompt_re": "(?=.*\\bالملفات\\b)(?=.*\\bامسحلي\\b)(?=.*\\bالكل\\b).*",
+    "params": [],
+    "steps": [
+      {
+        "command": "ls -F"
+      },
+      {
+        "command": "rm -rf *"
+      },
+      {
+        "command": "rm -rf assets-pipeline/ bootstrap.sh capacitor.config.json CHANGELOG.md chat_with_genio.py compiled_skills/ config.py content/ core/ data/ delivery/ deploy/ deploy.py docker-compose.prod.yml docker-compose.yml Dockerfile.web docs/ electron/ engines/ export/ feedback_memory.json feedback_memory.json.lock genio/ genio_client/ genio_executive_core.py GENIO_GATE2_RECOVERY_AND_TUNISIAN_PUBLIC_UX_REPORT.md GENIO_INSTALLER_E2E_HEAD_REPORT.md GENIO_INSTALLER_FINAL_E2E_VERIFICATION.md GENIO_INSTALLER_UX_AUDIT.md GENIO_INTELLIGENT_INSTALLER_FINAL_REPORT.md GENIO_INTELLIGENT_INSTALLER_REPORT.md genio-logo.svg GENIO_MASCOT_VISUAL_REVAMP_REPORT.md genio_server/ genio_server.log genio_server.py genio_step_runner.py genio_updates_delivery.zip Genio-Web-v2.3.0.zip harness_partie_C.py index.html installer/ LICENSE livetest_recorder.py local_workspace/ media/ monitor_system.py my-todo-app/ promt/ publishers/ __pycache__/ README.md release_assets_v2.3.0/ reports/ requirements.lock requirements.txt sandbox/ schemas/ scripts/ state/ test_bash_tool_safety.py test_dataset_synthesizer.py test_genio_core.py test_motion_storyboard.py test_phase1_memory_agent.py test_phase2_session_checkpoint.py test_phase3_generic_healer.py test_phase4_tool_forge.py test_phase5_sandbox.py test_phase6_tolerant_ws.py test_phase7_routing_kill.py test_phase_A_reflex_bypass.py test_phase_A_tool_forge_rce.py test_phase_B_tool_forge_container.py test_phase_C_session_volume.py test_phase_D_container_lifecycle.py test_phase_E_model_routing.py test_phase_motion_memory.py test_phase_v2_1_watchdog.py test_phase_v2_2_reflex.py test_phase_v2_3_audio.py test_registries.py tests/ tmp/ training/ unsloth_compiled_cache/ VERSION web/ youtube_payloads/ youtube_publisher.py"
+      }
+    ],
+    "compiled_at": "2026-10-08T22:00:19Z"
+  }
+]

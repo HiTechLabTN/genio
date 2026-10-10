@@ -826,22 +826,30 @@ async def ws_agent(ws: WebSocket, node: str = Query(default=None)) -> None:
                     cancel_event=_KILL_EVENTS[conn_id],
                     session_id=sid,
                 )
-                try:
-                    async for event in agent.run(text):
-                        if not await safe_send(ws, event):
-                            break
-                        if event.get("type") == "stats":
-                            LAST_STATS.update(
-                                tokens=event.get("tokens", 0),
-                                tok_per_s=event.get("tok_per_s", 0.0),
-                            )
-                except OllamaConnectionError as exc:
-                    await safe_send(ws, {"type": "error", "message": str(exc)})
-                except Exception as exc:  # never let one run kill the socket
-                    await safe_send(ws, {"type": "error", "message": _public_error(
-                        exc, "agent run failed")})
-                finally:
-                    _ACTIVE_RUNS[conn_id] = False
+                # Safety gate (P0): the run executes as a background task so
+                # the receive loop stays responsive. Same-connection control
+                # messages (approve/kill/rearm) must be readable WHILE the
+                # run waits on a confirmation nonce — awaiting inline here
+                # deadlocks approval until GENIO_CONFIRM_TIMEOUT (fail-closed
+                # but approve never lands). Busy-guard via _ACTIVE_RUNS.
+                async def _run_agent() -> None:
+                    try:
+                        async for event in agent.run(text):
+                            if not await safe_send(ws, event):
+                                break
+                            if event.get("type") == "stats":
+                                LAST_STATS.update(
+                                    tokens=event.get("tokens", 0),
+                                    tok_per_s=event.get("tok_per_s", 0.0),
+                                )
+                    except OllamaConnectionError as exc:
+                        await safe_send(ws, {"type": "error", "message": str(exc)})
+                    except Exception as exc:  # never let one run kill the socket
+                        await safe_send(ws, {"type": "error", "message": _public_error(
+                            exc, "agent run failed")})
+                    finally:
+                        _ACTIVE_RUNS[conn_id] = False
+                asyncio.get_running_loop().create_task(_run_agent())
                 continue
 
             if action == "attach_file":

@@ -259,6 +259,11 @@ def run_command(command: str, timeout: int = DEFAULT_TIMEOUT,
 
     started = time.monotonic()
     cmd = ["/bin/bash", "-lc", command] if os.name == "posix" else command
+    # Safety-reliability gate : répertoire d'exécution borné. GENIO_WORKSPACE
+    # (opt-in opérateur) isole les effets de bord hors du dépôt vivant ;
+    # repli explicite sur cwd serveur (comportement historique inchangé).
+    _ws = os.getenv("GENIO_WORKSPACE", "").strip()
+    _cwd = _ws if (_ws and os.path.isdir(_ws)) else os.getcwd()
     # Phase 17 : Popen enregistré → halt() préemptif le termine en vol.
     from genio_server.tools.safety import SAFETY as _SAFETY17
     try:
@@ -267,7 +272,7 @@ def run_command(command: str, timeout: int = DEFAULT_TIMEOUT,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True,
-            cwd=os.getcwd(),
+            cwd=_cwd,
         )
         key = _SAFETY17.register_proc(proc)
         try:

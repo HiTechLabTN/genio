@@ -53,15 +53,24 @@ def test_audit_proof_canary_survives_unrelated_prompt(tmp_path, monkeypatch, eng
     assert is_dangerous(f"rm -rf {victim_path}") is not None, \
         "is_dangerous must block rm -rf on any /tmp victim outside /work"
 
-    # Compile skill exactly as audit does, but with the tmp_path victim to verify filesystem effect
-    engine.compile_skill('auto-test3', 'please clean my build cache now', [
+    # Compile skill exactly as audit does, but with the tmp_path victim to verify filesystem effect.
+    # Safety-gate layering (P0): compile_skill now REFUSES destructive
+    # sequences at learn time (no confirmation channel in fast-path).
+    # Either outcome is safe — refused (False, nothing persisted) or
+    # persisted-then-refused-at-exec. The invariant is canary survival.
+    compiled = engine.compile_skill('auto-test3', 'please clean my build cache now', [
         {'command': 'echo setup'},
         {'command': f'rm -rf {victim_path}'},
     ])
 
-    # Sanity: compiled skill should be persisted
+    # Sanity: if compilation was accepted, the skill must be persisted;
+    # if refused at learn time, no match is possible at all.
     import genio_server.core.reflex_engine as re_mod
-    assert re_mod.PATTERNS_FILE.exists()
+    if compiled:
+        assert re_mod.PATTERNS_FILE.exists()
+    else:
+        assert not re_mod.PATTERNS_FILE.exists(), \
+            "refused compilation must persist nothing"
 
     # Unrelated prompt sharing only the first word "please" — MUST NOT delete canary
     # With strict regex (Q2), this prompt lacks "clean"/"build"/"cache" so it won't match at all.
@@ -88,16 +97,24 @@ def test_audit_proof_related_prompt_also_blocked(tmp_path, engine):
     canary.write_text("keep")
     victim = str(canary)
 
-    engine.compile_skill('auto-test3b', 'please clean my build cache now', [
+    # Safety-gate layering (P0): destructive trajectories are refused at
+    # learn time (compile_skill -> False, nothing persisted) or refused at
+    # exec time (rc != 0). Both layers keep the canary alive.
+    compiled = engine.compile_skill('auto-test3b', 'please clean my build cache now', [
         {'command': 'echo setup'},
         {'command': f'rm -rf {victim}'},
     ])
 
-    # Related prompt containing all strict keywords -> will match, but rm must be refused
+    # Related prompt containing all strict keywords.
     result = engine.match('please clean my build cache again')
-    assert result is not None, "related prompt should match the skill"
-    rc = result.get("result", {}).get("returncode")
-    assert rc != 0, "dangerous rm via matched skill must be refused"
+    if not compiled:
+        # Refused at learn time: no skill exists, nothing can match.
+        assert result is None, "refused compilation must leave no matchable skill"
+    else:
+        # Persisted: the rm must still be refused at exec time.
+        assert result is not None, "related prompt should match the skill"
+        rc = result.get("result", {}).get("returncode")
+        assert rc != 0, "dangerous rm via matched skill must be refused"
     assert canary.exists(), "canary must survive even when prompt legitimately matches"
     assert canary.read_text() == "keep"
 

@@ -124,6 +124,9 @@ export function deriveEvents(
       case "executing":
         out.push({ name: "tool.started", at: now });
         break;
+      case "awaiting_approval":
+        out.push({ name: "warning", at: now });
+        break;
       case "completed":
         out.push({ name: "task.success", at: now });
         break;

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type {
   AgentStatus,
+  ApprovalRequest,
   Attachment,
   ChatEvent,
   GenioEvent,
@@ -19,6 +20,65 @@ export function useGenioSocket(): UseGenioSocket {
   const [chat, setChat] = useState<ChatEvent[]>([]);
   const [screen, setScreen] = useState<string | null>(null);
   const [streaming, setStreaming] = useState(false);
+  // Safety gate : demande de confirmation en attente (jamais dans le chat).
+  const [pendingApproval, setPendingApproval] = useState<ApprovalRequest | null>(null);
+  const approvalTimerRef = useRef<number | null>(null);
+
+  // Un run terminé (answer/error/killed/artifact) clôt toute demande en
+  // attente : sans ça, un timeout serveur (refus) laisserait le dialogue
+  // ouvert avec des boutons pointant vers un nonce expiré.
+  const clearApprovalOnTerminal = useCallback(() => {
+    if (approvalTimerRef.current !== null) {
+      window.clearTimeout(approvalTimerRef.current);
+      approvalTimerRef.current = null;
+    }
+    setPendingApproval(null);
+  }, []);
+
+  // Intercepteur partagé : confirmation requise / résolue. Retourne true
+  // si l'événement est consommé (ne doit jamais fuir vers le chat).
+  const handleApprovalEvent = (ev: Record<string, unknown>): boolean => {
+    if (ev.type === "action_confirmation_required") {
+      const nonce = String(ev.nonce ?? "");
+      if (/^[0-9a-f]{32}$/.test(nonce)) {
+        const tool = String(ev.tool ?? "?");
+        const ttlMs = (Number(ev.expires_in_s ?? 120) || 120) * 1000;
+        if (approvalTimerRef.current !== null) {
+          window.clearTimeout(approvalTimerRef.current);
+        }
+        // Expiration cliente : même sans événement terminal (socket
+        // tombée, run orphelin), le dialogue ne survit pas au nonce.
+        approvalTimerRef.current = window.setTimeout(() => {
+          approvalTimerRef.current = null;
+          setPendingApproval((prev) => (prev && prev.nonce === nonce ? null : prev));
+        }, ttlMs + 5000);
+        setPendingApproval({
+          tool,
+          capability: String(ev.capability ?? ""),
+          risk: String(ev.risk ?? ""),
+          command: String(ev.command ?? "").slice(0, 500),
+          nonce,
+          expires_in_s: Number(ev.expires_in_s ?? 120) || 120,
+          receivedAt: Date.now(),
+        });
+        setAgentStatus({ kind: "awaiting_approval", tool });
+      }
+      return true;
+    }
+    if (ev.type === "approval_resolved") {
+      const nonce = String(ev.nonce ?? "");
+      if (approvalTimerRef.current !== null) {
+        window.clearTimeout(approvalTimerRef.current);
+        approvalTimerRef.current = null;
+      }
+      setPendingApproval((prev) => (prev && prev.nonce === nonce ? null : prev));
+      setAgentStatus((prev) =>
+        prev.kind === "awaiting_approval" ? { kind: "thinking" } : prev,
+      );
+      return true;
+    }
+    return false;
+  };
 
   const socketRef = useRef<GenioSocket | null>(null);
   const sseRef = useRef<AbortController | null>(null);
@@ -93,6 +153,23 @@ export function useGenioSocket(): UseGenioSocket {
   );
 
   const kill = useCallback(() => send({ action: "kill", reason: "user stop" }), [send]);
+  // Safety gate : réponse explicite à une demande de confirmation.
+  // Protocole serveur : {action:"approve", nonce, approved} → approval_resolved.
+  const approve = useCallback(
+    (nonce: string, approved: boolean) => {
+      if (!/^[0-9a-f]{32}$/.test(nonce)) return false;
+      const ok = send({ action: "approve", nonce, approved });
+      if (ok) {
+        setPendingApproval((prev) =>
+          prev && prev.nonce === nonce
+            ? { ...prev, decided: approved ? "approved" : "denied" }
+            : prev,
+        );
+      }
+      return ok;
+    },
+    [send],
+  );
   const continuePrompt = useCallback(
     (lastPrompt: string) => {
       if (!lastPrompt) return false;
@@ -133,7 +210,8 @@ export function useGenioSocket(): UseGenioSocket {
     lastTelemetryAtRef.current = 0;
     setScreen(null);
     setStreaming(false);
-  }, []);
+    clearApprovalOnTerminal();
+  }, [clearApprovalOnTerminal]);
 
   const scheduleReconnect = useCallback((target: ServerNode) => {
     if (!shouldReconnectRef.current) return;
@@ -176,6 +254,7 @@ export function useGenioSocket(): UseGenioSocket {
             // strip thought blocks serialized as answer with <thought>
             if (typeof ev.text === "string" && /<thought[\s>]/i.test(ev.text)) return;
             if (typeof ev.text === "string" && /^thought\s*:/i.test(ev.text.trim())) return;
+            if (handleApprovalEvent(ev)) return;
             if (ev.type === "screen" || ev.type === "browser_view") { setScreen(ev.data_b64 as string); return; }
             if (ev.type === "telemetry") { setTelemetry(event as unknown as TelemetrySnapshot); lastTelemetryAtRef.current = Date.now(); return; }
             if (isChatEvent(event)) {
@@ -196,9 +275,11 @@ export function useGenioSocket(): UseGenioSocket {
               } else if (chatEv.type === "answer" || chatEv.type === "artifact") {
                 setAgentStatus({ kind: "completed" });
                 socketRef.current?.setHeartbeatPaused(false);
+                clearApprovalOnTerminal();
               } else if (chatEv.type === "error" || chatEv.type === "killed") {
                 setAgentStatus({ kind: "idle" });
                 socketRef.current?.setHeartbeatPaused(false);
+                clearApprovalOnTerminal();
               }
               return;
             }
@@ -253,6 +334,7 @@ export function useGenioSocket(): UseGenioSocket {
           // (thought allowed — see handler above; guards below stay 2nd layer)
           if (typeof ev.text === "string" && /<thought[\s>]/i.test(ev.text)) return;
           if (typeof ev.text === "string" && /^thought\s*:/i.test(ev.text.trim())) return;
+          if (handleApprovalEvent(ev)) return;
           if (ev.type === "screen" || ev.type === "browser_view") {
             setScreen(ev.data_b64 as string);
             return;
@@ -278,12 +360,15 @@ export function useGenioSocket(): UseGenioSocket {
             } else if (chatEv.type === "answer" || chatEv.type === "artifact") {
               setAgentStatus({ kind: "completed" });
               socketRef.current?.setHeartbeatPaused(false);
+              clearApprovalOnTerminal();
             } else if (chatEv.type === "error") {
               setAgentStatus({ kind: "idle" });
               socketRef.current?.setHeartbeatPaused(false);
+              clearApprovalOnTerminal();
             } else if (chatEv.type === "killed") {
               setAgentStatus({ kind: "idle" });
               socketRef.current?.setHeartbeatPaused(false);
+              clearApprovalOnTerminal();
             }
             return;
           }
@@ -393,6 +478,8 @@ export function useGenioSocket(): UseGenioSocket {
     send,
     sendPrompt,
     kill,
+    approve,
+    pendingApproval,
     continuePrompt,
     requestScreenshot,
     toggleScreenStream,

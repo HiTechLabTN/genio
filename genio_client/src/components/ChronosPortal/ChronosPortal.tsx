@@ -18,6 +18,7 @@ const STATUS_COLOR: Record<AgentStatus["kind"], string> = {
   idle: "rgba(0, 229, 255, 0.35)",
   thinking: "rgba(0, 229, 255, 0.55)",
   executing: "rgba(255, 176, 32, 0.6)",
+  awaiting_approval: "rgba(255, 82, 82, 0.65)",
   completed: "rgba(76, 175, 80, 0.6)",
 };
 

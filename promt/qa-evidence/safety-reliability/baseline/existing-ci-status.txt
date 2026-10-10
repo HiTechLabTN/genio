@@ -1,0 +1,3 @@
+completed	success	docs: assistant E2E verification report and evidence	CI	main	push	37865318187	4m32s	2026-10-09T00:32:39Z
+completed	success	docs: installer final lab E2E verification report and evidence	CI	main	push	37826159908	4m13s	2026-10-08T18:40:56Z
+completed	success	docs: installer E2E HEAD report + UX audit + evidence index	CI	main	push	37795842532	4m45s	2026-10-08T14:51:02Z

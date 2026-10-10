@@ -1,0 +1,7 @@
+NAME="Pop!_OS"
+VERSION="22.04 LTS"
+7.1.1-76070101-generic x86_64
+12
+LISTEN 0      511                                   0.0.0.0:8098       0.0.0.0:*    users:(("node",pid=4046,fd=22))                                                      
+LISTEN 0      2048                                  0.0.0.0:8000       0.0.0.0:*    users:(("uvicorn",pid=2798033,fd=13))                                                
+LISTEN 0      4096                                        *:11434            *:*                                                                                         

@@ -126,6 +126,8 @@ export default function App() {
     send,
     sendPrompt: wsSendPrompt,
     kill,
+    approve,
+    pendingApproval,
     connectionToast,
   } = useGenioSocket();
 
@@ -225,7 +227,7 @@ export default function App() {
     error: taskProcRaw?.error ?? null,
   } as ReturnType<typeof useTaskProcessor>;
 
-  const isListening = agentStatus.kind === "thinking" || agentStatus.kind === "executing";
+  const isListening = agentStatus.kind === "thinking" || agentStatus.kind === "executing" || agentStatus.kind === "awaiting_approval";
   const voice = useVoiceOutput();
   const prevResultRef = useRef<string>("");
   useEffect(() => {
@@ -395,6 +397,7 @@ export default function App() {
   const mascotStatus = (() => {
     if (taskProc.result && agentStatus.kind === "completed") return "answering";
     if (agentStatus.kind === "thinking") return "thinking";
+    if (agentStatus.kind === "awaiting_approval") return "awaiting_approval";
     if (agentStatus.kind === "executing") return "executing";
     if (isListening) return "listening";
     if (agentStatus.kind === "completed") return "completed";
@@ -406,6 +409,7 @@ export default function App() {
     !connected && !target ? "offline"
     : mascotStatus === "listening" ? "listening"
     : mascotStatus === "thinking" ? "thinking"
+    : mascotStatus === "awaiting_approval" ? "listening"
     : mascotStatus === "executing" ? "working"
     : mascotStatus === "answering" ? "speaking"
     : mascotStatus === "completed" ? "success"
@@ -414,6 +418,7 @@ export default function App() {
     !connected && !target ? t(lang, "shell.disconnected")
     : mascotStatus === "listening" ? t(lang, "shell.listening")
     : mascotStatus === "thinking" ? t(lang, "shell.thinking")
+    : mascotStatus === "awaiting_approval" ? t(lang, "shell.awaiting_approval")
     : mascotStatus === "executing" ? t(lang, "shell.executing")
     : mascotStatus === "answering" ? t(lang, "shell.explaining")
     : mascotStatus === "completed" ? t(lang, "shell.success")
@@ -1052,17 +1057,62 @@ export default function App() {
         </motion.button>
       </div>
 
-      {/* Silent background actions — no UI clutter */}
+      {/* Agent actif → bouton d'arrêt visible (P1 : le kill n'est plus caché) */}
+      {(agentStatus.kind === "thinking" || agentStatus.kind === "executing" || agentStatus.kind === "awaiting_approval") && (
+        <div className="pointer-events-auto absolute bottom-24 end-4 z-30">
+          <button
+            onClick={() => kill()}
+            aria-label={t(lang, "app.kill_agent")}
+            title={t(lang, "app.kill_agent")}
+            className="rounded-full bg-red-600/90 px-4 py-2 text-sm font-semibold text-white shadow-lg hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-300"
+          >
+            {t(lang, "app.kill_agent")}
+          </button>
+        </div>
+      )}
+      {/* Safety gate : dialogue de confirmation explicite (jamais d'exécution silencieuse) */}
+      {pendingApproval && !isGeminiCloud && (
+        <div className="pointer-events-auto absolute inset-0 z-40 flex items-center justify-center bg-black/60 p-4" role="alertdialog" aria-modal="true" aria-label={t(lang, "approval.title")}>
+          <div className="w-full max-w-md rounded-2xl bg-zinc-900 p-5 text-white shadow-2xl ring-1 ring-red-500/40">
+            <h2 className="text-lg font-bold text-red-300">{t(lang, "approval.title")}</h2>
+            <p className="mt-1 text-sm text-zinc-300">{t(lang, "approval.body")}</p>
+            <div className="mt-3 flex flex-wrap gap-2 text-xs">
+              <span className="rounded-full bg-zinc-700 px-2 py-1 font-mono">{pendingApproval.tool}</span>
+              {pendingApproval.capability && (
+                <span className="rounded-full bg-zinc-700 px-2 py-1 font-mono">{pendingApproval.capability}</span>
+              )}
+              {pendingApproval.risk && (
+                <span className="rounded-full bg-red-700 px-2 py-1 font-semibold">{pendingApproval.risk}</span>
+              )}
+            </div>
+            <p className="mt-3 text-xs font-semibold text-zinc-400">{t(lang, "approval.command_label")}</p>
+            <pre dir="ltr" className="mt-1 max-h-40 overflow-auto rounded-lg bg-black/70 p-3 text-left font-mono text-sm text-amber-200">{pendingApproval.command}</pre>
+            {pendingApproval.decided ? (
+              <p className="mt-4 text-sm text-zinc-300">
+                {pendingApproval.decided === "approved" ? t(lang, "approval.sent") : t(lang, "approval.denied_note")}
+              </p>
+            ) : (
+              <div className="mt-4 flex gap-3">
+                <button
+                  autoFocus
+                  onClick={() => approve(pendingApproval.nonce, false)}
+                  className="flex-1 rounded-xl bg-zinc-700 px-4 py-2 text-sm font-semibold hover:bg-zinc-600 focus:outline-none focus:ring-2 focus:ring-zinc-400"
+                >
+                  {t(lang, "approval.deny")}
+                </button>
+                <button
+                  onClick={() => approve(pendingApproval.nonce, true)}
+                  className="flex-1 rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold hover:bg-red-500 focus:outline-none focus:ring-2 focus:ring-red-300"
+                >
+                  {t(lang, "approval.approve")}
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
       <div className="pointer-events-none absolute inset-0 z-10">
-        {/* Kill/Disconnect kept accessible via keyboard only, hidden */}
-        <button
-          onClick={() => kill()}
-          aria-label={t(lang, "app.kill_agent")}
-          className="sr-only"
-          tabIndex={-1}
-        >
-          {t(lang, "app.kill_agent")}
-        </button>
+        {/* Disconnect gardé accessible clavier */}
         <button onClick={handleDisconnect} aria-label={t(lang, "app.disconnect")} className="sr-only" tabIndex={-1}>
           {t(lang, "app.disconnect")}
         </button>

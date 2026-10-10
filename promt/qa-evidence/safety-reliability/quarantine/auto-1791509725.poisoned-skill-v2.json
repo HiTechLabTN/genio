@@ -1,0 +1,17 @@
+[
+  {
+    "name": "auto-1791509725",
+    "description": "compiled from prompt: امسحلي الملفات الكل.",
+    "prompt_re": "(?=.*\\bالملفات\\b)(?=.*\\bامسحلي\\b)(?=.*\\bالكل\\b).*",
+    "params": [],
+    "steps": [
+      {
+        "command": "ls -F"
+      },
+      {
+        "command": "rm CANARY.txt scratch.tmp"
+      }
+    ],
+    "compiled_at": "2026-10-09T01:35:25Z"
+  }
+]

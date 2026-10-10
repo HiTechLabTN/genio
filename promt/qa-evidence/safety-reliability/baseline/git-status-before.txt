@@ -1,0 +1,8 @@
+ M GENIO_INSTALLER_UX_AUDIT.md
+ M state/skills_library/patterns.json
+?? promt/qa-evidence/safety-reliability/
+986e25f docs: assistant E2E verification report and evidence
+11f593b docs: installer final lab E2E verification report and evidence
+6aee041 docs: installer E2E HEAD report + UX audit + evidence index
+44e5aca fix(installer): P1 UX leaks (apt flood, Installed line, CANCELLED, operator EN, prefix-suppress, docker-only)
+0d8e26e feat(installer): universal intelligent installer with TN-first UX, platform matrix, launcher, repair

@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, List, Optional
@@ -293,9 +294,59 @@ class PolicyRegistry:
     @classmethod
     def decide_tool(cls, tool: str,
                     sandbox_available: bool = False,
-                    mode: Optional[str] = None) -> str:
-        return cls.decide(CapabilityRegistry.capability_of(tool),
-                          sandbox_available, mode)
+                    mode: Optional[str] = None,
+                    command: str = "") -> str:
+        capability = CapabilityRegistry.capability_of(tool)
+        # Content-aware escalation (P0 fix): the registry lookup stays
+        # name-only (a model can never LOWER its privilege via payload),
+        # but a destructive-looking command given to an EXECUTION-capable
+        # tool can only RAISE the decision to REQUIRE_CONFIRMATION.
+        # Never downgrades; strict DENY unchanged. Non-execution tools
+        # take no shell command — their content is meaningless, ignored.
+        if (command and capability == Capability.PROCESS_EXECUTION
+                and _looks_destructive(command)):
+            if capability in _STRICT_DENY:
+                return Decision.DENY
+            return Decision.REQUIRE_CONFIRMATION
+        return cls.decide(capability, sandbox_available, mode)
+
+
+# --------------------------------------------------------------------------- #
+# Destructive-command detection (content layer above the name-only registry)
+# --------------------------------------------------------------------------- #
+# Conservative patterns: ANY rm/unlink (flagged or bare — deletion is
+# irreversible whatever the flags), disk destroyers, fork bombs,
+# permission/ownership carpet-bombing of system roots, output redirection
+# that clobbers device nodes. Matching is intentionally broad — a match
+# only triggers an explicit confirmation request, never silent execution.
+_DESTRUCTIVE_PATTERNS = (
+    r"(^|[\s;|&|`({]|\$\()(rm|unlink)\b",  # ANY rm/unlink (bare rm deletes too)
+    r"\brm\s+[^;|&]*-[a-z]*r[a-z]*f\b",   # rm -rf / rm -fr (any flag combo)
+    r"\brm\s+-[a-z]*r\b",                  # rm -r / rm -R (recursive delete)
+    r"\bmkfs\b|\bdd\s+[^;|&]*of=|\bshred\b|\bwipefs\b",
+    r":\(\)\s*\{\s*:\|:\s*&\s*\}\s*;?\s*:",  # fork bomb
+    r"\b(chmod|chown)\s+(-R\s+)?(777|a\+rwx|root)",
+    r">\s*/dev/(sd|hd|nvme|mmcblk|xvda|vd)",
+    r"\bmv\s+\S+\s+/(dev/null\s*)?$",
+)
+
+def _looks_destructive(command: str) -> bool:
+    """True if a shell string looks destructive. Pure + fast (no exec).
+
+    Case-insensitive. ANY recursive/forced rm counts — with the server
+    CWD rooted at the live repo, even a relative `rm -rf ./build` can
+    nuke tracked work. A match only triggers an explicit confirmation
+    request, never silent execution and never a deny.
+    """
+    if not command or not isinstance(command, str):
+        return False
+    text = command.strip()
+    if not text:
+        return False
+    for pat in _DESTRUCTIVE_PATTERNS:
+        if re.search(pat, text, re.IGNORECASE):
+            return True
+    return False
 
 
 # --------------------------------------------------------------------------- #

@@ -544,11 +544,12 @@ class AgentLoop:
         return os.getenv("GENIO_SANDBOX_MODE", "").strip().lower() == "container"
 
     @classmethod
-    def _capability_check(cls, tool: str) -> Dict[str, str]:
+    def _capability_check(cls, tool: str, command: str = "") -> Dict[str, str]:
         """Phase 4 : descripteur + décision policy (pur, testable).
 
-        Lookup par NOM seul (le payload du LLM est ignoré) ; hook prêt pour
-        le PolicyEngine Phase 5 (REQUIRE_CONFIRMATION → interrupteur à venir).
+        Lookup par NOM seul (le payload du LLM est ignoré) ; la chaîne de
+        commande ne peut qu'ESCALADER vers REQUIRE_CONFIRMATION (contenu
+        destructif), jamais assouplir la décision.
         """
         try:
             from genio_server.core.registries import (
@@ -559,7 +560,8 @@ class AgentLoop:
                         "risk": "CRITICAL", "decision": "DENY",
                         "reason": "DENIED_UNKNOWN_CAPABILITY"}
             decision = PolicyRegistry.decide_tool(
-                tool, sandbox_available=cls._sandbox_available())
+                tool, sandbox_available=cls._sandbox_available(),
+                command=command)
             return {"tool": tool, "capability": desc.capability,
                     "risk": desc.risk_level, "decision": decision,
                     "requires_confirmation": str(desc.requires_confirmation)}
@@ -786,11 +788,17 @@ class AgentLoop:
                     res = fast.get("result") or fast
                     yield {"type": "tool_call", "command": res.get("command", "")}
                     yield {"type": "tool_result", "result": res}
-                    final_answer = f"[ردّ سريع من جينيو] {res.get('stdout', '').strip()}"
-                    await self._save_message("assistant", final_answer)
-                    self._tel("agent.completed", self.session_id)
-                    yield {"type": "answer", "text": final_answer}
-                    return
+                    # Safety-reliability gate (P1) : sortie vide → PAS de
+                    # réponse vide ; on retombe sur le LLM qui formule.
+                    _out = str(res.get("stdout", "") or "").strip()
+                    if not _out:
+                        logger.info("reflex fast-path empty output; falling through to LLM")
+                    else:
+                        final_answer = f"[ردّ سريع من جينيو] {_out}"
+                        await self._save_message("assistant", final_answer)
+                        self._tel("agent.completed", self.session_id)
+                        yield {"type": "answer", "text": final_answer}
+                        return
             except Exception:
                 logger.exception("reflex fast-path failed; falling through to LLM")
 
@@ -920,7 +928,9 @@ class AgentLoop:
                 # lui-même. Descripteur extrait (nom seul), event télémétrique
                 # structuré, décision PolicyRegistry ; DENY = erreur structurée
                 # renvoyée au modèle (jamais d'exécution, jamais d'exception).
-                cap_info = self._capability_check(tool_name)
+                # La commande est transmise pour ESCALADE UNIQUEMENT (motifs
+                # destructifs → REQUIRE_CONFIRMATION) ; jamais d'assouplissement.
+                cap_info = self._capability_check(tool_name, command)
                 yield {"type": "capability.requested", **cap_info}
                 self._tel("tool.requested", self.session_id, tool=tool_name,
                           capability=cap_info.get("capability", ""),
@@ -1091,7 +1101,8 @@ class AgentLoop:
 
             yield {
                 "type": "answer",
-                "text": final_answer or self._quota_synthesis(trajectory),
+                "text": final_answer or self._quota_synthesis(trajectory)
+                or "ما نجمتش نكمّل المهمّة — عاود صيغ الطلب ولا جرّب مرّة أخرى.",
             }
             # Phase 2 v2.1: Trajectory compiler — a >1 tool-turn run that ended
             # with a final answer qualifies for skill serialization.

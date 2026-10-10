@@ -26,7 +26,19 @@ export type AgentStatus =
   | { kind: "idle" }
   | { kind: "thinking" }
   | { kind: "executing"; tool: string }
+  | { kind: "awaiting_approval"; tool: string }
   | { kind: "completed" };
+
+export interface ApprovalRequest {
+  tool: string;
+  capability: string;
+  risk: string;
+  command: string;
+  nonce: string;
+  expires_in_s: number;
+  receivedAt: number;
+  decided?: "approved" | "denied";
+}
 
 export interface Attachment {
   id: string;
@@ -115,6 +127,8 @@ export interface UseGenioSocket {
   continuePrompt: (lastPrompt: string) => boolean;
   requestScreenshot: () => boolean;
   toggleScreenStream: (active: boolean) => boolean;
+  pendingApproval: ApprovalRequest | null;
+  approve: (nonce: string, approved: boolean) => boolean;
   error?: string;
   connectionToast?: string | null;
 }
