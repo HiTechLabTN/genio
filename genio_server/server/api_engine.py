@@ -58,6 +58,30 @@ _FORBIDDEN_HOSTNAMES = {
     "metadata.google.internal", "metadata.goog", "metadata",
 }
 
+# Explicit cloud-metadata addresses, checked in ALL modes (incl. under
+# GENIO_API_ALLOW_PRIVATE): some live in ranges ipaddress does NOT
+# classify as private — 100.100.100.200 ∈ RFC 6598 shared space was a
+# REAL allow-gap (is_private/is_reserved both False). IPv4-mapped forms
+# unwrap to the same check inside _is_metadata_ip().
+_METADATA_IPS = frozenset({
+    "169.254.169.254",    # AWS/GCP/Azure/Oracle link-local metadata
+    "100.100.100.200",    # Alibaba Cloud metadata (RFC 6598 shared space)
+    "fd00:ec2::254",      # AWS IPv6 metadata
+})
+
+
+def _is_metadata_ip(ip_str: str) -> bool:
+    """True for known cloud-metadata addresses (any mode, no exception)."""
+    try:
+        ip = ipaddress.ip_address(ip_str)
+    except ValueError:
+        return False
+    forms = {ip.compressed.lower()}
+    mapped = getattr(ip, "ipv4_mapped", None)
+    if mapped is not None:
+        forms.add(mapped.compressed.lower())
+    return bool(forms & _METADATA_IPS)
+
 
 def _allow_private() -> bool:
     return os.getenv("GENIO_API_ALLOW_PRIVATE", "0").strip().lower() \
@@ -89,50 +113,164 @@ def _blocked_url(url: str) -> Optional[str]:
     Resolution failure is fail-closed. Returns None when the destination
     is verifiably public (or checks are disabled by the operator).
     """
-    if _allow_private():
-        return None
-    parts = urlsplit(url or "")
-    host = (parts.hostname or "").strip().lower().rstrip(".")
+    try:
+        parts = urlsplit(url or "")
+        host = (parts.hostname or "").strip().lower().rstrip(".")
+        port = parts.port or (443 if parts.scheme == "https" else 80)
+    except ValueError as exc:
+        # Malformed URL (bad port, broken brackets, …) — fail closed with
+        # a refusal reason, never an escaping exception.
+        return f"api guard: malformed URL {url!r} ({exc}) — refused"
     if not host:
         return f"api guard: no host in {url!r}"
+    # Denylist BEFORE any exception (incl. ALLOW_PRIVATE): lifting the
+    # private-IP ban never trusts cloud-metadata endpoints.
     if host in _FORBIDDEN_HOSTNAMES or host.endswith(".localhost"):
         return f"api guard: hostname {host!r} is forbidden (loopback/metadata)"
-    port = parts.port or (443 if parts.scheme == "https" else 80)
+    allow_private = _allow_private()
     try:
         # IP literal: check directly, no DNS involved.
-        ipaddress.ip_address(host.strip("[]"))
-        candidates = [host.strip("[]")]
+        literal = str(ipaddress.ip_address(host.strip("[]")))
     except ValueError:
-        try:
-            infos = socket.getaddrinfo(host, port, proto=socket.IPPROTO_TCP)
-        except OSError as exc:
-            return f"api guard: cannot resolve {host!r} ({exc}) — refused"
-        candidates = sorted({info[4][0] for info in infos})
-        if not candidates:
-            return f"api guard: no addresses for {host!r} — refused"
+        literal = None
+    if literal is not None:
+        # Explicit metadata endpoints hold in ALL modes; class checks
+        # are the only thing the operator escape hatch lifts.
+        if _is_metadata_ip(literal):
+            return (f"api guard: {host!r} is a cloud-metadata address "
+                    f"— refused")
+        if not allow_private and _ip_forbidden(literal):
+            return (f"api guard: {host!r} is a forbidden address "
+                    f"(loopback/private/link-local/metadata)")
+        return None
+    try:
+        infos = socket.getaddrinfo(host, port, proto=socket.IPPROTO_TCP)
+    except OSError as exc:
+        return f"api guard: cannot resolve {host!r} ({exc}) — refused"
+    candidates = sorted({info[4][0] for info in infos})
+    if not candidates:
+        return f"api guard: no addresses for {host!r} — refused"
     for cand in candidates:
-        if _ip_forbidden(cand):
+        if _is_metadata_ip(cand) or \
+                (not allow_private and _ip_forbidden(cand)):
             return (f"api guard: {host!r} resolves to forbidden address "
                     f"{cand} (loopback/private/link-local/metadata)")
     return None
 
 
+def _pin_request(request: "httpx.Request"
+               ) -> Tuple[Optional["httpx.Request"], Optional[str]]:
+    """Resolve the request host, check EVERY answer, and PIN the connection
+    to a verified IP literal (DNS-rebinding TOCTOU elimination).
+
+    The stock transport resolves the hostname AGAIN at connect time, so a
+    check-then-connect leaves a rebinding window. Here the URL host is
+    rewritten to the verified IP literal BEFORE delegating — the inner
+    transport dials a literal (no DNS possible downstream). The original
+    hostname is preserved via the Host header and
+    extensions["sni_hostname"] (honored by httpcore for TLS), so cert
+    verification keeps working against the original name.
+
+    IP-literal URLs are checked and passed through unmodified. Every
+    redirect hop re-enters the transport and is re-resolved + re-pinned.
+    Returns (new_request, None) or (None, refusal_reason). Never raises.
+    """
+    try:
+        raw = str(request.url)
+        parts = urlsplit(raw)
+        host = (parts.hostname or "").strip().lower().rstrip(".")
+        if not host:
+            return None, f"api guard: no host in {raw!r}"
+        port = parts.port or (443 if parts.scheme == "https" else 80)
+    except ValueError as exc:
+        return None, f"api guard: malformed URL ({exc}) — refused"
+    # Denylist BEFORE any exception: metadata/loopback names stay refused
+    # even when the operator lifts the private-IP ban.
+    if host in _FORBIDDEN_HOSTNAMES or host.endswith(".localhost"):
+        return None, (f"api guard: hostname {host!r} is forbidden "
+                      f"(loopback/metadata)")
+    allow_private = _allow_private()
+    # IP literal → check (unless lifted), no DNS, no rewrite needed.
+    try:
+        literal = str(ipaddress.ip_address(host.strip("[]")))
+    except ValueError:
+        literal = None
+    if literal is not None:
+        if _is_metadata_ip(literal):
+            return None, (f"api guard: {host!r} is a cloud-metadata "
+                          f"address — refused")
+        if not allow_private and _ip_forbidden(literal):
+            return None, (f"api guard: {host!r} is a forbidden address "
+                          f"(loopback/private/link-local/metadata)")
+        return request, None
+    # Hostname → resolve NOW, check every answer (unless lifted), and
+    # ALWAYS pin: lifting private IPs must not restore the downstream-DNS
+    # rebinding window (the inner transport never sees a hostname).
+    try:
+        infos = socket.getaddrinfo(host, port, proto=socket.IPPROTO_TCP)
+    except OSError as exc:
+        return None, f"api guard: cannot resolve {host!r} ({exc}) — refused"
+    candidates = sorted({info[4][0] for info in infos})
+    if not candidates:
+        return None, f"api guard: no addresses for {host!r} — refused"
+    if not allow_private:
+        for cand in candidates:
+            if _ip_forbidden(cand) or _is_metadata_ip(cand):
+                return None, (f"api guard: {host!r} resolves to forbidden "
+                              f"address {cand} (loopback/private/link-local/"
+                              f"metadata)")
+    else:
+        # Even with private IPs lifted, explicit metadata endpoints stay
+        # refused (lifting private ≠ trusting metadata).
+        for cand in candidates:
+            if _is_metadata_ip(cand):
+                return None, (f"api guard: {host!r} resolves to "
+                              f"cloud-metadata address {cand} — refused")
+    pinned_ip = candidates[0]
+    try:
+        new_url = request.url.copy_with(host=pinned_ip)
+        headers = httpx.Headers(request.headers)
+        if "host" not in headers:
+            # Preserve the original Host, INCLUDING a non-default port —
+            # rewriting to an IP literal must not misroute vhosts.
+            scheme = str(request.url.scheme).lower()
+            default_port = 443 if scheme in ("https", "wss") else 80
+            headers["host"] = host if port == default_port \
+                else f"{host}:{port}"
+        try:
+            request.read()
+            body = request.content
+        except Exception as exc:
+            return None, f"api guard: unreadable request body ({exc}) — refused"
+        extensions = dict(request.extensions)
+        if str(request.url.scheme).lower() in ("https", "wss"):
+            extensions["sni_hostname"] = host
+        new_request = httpx.Request(request.method, new_url, headers=headers,
+                                    extensions=extensions, content=body)
+    except Exception as exc:
+        return None, f"api guard: cannot pin {host!r} ({exc}) — refused"
+    return new_request, None
+
+
 class _GuardedTransport(httpx.BaseTransport):
-    """Wraps the default transport; re-checks EVERY request URL.
+    """Wraps the default transport; resolves + checks + PINS every request.
 
     With follow_redirects=True the client re-enters the transport for each
-    3xx hop, so a public first hop that redirects to an internal address is
-    refused before any bytes reach the forbidden target.
+    3xx hop, so every hop is independently resolved, checked and pinned —
+    a public first hop that redirects to an internal address is refused
+    before any bytes reach the forbidden target, and a hostname whose DNS
+    changes mid-flight still connects to the checked address only.
     """
 
     def __init__(self, inner: Optional[httpx.BaseTransport] = None) -> None:
         self._inner = inner or httpx.HTTPTransport()
 
     def handle_request(self, request: "httpx.Request") -> "httpx.Response":
-        reason = _blocked_url(str(request.url))
+        pinned, reason = _pin_request(request)
         if reason:
             raise httpx.RequestError(f"refused: {reason}", request=request)
-        return self._inner.handle_request(request)
+        assert pinned is not None
+        return self._inner.handle_request(pinned)
 
     def close(self) -> None:
         self._inner.close()
@@ -150,10 +288,11 @@ def _trusted_spec_file(source: str) -> Tuple[bool, str, str]:
     on the realpath, so a link inside a trusted dir pointing at /etc/… is
     refused. Trusted dirs: GENIO_API_SPEC_DIRS (os.pathsep-separated);
     default = server cwd subtree.
+
+    NOTE: file containment is INDEPENDENT of GENIO_API_ALLOW_PRIVATE —
+    the network escape hatch only affects destination-IP checks and never
+    widens local file reads.
     """
-    if _allow_private():
-        path = os.path.realpath(source)
-        return os.path.isfile(path), path, ""
     configured = os.getenv("GENIO_API_SPEC_DIRS", "").strip()
     dirs = [d for d in configured.split(os.pathsep) if d] \
         if configured else [os.getcwd()]

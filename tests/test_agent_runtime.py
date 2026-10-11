@@ -191,5 +191,36 @@ def test_cancel_halts():
     assert not any(e.get("type") == "answer" for e in events)
 
 
+def test_workspace_resolution_failure_refuses_before_approval(monkeypatch):
+    """Blocker (9f21c58 review): if _approval_cwd() fails, the loop must
+    refuse BEFORE creating any pending — never an unbound approval.
+
+    Full-path proof (not a PolicyEngine unit): a destructive command flows
+    through the real run() → capability gate → workspace resolution
+    failure → error event. Asserts: (1) NO approval dialog was ever shown,
+    (2) a workspace-refusal error was emitted, (3) NOTHING executed,
+    (4) NO orphaned/unbound pending was left in the engine.
+    """
+    import genio_server.tools.bash_tool as bt_mod
+    from core.policy_engine import get_policy_engine
+
+    def _boom():
+        raise OSError("cwd deleted")
+
+    monkeypatch.setattr(bt_mod, "_resolve_cwd", _boom)
+    calls = _real_invoke_spy(monkeypatch)
+    eng = get_policy_engine()
+    before = eng.pending_count()
+    script = ['{"tool": "bash", "command": "rm -rf sub"}']
+    events = run_loop(ScriptedLoop(script))
+    kinds = [e.get("type") for e in events]
+    assert "action_confirmation_required" not in kinds, kinds
+    werrs = [e for e in events if e.get("type") == "error"
+             and "workspace" in str(e.get("message", "")).lower()]
+    assert werrs, f"no workspace-refusal error in {kinds}"
+    assert calls == [], f"tool executed despite workspace failure: {calls}"
+    assert eng.pending_count() == before
+
+
 if __name__ == "__main__":
     raise SystemExit(pytest.main([__file__, "-q"]))

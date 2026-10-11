@@ -998,6 +998,27 @@ class AgentLoop:
                         _appr_cwd, _, _ = _approval_cwd()
                     except Exception:
                         _appr_cwd = ""
+                    if not _appr_cwd:
+                        # Fail-closed (9f21c58 review blocker): workspace
+                        # resolution failed — requesting approval with an
+                        # empty workspace would create an UNBOUND approval
+                        # (consume skips the workspace check when
+                        # p.workspace is empty), silently disabling the
+                        # context-switch guard. Refuse BEFORE any pending
+                        # is created and before any approval dialog.
+                        msg = (f"POLICY DENY for '{tool_name}': workspace "
+                               f"resolution failed — refusing before approval "
+                               f"(no unbound approvals).")
+                        yield {"type": "error", "message": msg}
+                        self._tel("policy.denied", self.session_id,
+                                  tool=tool_name, decision="DENY")
+                        feedback = ("POLICY DENIED: " + msg)
+                        messages.append({"role": "assistant",
+                                         "content": assistant})
+                        messages.append({"role": "user", "content": feedback})
+                        await self._save_message("assistant", assistant)
+                        await self._save_message("user", feedback)
+                        continue
                     pend = engine.request_confirmation(
                         tool_name, command, workspace=_appr_cwd)
                     if pend.decision != "REQUIRE_CONFIRMATION" or not pend.nonce:
