@@ -18,6 +18,10 @@ from typing import Any, Dict, Optional
 
 
 CONFIRM_TIMEOUT_SECONDS = float(os.getenv("GENIO_CONFIRM_TIMEOUT", "120"))
+# Closure gate (pre-merge fix): approval binds the FULL command string.
+# Commands longer than this are refused outright at request time (the
+# operator must see the whole command they approve — no truncation).
+MAX_APPROVED_COMMAND_CHARS = int(os.getenv("GENIO_CONFIRM_MAX_CMD", "500"))
 
 
 @dataclass(frozen=True)
@@ -38,6 +42,7 @@ class _Pending:
     command: str
     created: float
     timeout_s: float
+    workspace: str = ""  # realpath of the workspace the operator saw
     event: threading.Event = field(default_factory=threading.Event)
     approved: Optional[bool] = None
 
@@ -77,17 +82,37 @@ class PolicyEngine:
     # -- interrupteur de confirmation -------------------------------------- #
     def request_confirmation(self, tool: str, command: str,
                              timeout_s: float = CONFIRM_TIMEOUT_SECONDS,
+                             workspace: str = "",
                              ) -> PolicyDecision:
+        """Create a pending approval. Fail-closed: commands longer than
+        MAX_APPROVED_COMMAND_CHARS are refused outright (the operator must
+        see the whole command they approve — no truncation). ``workspace``
+        is bound to the approval (realpath) so a context switch between
+        approve and execute cannot change the command's meaning.
+        """
         from genio_server.core.registries import CapabilityRegistry
         desc = CapabilityRegistry.descriptor_of(tool)
         cap = desc.capability if desc else "UNKNOWN"
         risk = desc.risk_level if desc else "CRITICAL"
+        full = str(command or "")
+        if len(full) > MAX_APPROVED_COMMAND_CHARS:
+            return PolicyDecision(
+                "DENY",
+                f"command too long for approval ({len(full)} > "
+                f"{MAX_APPROVED_COMMAND_CHARS} chars) — refused",
+                cap, risk)
         nonce = uuid.uuid4().hex
+        ws = ""
+        if workspace:
+            try:
+                ws = os.path.realpath(str(workspace))
+            except Exception:
+                ws = str(workspace)
         with self._lock:
             self._pending[nonce] = _Pending(
                 nonce=nonce, tool=tool, capability=cap, risk=risk,
-                command=str(command or "")[:500], created=time.monotonic(),
-                timeout_s=timeout_s)
+                command=full, created=time.monotonic(),
+                timeout_s=timeout_s, workspace=ws)
         self.purge_expired()
         return PolicyDecision("REQUIRE_CONFIRMATION",
                               f"awaiting operator approval (nonce {nonce})",
@@ -146,11 +171,15 @@ class PolicyEngine:
                 return False
             return bool(ok and p2.approved is True and not p2.expired())
 
-    def consume(self, nonce: str, command: str) -> bool:
+    def consume(self, nonce: str, command: str,
+                workspace: Optional[str] = None) -> bool:
         """Valide single-use qu'un nonce approuvé couvre EXACTEMENT
-        ``command`` (la chaîne montrée à l'opérateur, tronquée à 500 comme
-        au request). Pop atomique : rejouer le même nonce échoue ; une
-        commande altérée après approbation échoue (anti-TOCTOU).
+        ``command`` (la chaîne complète, sans troncature — le refus des
+        commandes trop longues est fait à la demande). Pop atomique :
+        rejouer le même nonce échoue ; une commande altérée après
+        approbation échoue (anti-TOCTOU). Si le pending a un workspace
+        lié, ``workspace`` doit correspondre (realpath) — sinon refus
+        fail-closed (le contexte d'exécution a changé).
         """
         with self._lock:
             p = self._pending.get(nonce)
@@ -161,8 +190,15 @@ class PolicyEngine:
                     self._pending.pop(nonce, None)
                     p.event.set()
                 return False
-            if str(command or "")[:500] != p.command:
+            if str(command or "") != p.command:
                 return False  # cible modifiée après approbation : refus
+            if p.workspace:
+                try:
+                    ws_now = os.path.realpath(str(workspace or ""))
+                except Exception:
+                    ws_now = str(workspace or "")
+                if ws_now != p.workspace:
+                    return False  # contexte/workspace changé : refus
             self._pending.pop(nonce, None)
             return True
 

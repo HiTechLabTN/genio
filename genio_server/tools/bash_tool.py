@@ -444,14 +444,17 @@ def _resolve_cwd() -> Tuple[str, bool, str]:
     return _effective_workspace()
 
 
-def verify_approval(approval: object, command: str) -> bool:
-    """Check a fresh single-use approval bound to the exact command.
+def verify_approval(approval: object, command: str,
+                    workspace: Optional[str] = None) -> bool:
+    """Check a fresh single-use approval bound to the exact command AND
+    workspace.
 
-    ``approval`` is {"nonce": ..., "command": ...} as threaded by the
-    agent loop after an explicit operator approve. Verification consumes
-    the nonce (replay fails) and requires exact command equality
-    (changed targets after approval fail). Any failure → False, and the
-    caller must refuse (fail-closed). Never raises.
+    ``approval`` is {"nonce": ..., "command": ..., "workspace": ...} as
+    threaded by the agent loop after an explicit operator approve.
+    Verification consumes the nonce (replay fails) and requires exact
+    command equality (changed targets after approval fail) plus workspace
+    match (context-switch guard). Any failure → False, and the caller
+    must refuse (fail-closed). Never raises.
     """
     try:
         if not isinstance(approval, dict):
@@ -459,8 +462,11 @@ def verify_approval(approval: object, command: str) -> bool:
         nonce = str(approval.get("nonce") or "")
         if not nonce:
             return False
+        ws = workspace if workspace is not None else \
+            str(approval.get("workspace") or "") or None
         from core.policy_engine import get_policy_engine
-        return bool(get_policy_engine().consume(nonce, str(command or "")))
+        return bool(get_policy_engine().consume(nonce, str(command or ""),
+                                                workspace=ws))
     except Exception:
         logger.exception("bash_tool: approval verification failed")
         return False
@@ -515,7 +521,8 @@ def run_command(command: str, timeout: int = DEFAULT_TIMEOUT,
         # Presenting a valid approval retires the nonce even when the
         # underlying refusal is HARD (use-it-or-lose-it: no replay, no
         # orphaned live approvals). Only SCOPED refusals may execute.
-        verified = verify_approval(approval, command)
+        # Workspace bound: approval was granted for THIS resolved cwd.
+        verified = verify_approval(approval, command, cwd)
         if verified and refusal_overridable(reason):
             logger.info("bash_tool: scoped refusal overridden by approval "
                         "(%.8s…): %s", (approval or {}).get("nonce", "")
@@ -609,7 +616,7 @@ async def async_run_command(command: str, timeout: int = DEFAULT_TIMEOUT,
     cwd, explicit, ws_note = _resolve_cwd()
 
     def _overridden(reason: str) -> bool:
-        verified = verify_approval(approval, command)
+        verified = verify_approval(approval, command, cwd)
         return bool(verified and refusal_overridable(reason))
 
     danger = is_dangerous(command, (cwd, explicit, ws_note))

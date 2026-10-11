@@ -992,13 +992,29 @@ class AgentLoop:
                         continue
                     engine = get_policy_engine()
                     approval_engine = engine
-                    pend = engine.request_confirmation(tool_name, command)
                     try:
                         from genio_server.tools.bash_tool import (
                             _resolve_cwd as _approval_cwd)
                         _appr_cwd, _, _ = _approval_cwd()
                     except Exception:
                         _appr_cwd = ""
+                    pend = engine.request_confirmation(
+                        tool_name, command, workspace=_appr_cwd)
+                    if pend.decision != "REQUIRE_CONFIRMATION" or not pend.nonce:
+                        # Fail-closed: over-long command (no truncation — the
+                        # operator must see the whole command they approve).
+                        msg = (f"POLICY {pend.decision} for '{tool_name}': "
+                               f"{pend.reason} — refused.")
+                        yield {"type": "error", "message": msg}
+                        self._tel("policy.denied", self.session_id,
+                                  tool=tool_name, decision=pend.decision)
+                        feedback = ("POLICY DENIED: " + msg)
+                        messages.append({"role": "assistant",
+                                         "content": assistant})
+                        messages.append({"role": "user", "content": feedback})
+                        await self._save_message("assistant", assistant)
+                        await self._save_message("user", feedback)
+                        continue
                     yield {"type": "action_confirmation_required",
                            "tool": tool_name,
                            "capability": cap_info["capability"],
@@ -1011,17 +1027,20 @@ class AgentLoop:
                     approved = await asyncio.to_thread(
                         engine.await_decision, pend.nonce)
                     # Token travels with the approved call only; run_command
-                    # consumes it single-use against this exact command.
+                    # consumes it single-use against this exact command AND
+                    # the workspace the operator saw (context-switch guard).
                     approval_token = None
                     if approved:
                         approval_token = {"nonce": pend.nonce,
-                                          "command": command}
+                                          "command": command,
+                                          "workspace": _appr_cwd}
                         if tool_name != "bash":
                             # Non-bash tools never reach run_command's
                             # consume(): retire the nonce HERE so a granted
                             # approval cannot linger approved until expiry.
                             try:
-                                engine.consume(pend.nonce, command)
+                                engine.consume(pend.nonce, command,
+                                               workspace=_appr_cwd)
                             except Exception:
                                 pass
                     if not approved:
