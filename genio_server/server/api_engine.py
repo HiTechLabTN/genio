@@ -19,11 +19,14 @@ Every exported function returns a JSON-serialisable dict and never raises.
 """
 from __future__ import annotations
 
+import ipaddress
 import json
 import os
 import re
+import socket
 import time
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
+from urllib.parse import urlsplit
 
 try:
     import yaml
@@ -34,6 +37,136 @@ import httpx
 
 _TIMEOUT = 35.0
 _TEXT_LIMIT = 4000
+
+
+# --------------------------------------------------------------------------- #
+# Network egress guard (closure gate — SSRF / internal-network protection)
+# --------------------------------------------------------------------------- #
+# The api tool is agent-reachable and ALLOW in development mode: without a
+# destination guard, a prompt-injected model can load a spec whose servers[]
+# (or a redirect) point at loopback/private/link-local/cloud-metadata and
+# ride the operator's host into internal services. Guard rules:
+#   * every destination (load URL, spec base URL, EVERY redirect hop) is
+#     resolved and checked against forbidden IP classes — string-only checks
+#     are bypassable via DNS and redirects;
+#   * spec FILE loads are restricted to operator-trusted directories
+#     (GENIO_API_SPEC_DIRS, default: server cwd subtree) with symlink-safe
+#     realpath containment;
+#   * GENIO_API_ALLOW_PRIVATE=1 is the explicit operator escape hatch.
+_FORBIDDEN_HOSTNAMES = {
+    "localhost", "localhost.localdomain", "ip6-localhost", "ip6-loopback",
+    "metadata.google.internal", "metadata.goog", "metadata",
+}
+
+
+def _allow_private() -> bool:
+    return os.getenv("GENIO_API_ALLOW_PRIVATE", "0").strip().lower() \
+        in ("1", "true", "yes")
+
+
+def _ip_forbidden(ip_str: str) -> bool:
+    """True for loopback / private / link-local / metadata-class addresses."""
+    try:
+        ip = ipaddress.ip_address(ip_str)
+    except ValueError:
+        return True  # unparseable → fail closed
+    # IPv4-mapped / -compatible IPv6 (::ffff:127.0.0.1) — unwrap first.
+    mapped = getattr(ip, "ipv4_mapped", None)
+    if mapped is not None:
+        ip = mapped
+    return bool(
+        ip.is_loopback or ip.is_private or ip.is_link_local
+        or ip.is_reserved or ip.is_multicast or ip.is_unspecified
+        or getattr(ip, "is_site_local", False)  # IPv6-only attribute
+    )
+
+
+def _blocked_url(url: str) -> Optional[str]:
+    """Return a refusal reason if ``url`` targets a forbidden destination.
+
+    Hostnames are RESOLVED (all A/AAAA answers checked) — a public name
+    that resolves to a private IP is refused (DNS-rebinding class).
+    Resolution failure is fail-closed. Returns None when the destination
+    is verifiably public (or checks are disabled by the operator).
+    """
+    if _allow_private():
+        return None
+    parts = urlsplit(url or "")
+    host = (parts.hostname or "").strip().lower().rstrip(".")
+    if not host:
+        return f"api guard: no host in {url!r}"
+    if host in _FORBIDDEN_HOSTNAMES or host.endswith(".localhost"):
+        return f"api guard: hostname {host!r} is forbidden (loopback/metadata)"
+    port = parts.port or (443 if parts.scheme == "https" else 80)
+    try:
+        # IP literal: check directly, no DNS involved.
+        ipaddress.ip_address(host.strip("[]"))
+        candidates = [host.strip("[]")]
+    except ValueError:
+        try:
+            infos = socket.getaddrinfo(host, port, proto=socket.IPPROTO_TCP)
+        except OSError as exc:
+            return f"api guard: cannot resolve {host!r} ({exc}) — refused"
+        candidates = sorted({info[4][0] for info in infos})
+        if not candidates:
+            return f"api guard: no addresses for {host!r} — refused"
+    for cand in candidates:
+        if _ip_forbidden(cand):
+            return (f"api guard: {host!r} resolves to forbidden address "
+                    f"{cand} (loopback/private/link-local/metadata)")
+    return None
+
+
+class _GuardedTransport(httpx.BaseTransport):
+    """Wraps the default transport; re-checks EVERY request URL.
+
+    With follow_redirects=True the client re-enters the transport for each
+    3xx hop, so a public first hop that redirects to an internal address is
+    refused before any bytes reach the forbidden target.
+    """
+
+    def __init__(self, inner: Optional[httpx.BaseTransport] = None) -> None:
+        self._inner = inner or httpx.HTTPTransport()
+
+    def handle_request(self, request: "httpx.Request") -> "httpx.Response":
+        reason = _blocked_url(str(request.url))
+        if reason:
+            raise httpx.RequestError(f"refused: {reason}", request=request)
+        return self._inner.handle_request(request)
+
+    def close(self) -> None:
+        self._inner.close()
+
+
+def _guarded_client() -> httpx.Client:
+    return httpx.Client(transport=_GuardedTransport(), follow_redirects=True,
+                        timeout=_TIMEOUT)
+
+
+def _trusted_spec_file(source: str) -> Tuple[bool, str, str]:
+    """Contain spec FILE reads to operator-trusted directories.
+
+    Returns (ok, real_path, reason). Symlink-safe: containment is checked
+    on the realpath, so a link inside a trusted dir pointing at /etc/… is
+    refused. Trusted dirs: GENIO_API_SPEC_DIRS (os.pathsep-separated);
+    default = server cwd subtree.
+    """
+    if _allow_private():
+        path = os.path.realpath(source)
+        return os.path.isfile(path), path, ""
+    configured = os.getenv("GENIO_API_SPEC_DIRS", "").strip()
+    dirs = [d for d in configured.split(os.pathsep) if d] \
+        if configured else [os.getcwd()]
+    path = os.path.realpath(source)
+    for d in dirs:
+        dreal = os.path.realpath(d)
+        if path == dreal or path.startswith(dreal + os.sep):
+            if os.path.isfile(path):
+                return True, path, ""
+            return False, path, f"not a regular file: {path!r}"
+    return (False, path,
+            f"path outside trusted spec dirs ({', '.join(dirs)}) — "
+            f"set GENIO_API_SPEC_DIRS to extend")
 
 
 # --------------------------------------------------------------------------- #
@@ -90,8 +223,22 @@ class OpenAPISpec:
             "schemes": sorted(self.schemes),
         }
 
-    def set_credential(self, scheme: str, value: str) -> None:
+    def set_credential(self, scheme: str, value: str) -> Tuple[bool, str]:
+        """Agent-facing credential setter, hardened (closure gate).
+
+        - scheme must be declared in the spec's securitySchemes (no junk
+          keys);
+        - first-set-wins: an already-set credential is NOT overwritten
+          (a prompt-injected model cannot swap a live secret).
+        """
+        if scheme not in self.schemes:
+            return (False,
+                    f"unknown scheme {scheme!r} (declared: "
+                    f"{sorted(self.schemes) or 'none'})")
+        if self._creds.get(scheme):
+            return False, f"credential for {scheme!r} already set — overwrite refused"
         self._creds[scheme] = value
+        return True, ""
 
     def resolve_auth(self, op: Dict[str, Any]) -> Dict[str, str]:
         """Return final headers (and cookie hints) for an operation's security."""
@@ -157,11 +304,21 @@ def load_spec(name: str, source: str) -> Dict[str, Any]:
     text: str
     try:
         if source.startswith(("http://", "https://")):
-            resp = httpx.get(source, timeout=_TIMEOUT, follow_redirects=True)
-            resp.raise_for_status()
-            text = resp.text
+            # SSRF guard: destination resolved + checked BEFORE the fetch,
+            # and again on every redirect hop via _GuardedTransport.
+            reason = _blocked_url(source)
+            if reason:
+                return {"ok": False, "error": f"refused: {reason}"}
+            with _guarded_client() as client:
+                resp = client.get(source)
+                resp.raise_for_status()
+                text = resp.text
         else:
-            text = open(source, encoding="utf-8").read()
+            # Spec FILE reads are contained to operator-trusted dirs.
+            ok, real_path, why = _trusted_spec_file(source)
+            if not ok:
+                return {"ok": False, "error": f"refused: spec file {why}"}
+            text = open(real_path, encoding="utf-8").read()
     except Exception as exc:
         return {"ok": False, "error": f"cannot fetch spec from '{source}': {exc}"}
 
@@ -239,6 +396,12 @@ def execute(name: str, method: str, path: str,
             url_path = url_path.replace("{" + m + "}", str(params.pop(m)))
 
     base = spec.servers[0] if spec.servers else ""
+    # SSRF guard: the spec's base URL (independent of where it was loaded
+    # from) is resolved + checked before any request, and every redirect
+    # hop is re-checked by _GuardedTransport.
+    reason = _blocked_url(base)
+    if reason:
+        return {"ok": False, "error": f"refused: {reason}"}
     url = base.rstrip("/") + url_path
 
     headers = {"Accept": "application/json", **spec.resolve_auth(op)}
@@ -250,9 +413,10 @@ def execute(name: str, method: str, path: str,
 
     try:
         t0 = time.time()
-        resp = httpx.request(method, url,
-                             params=query_params, json=body or None,
-                             headers=headers, timeout=_TIMEOUT, follow_redirects=True)
+        with _guarded_client() as client:
+            resp = client.request(method, url,
+                                  params=query_params, json=body or None,
+                                  headers=headers)
         elapsed_ms = int((time.time() - t0) * 1000)
         content: Any = resp.json() if resp.headers.get("content-type", "").startswith("application/json") else resp.text
         payload: Dict[str, Any] = {
@@ -300,7 +464,11 @@ def handle(payload: Any) -> Dict[str, Any]:
             spec = _SPECS.get(str(payload.get("name", "")))
             if spec is None:
                 return {"ok": False, "error": f"unknown skill '{payload.get('name')}'"}
-            spec.set_credential(str(payload.get("scheme", "")), str(payload.get("value", "")))
+            scheme = str(payload.get("scheme", ""))
+            value = str(payload.get("value", ""))
+            ok, why = spec.set_credential(scheme, value)
+            if not ok:
+                return {"ok": False, "error": why}
             return {"ok": True, "credentialed": spec.summary()["schemes"]}
         return {"ok": False,
                 "error": f"unknown api action '{action}' (list|load|search|execute|set_credentials)"}
