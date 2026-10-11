@@ -130,10 +130,60 @@ live-mutating, backed up, never written by this work, uncommitted.
   proven-environmental failures).
 - Diff reviewable in one commit; runtime files excluded from staging.
 
+## 7. Independent path audit (post-closure, pre-merge) — 2 fixes, PASS
+
+Triggered by the operator's pre-merge questions: does protection apply
+to ALL tool-invocation paths, and is there real isolation at runtime?
+
+Audit of every execution entry point (results split proven vs open):
+
+- **FIXED (P0-adjacent, latent):** `session_container.exec_in_container`
+  non-strict FALLBACKS (docker-absent, container-start-failed, and both
+  async twins) executed raw `subprocess.run(["/bin/bash","-lc", cmd])`
+  — bypassing every content check + approval binding for any direct
+  caller. All four fallbacks now route through the checked
+  `run_command`/`async_run_command` (approval threaded, strict-mode
+  refusal unchanged, `sandbox_fallback` marker preserved). Proven by
+  new tests: `test_container_fallback_is_checked` (rm refused rc=126,
+  canary intact), `test_container_fallback_honors_approval`.
+- **FIXED (fail-open bug caught live):** the first wiring of
+  `requires_confirmation` used an undefined name; the swallowed
+  NameError defaulted `computer`/`tool_forge` to ALLOW in development.
+  Now: explicit `tool=` threading into `decide()`, fail-closed default
+  (capability-only callers with no tool name get REQUIRE_CONFIRMATION
+  for sandbox-gated capabilities), pinned by
+  `test_descriptor_confirmation_honored_in_development`. Note:
+  `bash`+benign stays ALLOW; `screen` stays ALLOW (read-only).
+- **FIXED (nonce hygiene):** non-bash approved tools retire their nonce
+  in the agent loop (they never reach run_command's consume); loop-
+  detector and tool-timeout paths now release approved-but-unexecuted
+  nonces so a late arrival cannot execute.
+- **PROVEN SAFE:** docker-present container exec (true isolation);
+  reflex fast-path + compile guard; `browser` (no file-destructive
+  primitives, private-URL guards); fixed-string subprocesses
+  (`nvidia-smi`, `systemd-inhibit`) carry no agent content.
+- **OPEN / RESIDUAL (documented, not P0):** forged-code CONTENT unchecked
+  on host fallback in tool_forge (env-gated, default off); `api` tool
+  has no localhost/SSRF guard (trust boundary = operator-loaded specs);
+  `computer` GUI approval path not yet exercised live (follow-up).
+
+Isolation verdict: in container mode, isolation is REAL (process-level).
+In host/fallback mode, isolation is CHECK-LEVEL only (string/AST content
+checks + approval binding) — inherent limit, operator-visible, unchanged
+by this branch. All fallbacks are now fail-closed or checked; no raw
+subprocess path remains behind an agent-controlled string.
+
+Final suite after audit: backend **507 passed, 0 failed** (+2 documented
+environmental deselects), frontend unchanged green. Backend restarted
+on the audited tree (pid live, WS + telemetry healthy).
+
 ## Verdict: VERIFIED WITH LIMITATIONS
 
-Merge recommended. Limitations (all documented, none P0): reconnect does
-not carry approval state (orphans fail closed); `clients` misnomer;
-EN/raw error events; no WS-action logging in journal; aggressive SW
-caching of old bundles in tests; shell-string sandboxing is inherently
-incomplete outside container mode (operator-visible residual).
+Merge recommended (3 commits on `fix/safety-reliability-gate`:
+`22e772f` gate, `755cd24` tool-layer + approval binding, audit commit
+[path-audit fixes]). Limitations (all documented, none P0): reconnect
+does not carry approval state (orphans fail closed); `clients`
+misnomer; EN/raw error events; no WS-action logging in journal;
+aggressive SW caching of old bundles in tests; host-mode isolation is
+check-level not process-level; `computer` live-approval and `api`
+SSRF-guard are named follow-ups.

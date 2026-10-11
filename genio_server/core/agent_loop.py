@@ -972,6 +972,7 @@ class AgentLoop:
                 # suspend le tour et attend l'opérateur (timeout = refus).
                 # approval_token ne vit que sur ce tour (None par défaut).
                 approval_token = None
+                approval_engine = None
                 if cap_info["decision"] == "REQUIRE_CONFIRMATION":
                     try:
                         from core.policy_engine import get_policy_engine
@@ -990,6 +991,7 @@ class AgentLoop:
                         await self._save_message("user", feedback)
                         continue
                     engine = get_policy_engine()
+                    approval_engine = engine
                     pend = engine.request_confirmation(tool_name, command)
                     try:
                         from genio_server.tools.bash_tool import (
@@ -1014,6 +1016,14 @@ class AgentLoop:
                     if approved:
                         approval_token = {"nonce": pend.nonce,
                                           "command": command}
+                        if tool_name != "bash":
+                            # Non-bash tools never reach run_command's
+                            # consume(): retire the nonce HERE so a granted
+                            # approval cannot linger approved until expiry.
+                            try:
+                                engine.consume(pend.nonce, command)
+                            except Exception:
+                                pass
                     if not approved:
                         engine.release(pend.nonce)
                         msg = (f"POLICY REQUIRE_CONFIRMATION unapproved for "
@@ -1032,6 +1042,14 @@ class AgentLoop:
                 # ne part jamais (2 exécutions max).
                 _fp = command_fingerprint(tool_name, command)
                 if guard.would_loop(_fp):
+                    # Approved-but-unexecuted: retire the nonce so it cannot
+                    # linger approved (non-bash already consumed above; bash
+                    # never reached run_command).
+                    if approval_token is not None and approval_engine is not None:
+                        try:
+                            approval_engine.release(approval_token["nonce"])
+                        except Exception:
+                            pass
                     msg = ("LOOP_DETECTED: same tool call repeated "
                            "without progress — stopping to avoid an "
                            "infinite loop.")
@@ -1056,6 +1074,13 @@ class AgentLoop:
                         timeout=TOOL_TIMEOUT_SECONDS,
                     )
                 except asyncio.TimeoutError:
+                    # Timeout ≠ cancel (worker thread may still be running):
+                    # retire the nonce so a late arrival cannot execute.
+                    if approval_token is not None and approval_engine is not None:
+                        try:
+                            approval_engine.release(approval_token["nonce"])
+                        except Exception:
+                            pass
                     result = {"tool": tool_name, "command": command,
                               "stdout": "", "stderr": "",
                               "returncode": 124,

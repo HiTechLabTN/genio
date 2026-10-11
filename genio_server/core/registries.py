@@ -266,7 +266,8 @@ class PolicyRegistry:
     @classmethod
     def decide(cls, capability: str,
                sandbox_available: bool = False,
-               mode: Optional[str] = None) -> str:
+               mode: Optional[str] = None,
+               tool: Optional[str] = None) -> str:
         mode = (mode or cls.mode())
         if capability in _STRICT_DENY:
             return Decision.DENY
@@ -287,8 +288,26 @@ class PolicyRegistry:
         if capability in (Capability.READ_ONLY,):
             return Decision.ALLOW
         if capability in _STRICT_SANDBOX:
-            return (Decision.SANDBOX_ONLY if sandbox_available
-                    else Decision.ALLOW)
+            if sandbox_available:
+                return Decision.SANDBOX_ONLY
+            # Closure gate: tools whose descriptor demands confirmation
+            # (computer GUI control, tool_forge, …) are NOT silently
+            # allowed in development — the flag is enforced, not decorative.
+            # Rationale: GUI typing / forged code can effect destruction
+            # outside every shell-content check (no rm string to match).
+            # NOTE: `tool` may be None for capability-only callers; without
+            # it we cannot honor the flag and fail closed to confirmation
+            # for HIGH/CRITICAL sandbox-gated capabilities.
+            flag = None
+            if tool is not None:
+                try:
+                    desc = CapabilityRegistry.descriptor_of(tool)
+                except Exception:
+                    desc = None
+                flag = desc.requires_confirmation if desc is not None else None
+            if flag or (flag is None and tool is None):
+                return Decision.REQUIRE_CONFIRMATION
+            return Decision.ALLOW
         return Decision.ALLOW
 
     @classmethod
@@ -308,7 +327,7 @@ class PolicyRegistry:
             if capability in _STRICT_DENY:
                 return Decision.DENY
             return Decision.REQUIRE_CONFIRMATION
-        return cls.decide(capability, sandbox_available, mode)
+        return cls.decide(capability, sandbox_available, mode, tool=tool)
 
 
 # --------------------------------------------------------------------------- #

@@ -121,15 +121,40 @@ Frontend: rebuilt `dist`, preview :8098. Model: `gemma4:12b`.
   (HEAD never contained poison); all four left uncommitted with
   gate-start backups in `/tmp/closure-gate/`.
 
-## Regression status (closure 2026-10-10)
+## Regression status (closure 2026-10-10, final)
 
-- Backend: **504 passed, 0 failed** (2 pre-existing environmental
+- Backend: **507 passed, 0 failed** (2 pre-existing environmental
   deselected with clean-copy evidence:
-  `regression-tests/prefail-clean-copy-comparison.md`).
-  `TestPlanning::test_parse_plan_injects_auditor` (external
-  `/data/ai_tools/llm_utils.py` config gap) and
-  `TestEndToEndDryRun::test_pipeline_dispatch` (`preflight_env`
-  'Critical service(s) down' — live-service probe) fail identically on
-  pristine `986e25f` and branch HEAD `22e772f`.
-- Frontend: `tsc --noEmit` 0 errors; vitest 100/100 (incl. new
-  approval-localization test).
+  `regression-tests/prefail-clean-copy-comparison.md`:
+  `TestPlanning::test_parse_plan_injects_auditor` — external
+  `/data/ai_tools/llm_utils.py` `OllamaConfig.model` gap;
+  `TestEndToEndDryRun::test_pipeline_dispatch` — `preflight_env`
+  'Critical service(s) down' live-service probe. Both fail identically
+  on pristine `986e25f` and branch HEAD.)
+- Frontend: `tsc --noEmit` 0 errors; vitest 100/100.
+
+## Independent path audit (closure, all tool invocation paths)
+
+- `invoke→run_command/async_run_command` (bash): HARD+SCOPED +
+  approval binding + workspace. ENFORCED, matrix-tested.
+- Container exec (docker present): pre-check + true isolation. OK.
+- Container FALLBACKS (no docker): ran RAW subprocess (latent bypass
+  for any direct caller incl. tool_forge) — FIXED to route via checked
+  `run_command` with approval threading + `sandbox_fallback` marker.
+- Reflex fast-path / skill compile: refusal + anti-poison. ENFORCED.
+- `computer` GUI control (terminal-typing bypass outside every shell
+  check): `requires_confirmation` flag was DECORATIVE (dev-ALLOW) —
+  NOW ENFORCED (dev REQUIRE_CONFIRMATION); non-bash approvals retired
+  agent-side; guard-trip/timeout paths release nonces. Computer-specific
+  live approval not yet exercised (follow-up).
+- `tool_forge`: env-gated (default off) + RCE-substring block +
+  container-preferred + checked fallback + tool itself now gated.
+  Residual: forged-code CONTENT unchecked on host fallback.
+- `browser`: no file-destructive primitives + private-URL guards. OK.
+- `api` skills: NO localhost/SSRF guard, credentialed execute —
+  OPEN, P2 (operator-loaded specs are the trust boundary today).
+- Fixed-string subprocess (`nvidia-smi`, `systemd-inhibit`): no agent
+  content. SAFE. `social_post`: no exec. SAFE.
+- Fail-open scare caught live: a swallowed NameError in the first
+  `requires_confirmation` wiring defaulted to ALLOW — fixed with
+  explicit tool threading + fail-closed default, pinned by tests.

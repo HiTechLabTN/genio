@@ -153,8 +153,16 @@ def _truncate(s: str) -> str:
     return s[:MAX_OUTPUT] + TRUNCATE_MARKER
 
 
-def exec_in_container(session_id: str, command: str, timeout: int = 30) -> Dict[str, object]:
-    """Execute command inside per-session container, fallback to local if needed."""
+def exec_in_container(session_id: str, command: str, timeout: int = 30,
+                      approval=None) -> Dict[str, object]:
+    """Execute command inside per-session container, fallback to local if needed.
+
+    ``approval`` ({"nonce","command"}) is forwarded to the checked local
+    fallback so approved work still flows when docker is unavailable.
+    Closure gate: the historical DIRECT-subprocess fallbacks below used
+    to bypass every content check — they now route through the checked
+    run_command (approval-aware), keeping the sandbox_fallback marker.
+    """
     started = time.monotonic()
     if not session_id:
         return {"command": command, "stdout": "", "stderr": "missing session_id", "returncode": 127,
@@ -192,30 +200,18 @@ def exec_in_container(session_id: str, command: str, timeout: int = 30) -> Dict[
             # Phase 6 P0 : Docker absent en strict = refus fermé, jamais hôte.
             return _unavailable(command, "docker unavailable in strict mode",
                                 started)
-        # Fallback: local execution
+        # Fallback: local CHECKED execution (closure gate — never raw
+        # subprocess: content checks + approval binding apply here too).
         from genio_server.tools.bash_tool import run_command as local_run
         old = os.getenv("GENIO_SANDBOX_MODE")
         os.environ["GENIO_SANDBOX_MODE"] = ""
         try:
-            res = local_run(command, timeout=timeout) if False else None
-            # Actually call subprocess directly to avoid recursion
-            import subprocess as sp
-            proc = sp.run(["/bin/bash", "-lc", command], capture_output=True, text=True, timeout=timeout)
-            res = {
-                "command": command,
-                "stdout": _truncate(proc.stdout),
-                "stderr": _truncate(proc.stderr),
-                "returncode": proc.returncode,
-                "duration": round(time.monotonic() - started, 3),
-                "timed_out": False,
-                "sandbox_fallback": True,
-                "sandbox_reason": "docker not available",
-            }
+            res = local_run(command, timeout=timeout, approval=approval)
+            if isinstance(res, dict):
+                res = dict(res)
+                res["sandbox_fallback"] = True
+                res["sandbox_reason"] = "docker not available"
             return res
-        except subprocess.TimeoutExpired:
-            return {"command": command, "stdout": "", "stderr": f"timed out after {timeout}s",
-                    "returncode": -9, "duration": round(time.monotonic() - started, 3),
-                    "timed_out": True, "sandbox_fallback": True}
         finally:
             if old is None:
                 os.environ.pop("GENIO_SANDBOX_MODE", None)
@@ -228,23 +224,22 @@ def exec_in_container(session_id: str, command: str, timeout: int = 30) -> Dict[
             # Phase 6 P0 : conteneur impossible en strict = refus fermé.
             return _unavailable(command, f"container start failed: {msg}",
                                 started)
-        # Fallback to local
+        # Fallback to local CHECKED execution (closure gate — same as above).
+        from genio_server.tools.bash_tool import run_command as _local_run2
+        old2 = os.getenv("GENIO_SANDBOX_MODE")
+        os.environ["GENIO_SANDBOX_MODE"] = ""
         try:
-            proc = subprocess.run(["/bin/bash", "-lc", command], capture_output=True, text=True, timeout=timeout)
-            return {
-                "command": command,
-                "stdout": _truncate(proc.stdout),
-                "stderr": _truncate(proc.stderr + f"\n[sandbox fallback: {msg}]"),
-                "returncode": proc.returncode,
-                "duration": round(time.monotonic() - started, 3),
-                "timed_out": False,
-                "sandbox_fallback": True,
-                "sandbox_reason": msg or "container start failed",
-            }
-        except subprocess.TimeoutExpired:
-            return {"command": command, "stdout": "", "stderr": f"timed out after {timeout}s",
-                    "returncode": -9, "duration": round(time.monotonic() - started, 3),
-                    "timed_out": True, "sandbox_fallback": True}
+            res2 = _local_run2(command, timeout=timeout, approval=approval)
+            if isinstance(res2, dict):
+                res2 = dict(res2)
+                res2["sandbox_fallback"] = True
+                res2["sandbox_reason"] = msg or "container start failed"
+            return res2
+        finally:
+            if old2 is None:
+                os.environ.pop("GENIO_SANDBOX_MODE", None)
+            else:
+                os.environ["GENIO_SANDBOX_MODE"] = old2
 
     name = _container_name(session_id)
     try:
@@ -361,7 +356,8 @@ async def async_ensure_container(session_id: str) -> tuple[bool, str]:
 
 
 async def async_exec_in_container(session_id: str, command: str,
-                                  timeout: int = 30) -> Dict[str, object]:
+                                  timeout: int = 30,
+                                  approval=None) -> Dict[str, object]:
     """Async non-blocking variant of :func:`exec_in_container` (Phase 1 v2.1).
 
     All docker exec/run/inspect/ps calls use ``asyncio.create_subprocess_exec``
@@ -372,11 +368,13 @@ async def async_exec_in_container(session_id: str, command: str,
     if not session_id:
         return {"command": command, "stdout": "", "stderr": "missing session_id",
                 "returncode": 127, "duration": 0.0, "timed_out": False}
-    return await _async_exec_in_container(session_id, command, timeout)
+    return await _async_exec_in_container(session_id, command, timeout,
+                                           approval=approval)
 
 
 async def _async_exec_in_container(session_id: str, command: str,
-                                   timeout: int) -> Dict[str, object]:
+                                   timeout: int,
+                                   approval=None) -> Dict[str, object]:
     started = time.monotonic()
 
     def _t(s: str) -> str:
@@ -407,29 +405,17 @@ async def _async_exec_in_container(session_id: str, command: str,
                 os.environ["GENIO_SANDBOX_MODE"] = old
 
     if not _docker_available():
+        # Closure gate: checked fallback (never raw subprocess).
         old = os.getenv("GENIO_SANDBOX_MODE")
         os.environ["GENIO_SANDBOX_MODE"] = ""
         try:
-            try:
-                proc = await asyncio.create_subprocess_exec(
-                    "/bin/bash", "-lc", command,
-                    stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
-                )
-                out, err = await asyncio.wait_for(proc.communicate(), timeout=timeout)
-                return {
-                    "command": command,
-                    "stdout": _t(out.decode(errors="replace")),
-                    "stderr": _t(err.decode(errors="replace")),
-                    "returncode": proc.returncode,
-                    "duration": round(time.monotonic() - started, 3),
-                    "timed_out": False,
-                    "sandbox_fallback": True,
-                    "sandbox_reason": "docker not available",
-                }
-            except asyncio.TimeoutError:
-                return {"command": command, "stdout": "", "stderr": f"timed out after {timeout}s",
-                        "returncode": -9, "duration": round(time.monotonic() - started, 3),
-                        "timed_out": True, "sandbox_fallback": True}
+            from genio_server.tools.bash_tool import async_run_command as _alocal
+            res = await _alocal(command, timeout=timeout, approval=approval)
+            if isinstance(res, dict):
+                res = dict(res)
+                res["sandbox_fallback"] = True
+                res["sandbox_reason"] = "docker not available"
+            return res
         finally:
             if old is None:
                 os.environ.pop("GENIO_SANDBOX_MODE", None)
@@ -445,26 +431,14 @@ async def _async_exec_in_container(session_id: str, command: str,
         old = os.getenv("GENIO_SANDBOX_MODE")
         os.environ["GENIO_SANDBOX_MODE"] = ""
         try:
-            try:
-                proc = await asyncio.create_subprocess_exec(
-                    "/bin/bash", "-lc", command,
-                    stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
-                )
-                out, err = await asyncio.wait_for(proc.communicate(), timeout=timeout)
-                return {
-                    "command": command,
-                    "stdout": _t(out.decode(errors="replace")),
-                    "stderr": _t(err.decode(errors="replace") + f"\n[sandbox fallback: {msg}]"),
-                    "returncode": proc.returncode,
-                    "duration": round(time.monotonic() - started, 3),
-                    "timed_out": False,
-                    "sandbox_fallback": True,
-                    "sandbox_reason": msg or "container start failed",
-                }
-            except asyncio.TimeoutError:
-                return {"command": command, "stdout": "", "stderr": f"timed out after {timeout}s",
-                        "returncode": -9, "duration": round(time.monotonic() - started, 3),
-                        "timed_out": True, "sandbox_fallback": True}
+            # Closure gate: checked fallback (never raw subprocess).
+            from genio_server.tools.bash_tool import async_run_command as _alocal2
+            res = await _alocal2(command, timeout=timeout, approval=approval)
+            if isinstance(res, dict):
+                res = dict(res)
+                res["sandbox_fallback"] = True
+                res["sandbox_reason"] = msg or "container start failed"
+            return res
         finally:
             if old is None:
                 os.environ.pop("GENIO_SANDBOX_MODE", None)

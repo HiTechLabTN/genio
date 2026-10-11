@@ -353,6 +353,60 @@ def test_async_parity(tmp_path, monkeypatch):
     assert (tmp_path / "b.txt").exists()
 
 
+def test_container_fallback_is_checked(tmp_path, monkeypatch):
+    # Closure audit: exec_in_container fallbacks used to run raw
+    # subprocess, bypassing every content check. Now they route through
+    # the checked run_command (no docker here -> fallback path).
+    import genio_server.tools.session_container as sc
+    from genio_server.tools.session_container import exec_in_container
+    _tree(tmp_path)
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.delenv("GENIO_WORKSPACE", raising=False)
+    monkeypatch.setenv("GENIO_SANDBOX_MODE", "container")
+    monkeypatch.delenv("GENIO_SECURITY_MODE", raising=False)
+    monkeypatch.setattr(sc, "_docker_available", lambda: False)
+    res = exec_in_container("closure-probe", "rm -rf sub")
+    assert res["returncode"] == 126, res
+    assert "refused" in str(res.get("stderr", ""))
+    assert (tmp_path / "sub" / "drop.txt").exists()
+    ok = exec_in_container("closure-probe", "echo fb-ok")
+    assert ok["returncode"] == 0, ok
+    assert ok.get("sandbox_fallback") is True
+    assert "fb-ok" in str(ok.get("stdout", ""))
+
+
+def test_container_fallback_honors_approval(tmp_path, monkeypatch):
+    import genio_server.tools.session_container as sc
+    from genio_server.tools.session_container import exec_in_container
+    _tree(tmp_path)
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.delenv("GENIO_WORKSPACE", raising=False)
+    monkeypatch.setenv("GENIO_SANDBOX_MODE", "container")
+    monkeypatch.delenv("GENIO_SECURITY_MODE", raising=False)
+    monkeypatch.setattr(sc, "_docker_available", lambda: False)
+    eng, approval = _approve("rm -rf sub")
+    res = exec_in_container("closure-probe", "rm -rf sub", approval=approval)
+    assert res["returncode"] == 0, res
+    assert not (tmp_path / "sub").exists()
+    assert (tmp_path / "keep.txt").exists()
+
+
+def test_descriptor_confirmation_honored_in_development():
+    # Closure audit: requires_confirmation=True was decorative —
+    # computer (GUI typing bypasses every shell check) and tool_forge
+    # were silently ALLOW in development. Now they gate.
+    from genio_server.core.registries import Decision, PolicyRegistry
+    assert PolicyRegistry.decide_tool("computer", False, "development") \
+        == Decision.REQUIRE_CONFIRMATION
+    assert PolicyRegistry.decide_tool("tool_forge", False, "development") \
+        == Decision.REQUIRE_CONFIRMATION
+    # Unaffected: benign bash still ALLOW, screen read-only ALLOW.
+    assert PolicyRegistry.decide_tool("bash", False, "development",
+                                      command="ls -la") == Decision.ALLOW
+    assert PolicyRegistry.decide_tool("screen", False, "development") \
+        == Decision.ALLOW
+
+
 def test_refusal_classes_pinned():
     # HARD — never overridable.
     for cmd in ("rm -rf /", "rm -rf /*", "sudo rm -rf /",

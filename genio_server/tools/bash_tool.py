@@ -533,7 +533,7 @@ def run_command(command: str, timeout: int = DEFAULT_TIMEOUT,
     if session_id and os.getenv("GENIO_SANDBOX_MODE", "").strip().lower() == "container":
         try:
             from genio_server.tools.session_container import exec_in_container
-            return exec_in_container(session_id, command, timeout)
+            return exec_in_container(session_id, command, timeout, approval=approval)
         except Exception as exc:
             return {"command": command, "stdout": "", "stderr": str(exc),
                     "returncode": 127, "duration": 0.0, "timed_out": False}
@@ -621,7 +621,7 @@ async def async_run_command(command: str, timeout: int = DEFAULT_TIMEOUT,
     if session_id and os.getenv("GENIO_SANDBOX_MODE", "").strip().lower() == "container":
         try:
             from genio_server.tools.session_container import async_exec_in_container
-            return await async_exec_in_container(session_id, command, timeout)
+            return await async_exec_in_container(session_id, command, timeout, approval=approval)
         except Exception as exc:
             return {"command": command, "stdout": "", "stderr": str(exc),
                     "returncode": 127, "duration": 0.0, "timed_out": False}
