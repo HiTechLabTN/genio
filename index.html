@@ -3,28 +3,28 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Genio — أول مهندس ذكاء اصطناعي مستقل في تونس</title>
+  <title>جينيو — أول مهندس ذكاء اصطناعي تونسي مستقل</title>
   <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="#00f0ff">
-  <meta name="description" content="Genio — premier compagnon IA tunisien autonome. Darija, français, anglais. Code, surveillance de serveurs et maison connectée. Version v5.0.0.">
+  <meta name="description" content="جينيو — أول مهندس ذكاء اصطناعي تونسي مستقل. يفهمك بالدارجة، ينظم خدمتك، يبرمج، يراقب السيرفرات، ويتحكم في منزلك الذكي. versión v5.0.0.">
   <link rel="canonical" href="https://genio.hitech.tn">
 
   <!-- OpenGraph / aperçus de liens (genio.hitech.tn) -->
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://genio.hitech.tn">
-  <meta property="og:title" content="Genio — compagnon IA tunisien autonome (v5.0.0)">
-  <meta property="og:description" content="Genio comprend la derja tunisienne, organise votre travail, code, surveille vos serveurs et pilote votre maison connectée. Jarvis Tounsi à votre service.">
+  <meta property="og:title" content="جينيو — أول مهندس ذكاء اصطناعي تونسي مستقل (v5.0.0)">
+  <meta property="og:description" content="جينيو يفهمك بالدارجة، ينظم خدمتك، يبرمج، يراقب السيرفرات، ويتحكم في منزلك الذكي. صُنع في تونس 🇹🇳.">
   <meta property="og:image" content="https://genio.hitech.tn/genio-logo.svg">
   <meta property="og:image:width" content="800">
   <meta property="og:image:height" content="420">
-  <meta property="og:site_name" content="Genio">
+  <meta property="og:site_name" content="جينيو">
   <meta property="og:locale" content="ar_TN">
 
   <!-- Twitter -->
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:site" content="@HiTechLabTN">
-  <meta name="twitter:title" content="Genio — compagnon IA tunisien autonome (v5.0.0)">
-  <meta name="twitter:description" content="Genio comprend la derja tunisienne, organise votre travail, code, surveille vos serveurs et pilote votre maison connectée.">
+  <meta name="twitter:title" content="جينيو — أول مهندس ذكاء اصطناعي تونسي مستقل (v5.0.0)">
+  <meta name="twitter:description" content="جينيو يفهمك بالدارجة، ينظم خدمتك، يبرمج، يراقب السيرفرات، ويتحكم في منزلك الذكي.">
 
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -39,6 +39,12 @@
     .terminal-box { background: #030712; border: 1px solid rgba(0, 240, 255, 0.3); font-family: 'JetBrains Mono', monospace; }
     .pulse-record { animation: prec 1.5s infinite; }
     @keyframes prec { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.8); } 70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
+    .lang-switch { display:flex; gap:6px; align-items:center; }
+    .lang-btn { @apply px-2 py-1 text-[10px] font-bold rounded border border-cyan-500/40 bg-cyan-950/80 text-cyan-300 hover:bg-cyan-800 transition; }
+    .lang-btn.active { @apply border-cyan-400 text-cyan-400 bg-cyan-400/20; }
+    /* LTR override when French/English */
+    [dir="ltr"] .text-right { text-align: left !important; }
+    [dir="ltr"] .mono { direction: ltr; }
   </style>
 </head>
 <body class="flex flex-col min-h-screen">
@@ -48,44 +54,66 @@
     <div class="flex items-center gap-3">
       <div class="w-3.5 h-3.5 rounded-full bg-cyan-400 animate-ping"></div>
       <div>
-        <span class="text-xl font-black text-cyan-400 tracking-wider glow-cyan mono">Genio .</span>
+        <span class="text-xl font-black text-cyan-400 tracking-wider glow-cyan mono">جينيو .</span>
         <span class="text-[10px] text-cyan-500 font-bold block -mt-1">المهندس الذاتي المستقل</span>
       </div>
     </div>
-    
+
     <div class="hidden md:flex items-center gap-6 text-xs font-bold text-slate-300">
-      <a href="#features" class="hover:text-cyan-400 transition">المميزات</a>
-      <a href="#hud" class="hover:text-cyan-400 transition text-cyan-400">قمرة القيادة (HUD)</a>
-      <a href="#architecture" class="hover:text-cyan-400 transition">الهندسة التنفيذية</a>
-      <a href="#tutorials" class="hover:text-cyan-400 transition">اللابات والدروس</a>
-      <a href="#docs" class="hover:text-cyan-400 transition">التوثيق</a>
+      <a href="#features" class="hover:text-cyan-400 transition" data-lang="tu">المميزات</a>
+      <a href="#features" class="hover:text-cyan-400 transition" data-lang="fr">Fonctionnalités</a>
+      <a href="#features" class="hover:text-cyan-400 transition" data-lang="en">Features</a>
+
+      <a href="#hud" class="hover:text-cyan-400 transition text-cyan-400" data-lang="tu">قمرة القيادة (HUD)</a>
+      <a href="#hud" class="hover:text-cyan-400 transition text-cyan-400" data-lang="fr">HUD en direct</a>
+      <a href="#hud" class="hover:text-cyan-400 transition text-cyan-400" data-lang="en">Live HUD</a>
+
+      <a href="#architecture" class="hover:text-cyan-400 transition" data-lang="tu">الهندسة التنفيذية</a>
+      <a href="#architecture" class="hover:text-cyan-400 transition" data-lang="fr">Architecture</a>
+      <a href="#architecture" class="hover:text-cyan-400 transition" data-lang="en">Architecture</a>
+
+      <a href="#tutorials" class="hover:text-cyan-400 transition" data-lang="tu">اللابات والدروس</a>
+      <a href="#tutorials" class="hover:text-cyan-400 transition" data-lang="fr">Tutoriels</a>
+      <a href="#tutorials" class="hover:text-cyan-400 transition" data-lang="en">Tutorials</a>
+
+      <a href="#docs" class="hover:text-cyan-400 transition" data-lang="tu">التوثيق</a>
+      <a href="#docs" class="hover:text-cyan-400 transition" data-lang="fr">Documentation</a>
+      <a href="#docs" class="hover:text-cyan-400 transition" data-lang="en">Docs</a>
     </div>
 
     <div class="flex items-center gap-3">
-      <button id="push-btn" onclick="subscribePush()" class="px-3 py-1.5 bg-cyan-950/80 hover:bg-cyan-900 border border-cyan-500/40 text-cyan-300 text-xs rounded-xl font-bold transition">
-        🔔 التنبيهات
-      </button>
-      <a href="https://github.com/HiTechLabTN/genio" target="_blank" class="text-xs text-slate-400 hover:text-cyan-400 font-mono px-3 py-1.5 rounded-lg border border-slate-800 bg-slate-900/60">
-        GitHub ↗
-      </a>
+      <!-- Sélecteur de langue : derja par défaut -->
+      <div class="lang-switch" id="lang-switch">
+        <button class="lang-btn active" data-lang="tu" onclick="setLang('tu')">الدرجة</button>
+        <button class="lang-btn" data-lang="fr" onclick="setLang('fr')">FR</button>
+        <button class="lang-btn" data-lang="en" onclick="setLang('en')">EN</button>
+      </div>
+      <button id="push-btn" onclick="subscribePush()" class="px-3 py-1.5 bg-cyan-950/80 hover:bg-cyan-900 border border-cyan-500/40 text-cyan-300 text-xs rounded-xl font-bold transition" data-lang="tu">🔔 التنبيهات</button>
+      <button id="push-btn" onclick="subscribePush()" class="px-3 py-1.5 bg-cyan-950/80 hover:bg-cyan-900 border border-cyan-500/40 text-cyan-300 text-xs rounded-xl font-bold transition hidden" data-lang="fr">🔔 Notifications</button>
+      <button id="push-btn" onclick="subscribePush()" class="px-3 py-1.5 bg-cyan-950/80 hover:bg-cyan-900 border border-cyan-500/40 text-cyan-300 text-xs rounded-xl font-bold transition hidden" data-lang="en">🔔 Notifications</button>
+      <a href="https://github.com/HiTechLabTN/genio" target="_blank" class="text-xs text-slate-400 hover:text-cyan-400 font-mono px-3 py-1.5 rounded-lg border border-slate-800 bg-slate-900/60">GitHub ↗</a>
     </div>
   </nav>
 
   <!-- Hero Section -->
   <header class="max-w-5xl mx-auto px-4 pt-12 pb-8 text-center space-y-5">
     <div class="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-cyan-950/60 border border-cyan-500/30 text-cyan-400 text-xs font-bold mono">
-      <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> النسخة v4.0 — أوتونوموس 100%
+      <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+      <span data-lang="tu">النسخة v5.0.0 — أوتونوموس 100%</span>
+      <span data-lang="fr" class="hidden">Version v5.0.0 — 100% autonome</span>
+      <span data-lang="en" class="hidden">Version v5.0.0 — 100% autonomous</span>
     </div>
 
     <h1 class="text-4xl sm:text-6xl font-black text-white leading-tight">
-      أول مهندس ذكاء اصطناعي <br>
-      <span class="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-teal-300 to-blue-500 glow-cyan">
-        يصلّح كودو وحدو، يطوّر روحو، ويفهمك بالدارجة
-      </span>
+      <span data-lang="tu">أول مهندس ذكاء اصطناعي <br> تونسي</span>
+      <span data-lang="fr" class="hidden">Premier ingénieur IA <br> tunisien</span>
+      <span data-lang="en" class="hidden">First Tunisian AI <br> engineer</span>
     </h1>
 
     <p class="text-slate-300 text-sm sm:text-lg max-w-3xl mx-auto leading-relaxed">
-      منظومة متكاملة تدير السيرفرات والعتاد، تختار الموديلات الأنسب حسب حرارة كارت الشاشة والـ VRAM، وتنتج محتوى تقني كامل بدقة 1080p بصوت تونسي وتنشر مباشرة دون أي تدخل يدوي.
+      <span data-lang="tu">منظومة متكاملة تدير السيرفرات والعتاد، تختار الموديلات الأنسب حسب حرارة كارت الشاشة والـ VRAM، وتنتج محتوى تقني كامل بدقة 1080p بصوت تونسي وتنشر مباشرة دون أي تدخل يدوي.</span>
+      <span data-lang="fr" class="hidden">Une plateforme complète qui gère vos serveurs et votre matériel, choisit les modèles les mieux adaptés selon la température de votre carte graphique et votre VRAM, et produit un contenu technique complet en 1080p avec une voix tunisienne, publié directement sans intervention manuelle.</span>
+      <span data-lang="en" class="hidden">An integrated platform that manages your servers and hardware, picks the best models based on your GPU temperature and VRAM, and produces full technical content in 1080p with a Tunisian voice, published directly without any manual intervention.</span>
     </p>
 
     <!-- Smart OS Download Box -->
@@ -94,23 +122,37 @@
         <div class="flex items-center gap-3">
           <span class="text-3xl" id="os-icon">⚡</span>
           <div>
-            <div class="text-[11px] text-slate-400">النظام المكتشف لجهازك:</div>
+            <div class="text-[11px] text-slate-400" data-lang="tu">النظام المكتشف لجهازك:</div>
+            <div class="text-[11px] text-slate-400" data-lang="fr">Système détecté :</div>
+            <div class="text-[11px] text-slate-400" data-lang="en">Detected system:</div>
             <div class="text-base font-bold text-cyan-300" id="detected-os-text">جاري الفحص...</div>
           </div>
         </div>
         <a id="primary-dl-btn" href="https://github.com/HiTechLabTN/genio/releases/latest" 
            class="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 text-slate-950 font-black px-6 py-3 rounded-xl text-xs sm:text-sm transition shadow-lg shadow-cyan-500/25 shrink-0">
-          تحميل وتثبيت 🚀
+          <span data-lang="tu">تحميل وتثبيت 🚀</span>
+          <span data-lang="fr" class="hidden">Télécharger et installer 🚀</span>
+          <span data-lang="en" class="hidden">Download and install 🚀</span>
         </a>
       </div>
 
       <div class="pt-3 border-t border-slate-800 text-[11px] space-y-2">
-        <div class="text-slate-400 font-bold">متوفر لكل المنصات:</div>
+        <div class="text-slate-400 font-bold" data-lang="tu">متوفر لكل المنصات:</div>
+        <div class="text-slate-400 font-bold" data-lang="fr">Disponible sur toutes les plateformes :</div>
+        <div class="text-slate-400 font-bold" data-lang="en">Available on all platforms:</div>
         <div class="flex flex-wrap gap-2">
-          <a href="https://github.com/HiTechLabTN/genio/releases/latest/download/genio-desktop-linux.deb" class="bg-slate-900/90 hover:border-cyan-500 text-slate-300 px-2.5 py-1.5 rounded-lg border border-slate-700 mono">🐧 Linux (.deb)</a>
-          <a href="https://github.com/HiTechLabTN/genio/releases/latest/download/genio-mobile.apk" class="bg-slate-900/90 hover:border-cyan-500 text-slate-300 px-2.5 py-1.5 rounded-lg border border-slate-700 mono">📱 Android (APK)</a>
-          <a href="https://github.com/HiTechLabTN/genio/releases/latest/download/genio-setup-windows.exe" class="bg-slate-900/90 hover:border-cyan-500 text-slate-300 px-2.5 py-1.5 rounded-lg border border-slate-700 mono">🪟 Windows (.exe)</a>
-          <a href="https://github.com/HiTechLabTN/genio/releases/latest/download/genio-desktop-linux.AppImage" class="bg-slate-900/90 hover:border-cyan-500 text-slate-300 px-2.5 py-1.5 rounded-lg border border-slate-700 mono">📦 AppImage</a>
+          <a href="https://github.com/HiTechLabTN/genio/releases/latest/download/genio-desktop-linux.deb" class="bg-slate-900/90 hover:border-cyan-500 text-slate-300 px-2.5 py-1.5 rounded-lg border border-slate-700 mono" data-lang="tu">🐧 Linux (.deb)</a>
+          <a href="https://github.com/HiTechLabTN/genio/releases/latest/download/genio-desktop-linux.deb" class="bg-slate-900/90 hover:border-cyan-500 text-slate-300 px-2.5 py-1.5 rounded-lg border border-slate-700 mono hidden" data-lang="fr">🐧 Linux (.deb)</a>
+          <a href="https://github.com/HiTechLabTN/genio/releases/latest/download/genio-desktop-linux.deb" class="bg-slate-900/90 hover:border-cyan-500 text-slate-300 px-2.5 py-1.5 rounded-lg border border-slate-700 mono hidden" data-lang="en">🐧 Linux (.deb)</a>
+          <a href="https://github.com/HiTechLabTN/genio/releases/latest/download/genio-mobile.apk" class="bg-slate-900/90 hover:border-cyan-500 text-slate-300 px-2.5 py-1.5 rounded-lg border border-slate-700 mono" data-lang="tu">📱 Android (APK)</a>
+          <a href="https://github.com/HiTechLabTN/genio/releases/latest/download/genio-mobile.apk" class="bg-slate-900/90 hover:border-cyan-500 text-slate-300 px-2.5 py-1.5 rounded-lg border border-slate-700 mono hidden" data-lang="fr">📱 Android (APK)</a>
+          <a href="https://github.com/HiTechLabTN/genio/releases/latest/download/genio-mobile.apk" class="bg-slate-900/90 hover:border-cyan-500 text-slate-300 px-2.5 py-1.5 rounded-lg border border-slate-700 mono hidden" data-lang="en">📱 Android (APK)</a>
+          <a href="https://github.com/HiTechLabTN/genio/releases/latest/download/genio-setup-windows.exe" class="bg-slate-900/90 hover:border-cyan-500 text-slate-300 px-2.5 py-1.5 rounded-lg border border-slate-700 mono" data-lang="tu">🪟 Windows (.exe)</a>
+          <a href="https://github.com/HiTechLabTN/genio/releases/latest/download/genio-setup-windows.exe" class="bg-slate-900/90 hover:border-cyan-500 text-slate-300 px-2.5 py-1.5 rounded-lg border border-slate-700 mono hidden" data-lang="fr">🪟 Windows (.exe)</a>
+          <a href="https://github.com/HiTechLabTN/genio/releases/latest/download/genio-setup-windows.exe" class="bg-slate-900/90 hover:border-cyan-500 text-slate-300 px-2.5 py-1.5 rounded-lg border border-slate-700 mono hidden" data-lang="en">🪟 Windows (.exe)</a>
+          <a href="https://github.com/HiTechLabTN/genio/releases/latest/download/genio-desktop-linux.AppImage" class="bg-slate-900/90 hover:border-cyan-500 text-slate-300 px-2.5 py-1.5 rounded-lg border border-slate-700 mono" data-lang="tu">📦 AppImage</a>
+          <a href="https://github.com/HiTechLabTN/genio/releases/latest/download/genio-desktop-linux.AppImage" class="bg-slate-900/90 hover:border-cyan-500 text-slate-300 px-2.5 py-1.5 rounded-lg border border-slate-700 mono hidden" data-lang="fr">📦 AppImage</a>
+          <a href="https://github.com/HiTechLabTN/genio/releases/latest/download/genio-desktop-linux.AppImage" class="bg-slate-900/90 hover:border-cyan-500 text-slate-300 px-2.5 py-1.5 rounded-lg border border-slate-700 mono hidden" data-lang="en">📦 AppImage</a>
         </div>
       </div>
     </div>
@@ -120,7 +162,10 @@
   <section id="hud" class="max-w-5xl mx-auto px-4 py-8 w-full space-y-4">
     <div class="flex justify-between items-center px-1">
       <h2 class="text-xl font-bold text-white flex items-center gap-2">
-        <span class="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-pulse"></span> قمرة القيادة والتحكم الحي (Live Multimodal HUD)
+        <span class="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-pulse"></span>
+        <span data-lang="tu">قمرة القيادة والتحكم الحي (Live Multimodal HUD)</span>
+        <span data-lang="fr" class="hidden">HUD multimodal en direct</span>
+        <span data-lang="en" class="hidden">Live Multimodal HUD</span>
       </h2>
       <span class="text-xs text-emerald-400 mono">ONLINE • NATURAL DIALECT ACTIVE</span>
     </div>
@@ -128,15 +173,21 @@
     <!-- Live Telemetry Cards -->
     <div class="grid grid-cols-3 gap-3 text-center">
       <div class="hud-card p-3 rounded-xl border border-cyan-500/20">
-        <div class="text-[11px] text-slate-400 font-bold">حرارة كارت الشاشة GPU</div>
+        <div class="text-[11px] text-slate-400 font-bold" data-lang="tu">حرارة كارت الشاشة GPU</div>
+        <div class="text-[11px] text-slate-400 font-bold" data-lang="fr">Température GPU</div>
+        <div class="text-[11px] text-slate-400 font-bold" data-lang="en">GPU temperature</div>
         <div id="gpu-temp" class="text-cyan-400 font-black text-base mt-1 mono">38°C</div>
       </div>
       <div class="hud-card p-3 rounded-xl border border-cyan-500/20">
-        <div class="text-[11px] text-slate-400 font-bold">ذاكرة VRAM المتاحة</div>
+        <div class="text-[11px] text-slate-400 font-bold" data-lang="tu">ذاكرة VRAM المتاحة</div>
+        <div class="text-[11px] text-slate-400 font-bold" data-lang="fr">VRAM libre</div>
+        <div class="text-[11px] text-slate-400 font-bold" data-lang="en">Free VRAM</div>
         <div id="vram-free" class="text-emerald-400 font-black text-base mt-1 mono">6.9 GB</div>
       </div>
       <div class="hud-card p-3 rounded-xl border border-cyan-500/20">
-        <div class="text-[11px] text-slate-400 font-bold">حالة السيرفر</div>
+        <div class="text-[11px] text-slate-400 font-bold" data-lang="tu">حالة السيرفر</div>
+        <div class="text-[11px] text-slate-400 font-bold" data-lang="fr">État du serveur</div>
+        <div class="text-[11px] text-slate-400 font-bold" data-lang="en">Server status</div>
         <div id="sys-status" class="text-cyan-300 font-black text-base mt-1">Pop!_OS (RTX 3060)</div>
       </div>
     </div>
@@ -157,7 +208,9 @@
               <span class="text-slate-500">جاهز</span>
             </div>
             <p class="text-sm mt-1 text-slate-200 leading-relaxed">
-              أهلاً وسهلاً بيك! أنا Genio، صاحبك ومهندس البنية التحتية. احكي معايا بالصوت (🎤) في أي موضوع، وإلا اطلب مني نخدملك لاب وسيرفر كامل ونوريك التيرمينال الحية!
+              <span data-lang="tu">أهلاً وسهلاً بيك! أنا Genio، صاحبك ومهندس البنية التحتية. احكي معايا بالصوت (🎤) في أي موضوع، وإلا اطلب مني نخدملك لاب وسيرفر كامل ونوريك التيرمينال الحية!</span>
+              <span data-lang="fr" class="hidden">Bonjour ! Je suis Genio, votre ingénieur infrastructure. Parlez-moi par la voix (🎤) sur n'importe quel sujet, ou demandez-moi un lab et un serveur complet, et je vous montre le terminal en direct !</span>
+              <span data-lang="en" class="hidden">Hello! I'm Genio, your infrastructure engineer. Talk to me by voice (🎤) on any topic, or ask me for a full lab and server, and I'll show you the live terminal!</span>
             </p>
           </div>
         </div>
@@ -178,7 +231,9 @@
                  class="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400"
                  onkeypress="if(event.key === 'Enter') submitPrompt();">
           <button onclick="submitPrompt()" class="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black px-5 py-2.5 rounded-xl text-sm transition shrink-0">
-            ابعث
+            <span data-lang="tu">ابعث</span>
+            <span data-lang="fr" class="hidden">Envoyer</span>
+            <span data-lang="en" class="hidden">Send</span>
           </button>
         </div>
       </div>
@@ -190,13 +245,13 @@
             <span class="w-3 h-3 rounded-full bg-red-500"></span>
             <span class="w-3 h-3 rounded-full bg-yellow-500"></span>
             <span class="w-3 h-3 rounded-full bg-emerald-500"></span>
-            <span class="text-slate-400 font-bold ml-2">GENIO_LIVE_INSPECTOR</span>
+            <span class="text-slate-400 font-bold ml-2" dir="ltr">GENIO_LIVE_INSPECTOR</span>
           </div>
-          <span id="term-status" class="text-cyan-400 text-[11px]">IDLE</span>
+          <span id="term-status" class="text-cyan-400 text-[11px]" dir="ltr">IDLE</span>
         </div>
         <div id="terminal-stream" class="flex-1 overflow-y-auto p-4 space-y-1.5 text-xs text-left" dir="ltr">
-          <div class="text-slate-500">[SYSTEM] Genio autonomous execution daemon listening on port 8000...</div>
-          <div class="text-slate-500">[GPU] NVIDIA RTX 3060 12GB VRAM initialized. Ready for workload.</div>
+          <div class="text-slate-500" dir="ltr">[SYSTEM] Genio autonomous execution daemon listening on port 8000...</div>
+          <div class="text-slate-500" dir="ltr">[GPU] NVIDIA RTX 3060 12GB VRAM initialized. Ready for workload.</div>
         </div>
       </div>
     </div>
@@ -205,45 +260,73 @@
   <!-- Core Capabilities Section -->
   <section id="features" class="max-w-5xl mx-auto px-4 py-12 space-y-6">
     <div class="text-center space-y-2">
-      <h2 class="text-2xl sm:text-3xl font-black text-white">القدرات الأساسية للسيستيم</h2>
-      <p class="text-slate-400 text-xs sm:text-sm">مبني ليدير بنية تحتية هندسية كاملة بأقصى استقلالية وبدون تدخل بشري</p>
+      <h2 class="text-2xl sm:text-3xl font-black text-white" data-lang="tu">القدرات الأساسية للسيستيم</h2>
+      <h2 class="text-2xl sm:text-3xl font-black text-white hidden" data-lang="fr">Fonctionnalités principales</h2>
+      <h2 class="text-2xl sm:text-3xl font-black text-white hidden" data-lang="en">Core capabilities</h2>
+      <p class="text-slate-400 text-xs sm:text-sm" data-lang="tu">مبني ليدير بنية تحتية هندسية كاملة بأقصى استقلالية وبدون تدخل بشري</p>
+      <p class="text-slate-400 text-xs sm:text-sm hidden" data-lang="fr">Construit pour gérer une infrastructure technique complète avec une autonomie maximale et sans intervention humaine</p>
+      <p class="text-slate-400 text-xs sm:text-sm hidden" data-lang="en">Built to run a complete technical infrastructure with maximum autonomy and no human intervention</p>
     </div>
 
     <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
       <div class="hud-card p-5 rounded-2xl border border-cyan-500/20 space-y-2">
         <div class="text-2xl">🧠</div>
-        <h3 class="text-base font-bold text-cyan-300">توجيه الموديلات الذكي (Model Router)</h3>
-        <p class="text-xs text-slate-300 leading-relaxed">يوزع المهام ديناميكياً بين الموديلات المحلية على Ollama والسحاب حسب تعقيد المهمة وذاكرة الـ VRAM وحرارة الكارت.</p>
+        <h3 class="text-base font-bold text-cyan-300" data-lang="tu">توجيه الموديلات الذكي (Model Router)</h3>
+        <h3 class="text-base font-bold text-cyan-300 hidden" data-lang="fr">Router de modèles intelligent</h3>
+        <h3 class="text-base font-bold text-cyan-300 hidden" data-lang="en">Smart model router</h3>
+        <p class="text-xs text-slate-300 leading-relaxed" data-lang="tu">يوزع المهام ديناميكياً بين الموديلات المحلية على Ollama والسحاب حسب تعقيد المهمة وذاكرة الـ VRAM وحرارة الكارت.</p>
+        <p class="text-xs text-slate-300 leading-relaxed hidden" data-lang="fr">Répartit les tâches dynamiquement entre les modèles locaux Ollama et le cloud selon la complexité, la VRAM et la température de la carte.</p>
+        <p class="text-xs text-slate-300 leading-relaxed hidden" data-lang="en">Distributes tasks dynamically between local Ollama models and cloud based on task complexity, VRAM and GPU temperature.</p>
       </div>
 
       <div class="hud-card p-5 rounded-2xl border border-cyan-500/20 space-y-2">
         <div class="text-2xl">🛡️</div>
-        <h3 class="text-base font-bold text-cyan-300">الإصلاح والترقيع الذاتي (Self-Healing)</h3>
-        <p class="text-xs text-slate-300 leading-relaxed">يكتشف أخطاء الران تايم والأوامر المكسورة، يحلل الـ Traceback، يستشير نماذج الكودينغ العميقة، ويصلح السكريبت ذاتياً ويعاود التنفيذ.</p>
+        <h3 class="text-base font-bold text-cyan-300" data-lang="tu">الإصلاح والترقيع الذاتي (Self-Healing)</h3>
+        <h3 class="text-base font-bold text-cyan-300 hidden" data-lang="fr">Auto-réparation</h3>
+        <h3 class="text-base font-bold text-cyan-300 hidden" data-lang="en">Self-healing</h3>
+        <p class="text-xs text-slate-300 leading-relaxed" data-lang="tu">يكتشف أخطاء الران تايم والأوامر المكسورة، يحلل الـ Traceback، يستشير نماذج الكودينغ العميقة، ويصلح السكريبت ذاتياً ويعاود التنفيذ.</p>
+        <p class="text-xs text-slate-300 leading-relaxed hidden" data-lang="fr">Détecte les erreurs d'exécution et commandes cassées, analyse le traceback, consulte les modèles de code profonds, répare le script tout seul et relance.</p>
+        <p class="text-xs text-slate-300 leading-relaxed hidden" data-lang="en">Detects runtime errors and broken commands, analyzes traceback, consults deep coding models, repairs the script itself and re-executes.</p>
       </div>
 
       <div class="hud-card p-5 rounded-2xl border border-cyan-500/20 space-y-2">
         <div class="text-2xl">🎬</div>
-        <h3 class="text-base font-bold text-cyan-300">توليد الفيديو والميديا بدقة 1080p</h3>
-        <p class="text-xs text-slate-300 leading-relaxed">يسجل التيرمينال الحية، يركب تعليق صوتي متزامن بالدارجة التونسية، يدمج صور الشرح، ويخرج فيديو كامل جاهز للنشر.</p>
+        <h3 class="text-base font-bold text-cyan-300" data-lang="tu">توليد الفيديو والميديا بدقة 1080p</h3>
+        <h3 class="text-base font-bold text-cyan-300 hidden" data-lang="fr">Génération vidéo/média 1080p</h3>
+        <h3 class="text-base font-bold text-cyan-300 hidden" data-lang="en">1080p video/media generation</h3>
+        <p class="text-xs text-slate-300 leading-relaxed" data-lang="tu">يسجل التيرمينال الحية، يركب تعليق صوتي متزامن بالدارجة التونسية، يدمج صور الشرح، ويخرج فيديو كامل جاهز للنشر.</p>
+        <p class="text-xs text-slate-300 leading-relaxed hidden" data-lang="fr">Enregistre le terminal en direct, ajoute un commentaire vocal synchronisé en darija tunisienne, intègre des images d'explication et exporte une vidéo complète prête à publier.</p>
+        <p class="text-xs text-slate-300 leading-relaxed hidden" data-lang="en">Records the live terminal, adds synchronized voice-over in Tunisian darija, integrates explanation images, and exports a complete video ready to publish.</p>
       </div>
 
       <div class="hud-card p-5 rounded-2xl border border-cyan-500/20 space-y-2">
         <div class="text-2xl">🔄</div>
-        <h3 class="text-base font-bold text-cyan-300">الذاكرة المتطورة (Evolving Memory)</h3>
-        <p class="text-xs text-slate-300 leading-relaxed">يتعلم من كل محاولة وكل تقييم تدقيق، يحقن القواعد المستخلصة في البرومبت التالي ولا يكرر نفس الخطأ مرتين.</p>
+        <h3 class="text-base font-bold text-cyan-300" data-lang="tu">الذاكرة المتطورة (Evolving Memory)</h3>
+        <h3 class="text-base font-bold text-cyan-300 hidden" data-lang="fr">Mémoire évolutive</h3>
+        <h3 class="text-base font-bold text-cyan-300 hidden" data-lang="en">Evolving memory</h3>
+        <p class="text-xs text-slate-300 leading-relaxed" data-lang="tu">يتعلم من كل محاولة وكل تقييم تدقيق، يحقن القواعد المستخلصة في البرومبت التالي ولا يكرر نفس الخطأ مرتين.</p>
+        <p class="text-xs text-slate-300 leading-relaxed hidden" data-lang="fr">Apprend de chaque tentative et de chaque évaluation d'audit, injecte les règles extraites dans le prompt suivant et ne répète jamais deux fois la même erreur.</p>
+        <p class="text-xs text-slate-300 leading-relaxed hidden" data-lang="en">Learns from every attempt and audit evaluation, injects extracted rules into the next prompt, and never repeats the same mistake twice.</p>
       </div>
 
       <div class="hud-card p-5 rounded-2xl border border-cyan-500/20 space-y-2">
         <div class="text-2xl">🐳</div>
-        <h3 class="text-base font-bold text-cyan-300">بيئات اختبار Docker معزولة</h3>
-        <p class="text-xs text-slate-300 leading-relaxed">ينشئ بيئات Docker لحظية مع شبكات VPN حقيقية و NAT Masquerading لاختبار الخدمات والاتصال قبل التثبيت الفعلي.</p>
+        <h3 class="text-base font-bold text-cyan-300" data-lang="tu">بيئات اختبار Docker معزولة</h3>
+        <h3 class="text-base font-bold text-cyan-300 hidden" data-lang="fr">Environnements Docker de test isolés</h3>
+        <h3 class="text-base font-bold text-cyan-300 hidden" data-lang="en">Isolated Docker test environments</h3>
+        <p class="text-xs text-slate-300 leading-relaxed" data-lang="tu">ينشئ بيئات Docker لحظية مع شبكات VPN حقيقية و NAT Masquerading لاختبار الخدمات والاتصال قبل التثبيت الفعلي.</p>
+        <p class="text-xs text-slate-300 leading-relaxed hidden" data-lang="fr">Crée des environnements Docker instantanés avec de vrais réseaux VPN et NAT Masquerading pour tester les services et la connexion avant l'installation réelle.</p>
+        <p class="text-xs text-slate-300 leading-relaxed hidden" data-lang="en">Creates instant Docker environments with real VPN networks and NAT Masquerading to test services and connection before actual installation.</p>
       </div>
 
       <div class="hud-card p-5 rounded-2xl border border-cyan-500/20 space-y-2">
         <div class="text-2xl">📡</div>
-        <h3 class="text-base font-bold text-cyan-300">نشر آلي على Ghost و YouTube</h3>
-        <p class="text-xs text-slate-300 leading-relaxed">ينشر مقالات مفصلة ببطاقات Mobiledoc HTML على المدونة، ويرفع الفيديوهات على YouTube مع التقسيم الزمني والفصول عبر n8n.</p>
+        <h3 class="text-base font-bold text-cyan-300" data-lang="tu">نشر آلي على Ghost و YouTube</h3>
+        <h3 class="text-base font-bold text-cyan-300 hidden" data-lang="fr">Publication automatique sur Ghost et YouTube</h3>
+        <h3 class="text-base font-bold text-cyan-300 hidden" data-lang="en">Auto-publish to Ghost and YouTube</h3>
+        <p class="text-xs text-slate-300 leading-relaxed" data-lang="tu">ينشر مقالات مفصلة ببطاقات Mobiledoc HTML على المدونة، ويرفع الفيديوهات على YouTube مع التقسيم الزمني والفصول عبر n8n.</p>
+        <p class="text-xs text-slate-300 leading-relaxed hidden" data-lang="fr">Publie des articles détaillés avec des cartes Mobiledoc HTML sur le blog, et envoie les vidéos sur YouTube avec le découpage temporel et les chapitres via n8n.</p>
+        <p class="text-xs text-slate-300 leading-relaxed hidden" data-lang="en">Publishes detailed articles with Mobiledoc HTML cards on the blog, and uploads videos to YouTube with timecodes and chapters via n8n.</p>
       </div>
     </div>
   </section>
@@ -251,34 +334,37 @@
   <!-- Architecture DAG Section -->
   <section id="architecture" class="max-w-5xl mx-auto px-4 py-12 space-y-6">
     <div class="text-center space-y-2">
-      <h2 class="text-2xl sm:text-3xl font-black text-white">الهندسة التنفيذية (8-Node DAG)</h2>
-      <p class="text-slate-400 text-xs sm:text-sm">مخطط تنفيذ المهمة خطوة بخطوة مع نقاط تصحيح ذاتية في كل مرحلة</p>
+      <h2 class="text-2xl sm:text-3xl font-black text-white" data-lang="tu">الهندسة التنفيذية (8-Node DAG)</h2>
+      <h2 class="text-2xl sm:text-3xl font-black text-white hidden" data-lang="fr">Architecture d'exécution (DAG 8 nodes)</h2>
+      <h2 class="text-2xl sm:text-3xl font-black text-white hidden" data-lang="en">Execution architecture (8-Node DAG)</h2>
+      <p class="text-slate-400 text-xs sm:text-sm" data-lang="tu">مخطط تنفيذ المهمة خطوة بخطوة مع نقاط تصحيح ذاتية في كل مرحلة</p>
+      <p class="text-slate-400 text-xs sm:text-sm hidden" data-lang="fr">Schéma d'exécution de la tâche étape par étape avec des points d'auto-correction à chaque phase</p>
+      <p class="text-slate-400 text-xs sm:text-sm hidden" data-lang="en">Task execution diagram step by step with self-correction points at every phase</p>
     </div>
 
     <div class="hud-card p-6 rounded-2xl border border-cyan-500/20 text-center overflow-x-auto mono text-xs sm:text-sm text-cyan-300 leading-loose">
       <pre class="inline-block text-left" dir="ltr">
-    ┌─────────────┐
-    │  env_check   │ ← فحص Docker و ffmpeg وموديلات Ollama
-    └──────┬──────┘
-           │
-    ┌──────▼──────┐
-    │   content    │ ← كتابة المقال والسيناريو بالدارجة التونسية
-    └──────┬──────┘
-           │
-     ┌─────┼─────┬──────────┐
-     │     │     │          │
-  ┌──▼──┐┌─▼─┐┌──▼──┐┌─────▼─────┐
-  │video││aud ││cover││livetest    │ ← تسجيل تيرمينال ومونتاج وتوليد صوت
-  └──┬──┘└─┬─┘└──┬──┘│recording   │
-     │     │     │   └─────┬─────┘
-     │     │     │         │
-  ┌──▼─────▼─────▼─────────▼──┐
-  │        audit + publish     │ ← تدقيق الجودة والأمان والنشر المباشر
-  └────────────┬───────────────┘
-               │
-        ┌──────▼──────┐
-        │   youtube    │ ← رفع الفيديو مع الفصول والوصف عبر n8n
-        └─────────────┘
+┌─────────────┐
+│  env_check   │ ← فحص Docker و ffmpeg وموديلات Ollama
+└──────┬──────┘
+       │
+┌──────▼──────┐
+│   content    │ ← كتابة المقال والسيناريو بالدارجة التونسية
+└──────┬──────┘
+   ┌─────┼─────┬──────────┐
+   │     │     │          │
+┌──▼──┐┌─▼─┐┌──▼──┐┌─────▼─────┐
+│video││aud ││cover││livetest    │ ← تسجيل تيرمينال ومونتاج وتوليد صوت
+└──┬──┘└─┬─┘└──┬──┘│recording   │
+   │     │     │   └─────┬─────┘
+   │     │     │         │
+┌──▼─────▼─────▼─────────▼──┐
+│        audit + publish     │ ← تدقيق الجودة والأمان والنشر المباشر
+└────────────┬───────────────┘
+             │
+      ┌──────▼──────┐
+      │   youtube    │ ← رفع الفيديو مع الفصول والوصف عبر n8n
+      └─────────────┘
       </pre>
     </div>
   </section>
@@ -286,11 +372,56 @@
   <!-- Footer -->
   <footer class="hud-card text-center py-6 border-t border-slate-800 text-xs text-slate-400 space-y-2">
     <div class="mono text-cyan-400 font-bold">GENIO AUTONOMOUS AI LAB</div>
-    <div>صُنع بكل فخر بواسطة <b>HiTech Lab 🇹🇳</b> — تونس</div>
+    <div data-lang="tu">صُنع بكل فخر بواسطة <b>HiTech Lab 🇹🇳</b> — تونس</div>
+    <div data-lang="fr" class="hidden">Fait avec fierté par <b>HiTech Lab 🇹🇳</b> — Tunisie</div>
+    <div data-lang="en" class="hidden">Made with pride by <b>HiTech Lab 🇹🇳</b> — Tunisia</div>
   </footer>
 
   <script>
-    // Live Hardware Telemetry
+    // ---------- Langue : derja par défaut, RTL quand arabe ----------
+    const LANG_KEY = 'genio-lang';
+    const DEFAULT_LANG = 'tu'; // tu = derja tunisienne
+
+    function getSavedLang() {
+      try { return localStorage.getItem(LANG_KEY) || DEFAULT_LANG; } catch { return DEFAULT_LANG; }
+    }
+
+    function setLang(lang) {
+      // Montrer/masquer les blocs selon data-lang
+      document.querySelectorAll('[data-lang]').forEach((el) => {
+        if (el.dataset.lang === lang) {
+          el.style.display = '';
+          el.classList.remove('hidden');
+        } else {
+          el.classList.add('hidden');
+        }
+      });
+
+      // direction + attribut lang
+      const isRTL = lang === 'tu';
+      document.documentElement.dir = isRTL ? 'rtl' : 'ltr';
+      document.documentElement.lang = isRTL ? 'ar' : (lang === 'fr' ? 'fr' : 'en');
+
+      // Bouton actif
+      document.querySelectorAll('.lang-btn').forEach((b) => {
+        if (b.dataset.lang === lang) {
+          b.classList.add('active');
+          b.setAttribute('aria-pressed', 'true');
+        } else {
+          b.classList.remove('active');
+          b.setAttribute('aria-pressed', 'false');
+        }
+      });
+
+      try { localStorage.setItem(LANG_KEY, lang); } catch {}
+    }
+
+    // Initialiser la langue au chargement
+    document.addEventListener('DOMContentLoaded', () => {
+      setLang(getSavedLang());
+    });
+
+    // ---------- Live Hardware Telemetry ----------
     async function updateLiveTelemetry() {
       try {
         const res = await fetch('/api/telemetry');
@@ -305,7 +436,7 @@
     setInterval(updateLiveTelemetry, 3000);
     updateLiveTelemetry();
 
-    // OS Auto Detector
+    // ---------- OS Auto Detector ----------
     function setupSmartPlatformDetector() {
       const ua = navigator.userAgent.toLowerCase();
       const osText = document.getElementById('detected-os-text');
@@ -313,32 +444,38 @@
       const btn = document.getElementById('primary-dl-btn');
       const base = "https://github.com/HiTechLabTN/genio/releases/latest/download";
 
+      const labels = {
+        tu: { android: "Android (تطبيق APK المباشر)", linux: "Linux (Pop!_OS / Ubuntu / Debian)", win: "Windows 10 / 11", web: "Web Universal", checking: "جاري الفحص..." },
+        fr: { android: "Android (APK direct)", linux: "Linux (Pop!_OS / Ubuntu / Debian)", win: "Windows 10 / 11", web: "Web Universal", checking: "Détection…" },
+        en: { android: "Android (direct APK)", linux: "Linux (Pop!_OS / Ubuntu / Debian)", win: "Windows 10 / 11", web: "Web Universal", checking: "Detecting…" }
+      };
+      const curL = getSavedLang();
+      const L = labels[curL] || labels.tu;
+
       if (/android/i.test(ua)) {
         osIcon.innerText = "📱";
-        osText.innerText = "Android (تطبيق APK المباشر)";
+        osText.innerText = L.android;
         btn.href = `${base}/genio-mobile.apk`;
       } else if (/linux/i.test(ua)) {
         osIcon.innerText = "🐧";
-        osText.innerText = "Linux (Pop!_OS / Ubuntu / Debian)";
+        osText.innerText = L.linux;
         btn.href = `${base}/genio-desktop-linux.deb`;
       } else if (/win/i.test(ua)) {
         osIcon.innerText = "🪟";
-        osText.innerText = "Windows 10 / 11";
+        osText.innerText = L.win;
         btn.href = `${base}/genio-setup-windows.exe`;
       } else {
         osIcon.innerText = "🌐";
-        osText.innerText = "Web Universal";
+        osText.innerText = L.web;
         btn.href = `${base}/genio-desktop-linux.AppImage`;
       }
     }
     setupSmartPlatformDetector();
 
-    // Natural Tunisian Voice Synthesizer with Phonetic Tech Mapping
+    // ---------- Natural Tunisian Voice Synthesizer ----------
     function speakTunisianNatural(text) {
       if (!('speechSynthesis' in window)) return;
       window.speechSynthesis.cancel();
-      
-      // تحويل الكلمات التقنية لنطقها التونسي الصوتي السلس
       let spoken = text
         .replace(/docker/gi, 'دوكر')
         .replace(/server/gi, 'سيرفور')
@@ -353,20 +490,17 @@
         .replace(/[!؟?]/g, '.')
         .replace(/\s+/g, ' ')
         .trim();
-
       const ut = new SpeechSynthesisUtterance(spoken);
       ut.lang = 'ar-TN';
       ut.rate = 1.0;
       ut.pitch = 1.0;
-
       const voices = window.speechSynthesis.getVoices();
       const bestVoice = voices.find(v => v.lang.startsWith('ar') || v.name.toLowerCase().includes('tunisia') || v.name.toLowerCase().includes('arabic'));
       if (bestVoice) ut.voice = bestVoice;
-
       window.speechSynthesis.speak(ut);
     }
 
-    // Voice Recognition
+    // ---------- Voice Recognition ----------
     let isRecording = false;
     let recognition = null;
     if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
@@ -395,7 +529,7 @@
       }
     }
 
-    // Attachment
+    // ---------- Attachment ----------
     let attachedFile = null;
     function handleFileSelect(e) {
       const file = e.target.files[0];
@@ -413,18 +547,16 @@
       document.getElementById('attached-preview').classList.add('hidden');
     }
 
-    // WebSocket Live Dual Terminal
+    // ---------- WebSocket Live Dual Terminal ----------
     let ws = null;
     function connectSocket() {
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
       ws = new WebSocket(`${protocol}//${window.location.host}/ws/pipeline`);
-      
       ws.onmessage = (event) => {
         const data = JSON.parse(event.data);
         const chat = document.getElementById('chat-stream');
         const term = document.getElementById('terminal-stream');
         const termStatus = document.getElementById('term-status');
-        
         if (data.type === 'chat_reply') {
           chat.innerHTML += `
             <div class="hud-card p-3.5 rounded-xl border-l-4 border-emerald-400">
@@ -451,7 +583,6 @@
           termStatus.innerText = 'SUCCESS (0 ERRORS)';
           termStatus.className = 'text-emerald-400 font-bold';
           term.innerHTML += `<div class="text-emerald-400 font-bold mt-2">✔ PIPELINE COMPLETE: 8/8 NODES PASSED</div>`;
-          
           chat.innerHTML += `
             <div class="hud-card p-4 rounded-xl border-l-4 border-cyan-400 bg-cyan-950/20">
               <div class="text-[11px] text-cyan-400 font-bold mono">🎉 [PIPELINE_COMPLETE]</div>
@@ -464,7 +595,6 @@
           chat.scrollTop = chat.scrollHeight;
         }
       };
-
       ws.onclose = () => setTimeout(connectSocket, 2000);
     }
     connectSocket();
@@ -473,18 +603,15 @@
       const input = document.getElementById('prompt-input');
       const val = input.value.trim();
       if (!val && !attachedFile) return;
-
       const chat = document.getElementById('chat-stream');
       chat.innerHTML += `
         <div class="hud-card p-3 rounded-xl border-r-4 border-slate-400 text-left" dir="ltr">
           <span class="text-[10px] text-slate-400 mono">[OPERATOR]</span>
           <p class="text-sm mt-1 text-slate-100">${val || attachedFile.name}</p>
         </div>`;
-      
       input.value = '';
       clearAttachment();
       chat.scrollTop = chat.scrollHeight;
-
       if (ws && ws.readyState === WebSocket.OPEN) {
         ws.send(JSON.stringify({ prompt: val || 'Task Execution' }));
       } else {
