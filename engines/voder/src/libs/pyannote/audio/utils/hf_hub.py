@@ -25,7 +25,6 @@ from enum import Enum
 from pathlib import Path
 
 from huggingface_hub import hf_hub_download
-from huggingface_hub.utils import HfHubHTTPError
 
 from pyannote.audio import __version__
 
@@ -72,7 +71,6 @@ def download_from_hf_hub(
     """
 
     import os
-    from pathlib import Path
     
     # if provided token does not start with 'hf_', it is likely a pyannoteAI API key
     # and therefore should not be passed to Huggingface Hub.

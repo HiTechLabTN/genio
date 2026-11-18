@@ -2,8 +2,6 @@ import numpy as np
 import torch
 from torch import nn as nn
 from torchvision.ops.misc import FrozenBatchNorm2d
-import logging
-from tqdm import tqdm
 import random
 import json
 import os

@@ -1,5 +1,4 @@
 import math
-import struct
 from io import BytesIO
 from typing import Literal, Optional
 

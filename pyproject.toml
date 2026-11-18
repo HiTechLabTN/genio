@@ -1,0 +1,48 @@
+[project]
+name = "genio"
+version = "5.0.0"
+description = "Genio OS — Tunisian AI companion"
+
+[tool.ruff]
+# Cohérence avec le CI (.github/workflows/ci.yml) : seules les erreurs
+# bloquantes (E4/E7/E9/F) sont vérifiées en ligne de commande.
+select = ["E4", "E7", "E9", "F"]
+
+# Dossiers vendored / build / cache à ne jamais lintre.
+extend-exclude = [
+    ".git",
+    ".venv",
+    "**/.venv",
+    "genio_harness/.venv",
+    "node_modules",
+    "**/node_modules",
+    "__pycache__",
+    "**/__pycache__",
+    ".local",
+    ".pytest_cache",
+    ".ruff_cache",
+    "tmp",
+    "sandbox",
+    "dist",
+    "build",
+    "*.egg-info",
+    # Code tiers / vendored (non maintenu par Genio OS) :
+    "engines/voder/src/",
+    "assets-pipeline/",
+    "docs/",
+    "genio_harness/",
+    "release_assets_v2.3.0/",
+    "my-todo-app/",
+    # Scripts legacy / hors scope du CI (déjà exclus du lint CI) :
+    "deploy.py",
+    "genio_gestures/app.py",
+    "scripts/",
+    "media/cinema_director.py",
+    "livetest_recorder.py",
+    "genio_step_runner.py",
+]
+
+[tool.ruff.format]
+# Style cohérent avec le reste du repo.
+quote-style = "double"
+indent-style = "space"

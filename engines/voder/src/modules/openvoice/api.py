@@ -4,8 +4,6 @@ import re
 import soundfile
 from . import utils
 from . import commons
-import os
-import librosa
 # from openvoice.text import text_to_sequence
 from .mel_processing import spectrogram_torch
 from .models import SynthesizerTrn

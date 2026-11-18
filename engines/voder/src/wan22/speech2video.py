@@ -6,15 +6,12 @@ import os
 import random
 import sys
 import types
-from contextlib import contextmanager
 from copy import deepcopy
 from functools import partial
 
 import numpy as np
 import torch
-import torch.cuda.amp as amp
 import torch.distributed as dist
-import torchvision.transforms.functional as TF
 from decord import VideoReader
 from PIL import Image
 from safetensors import safe_open
@@ -22,7 +19,6 @@ from torchvision import transforms
 from tqdm import tqdm
 
 from .distributed.fsdp import shard_model
-from .distributed.sequence_parallel import sp_attn_forward, sp_dit_forward
 from .distributed.util import get_world_size
 from .modules.s2v.audio_encoder import AudioEncoder
 from .modules.s2v.model_s2v import WanModel_S2V, sp_attn_forward_s2v
@@ -335,7 +331,7 @@ class WanS2V:
 
     def load_pose_cond(self, pose_video, num_repeat, infer_frames, size):
         HEIGHT, WIDTH = size
-        if not pose_video is None:
+        if pose_video is not None:
             pose_seq = self.read_last_n_frames(
                 pose_video,
                 n_frames=infer_frames * num_repeat,
@@ -376,7 +372,7 @@ class WanS2V:
         return COND
 
     def get_gen_size(self, size, max_area, ref_image_path, pre_video_path):
-        if not size is None:
+        if size is not None:
             HEIGHT, WIDTH = size
         else:
             if pre_video_path:

@@ -1,7 +1,6 @@
 import os
 import sys
 import time
-import re
 import threading
 
 _src_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))))
@@ -388,7 +387,7 @@ def vadar_get_system_prompt(exclude_session=None, is_ping=False):
     ping_time = _read_ping_time()
     if is_ping:
         parts.append("")
-        parts.append(f"[SYSTEM PING] The user has been silent. You may reply briefly or respond with exactly '(silence)' to stay quiet. This is not a user message — it is an automated check-in. Do not mention the ping mechanism to the user.")
+        parts.append("[SYSTEM PING] The user has been silent. You may reply briefly or respond with exactly '(silence)' to stay quiet. This is not a user message — it is an automated check-in. Do not mention the ping mechanism to the user.")
     elif ping_time == 0:
         parts.append("Ping: disabled.")
     else:
@@ -718,14 +717,14 @@ def vadar_interactive(resume_session=None, model_name='vadar'):
         ping_thread_obj = None
 
     print(f"\n{'='*60}")
-    print(f"VADAR — Project Eva Chat")
+    print("VADAR — Project Eva Chat")
     print(f"{'='*60}")
     print(f"Model: {config['display_name']}")
     print(f"Context: {ctx_len} tokens")
     if ping_interval > 0:
         print(f"Ping: every {ping_interval}s of silence")
     else:
-        print(f"Ping: disabled")
+        print("Ping: disabled")
     print(f"Session: {session_name}")
     print(f"{'='*60}")
     print("Commands: 'exit' to quit, 'resume' to resume a previous session")

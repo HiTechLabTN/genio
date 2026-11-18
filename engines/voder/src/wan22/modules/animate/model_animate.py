@@ -1,10 +1,7 @@
 # Copyright 2024-2025 The Alibaba Wan Team Authors. All rights reserved.
 import math
-import types
-from copy import deepcopy
 from einops import  rearrange
 from typing import List
-import numpy as np
 import torch
 import torch.cuda.amp as amp
 import torch.nn as nn
@@ -13,7 +10,6 @@ from diffusers.models.modeling_utils import ModelMixin
 from diffusers.loaders import PeftAdapterMixin
 
 from ...distributed.sequence_parallel import (
-    distributed_attention,
     gather_forward,
     get_rank,
     get_world_size,
@@ -22,10 +18,8 @@ from ...distributed.sequence_parallel import (
 
 from ..model import (
     Head,
-    WanAttentionBlock,
     WanLayerNorm,
     WanRMSNorm,
-    WanModel,
     WanSelfAttention,
     flash_attention,
     rope_params,

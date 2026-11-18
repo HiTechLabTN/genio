@@ -19,11 +19,10 @@ from torch import nn
 import numpy as np
 
 from pathlib import Path
-from typing import Any, Dict, Tuple
+from typing import Tuple
 from transformers import Wav2Vec2FeatureExtractor, Wav2Vec2Model
 
 from .utils.file import load_config
-from .utils.audio import load_audio
 from .bicodec import BiCodec
 
 

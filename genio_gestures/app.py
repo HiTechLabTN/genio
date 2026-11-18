@@ -1,4 +1,8 @@
-import os, time, json, sqlite3, hashlib
+import os
+import time
+import json
+import sqlite3
+import hashlib
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 import httpx
@@ -98,7 +102,7 @@ async def compose(req: Request):
         return JSONResponse({"gesture_plan": json.loads(row[0]), "source": "cache", "latency": time.time()-t0})
 
     # S9: ensure 5 consecutive gestures are different — use context hash to generate distinct plan if ollama fallback
-    import random, hashlib as _hash
+    import hashlib as _hash
     # Ollama call with <2s target
     prompt = f"{SYSTEM_PROMPT}\n\nContext: {context}\nEmotion: {emotion}\nUser prefs: {json.dumps(user_prefs)}\n\nReturn JSON gesture_plan. Modest. JSON only."
     gesture = None
@@ -121,7 +125,7 @@ async def compose(req: Request):
             else:
                 h = int(_hash.sha256(context.encode()).hexdigest()[:2], 16)
                 gesture = {"head": {"tilt": (h%12)-6, "nod": (h%8)-4, "blink": bool(h%2)}, "hands": [{"joint": "shoulder", "angle": (h%60)-30}], "mouth": round((h%25)/100,2), "body": ["idle","walking","waving"][h%3]}
-    except Exception as e:
+    except Exception:
         h = int(_hash.sha256(context.encode()).hexdigest()[:2], 16)
         gesture = {"head": {"tilt": (h%12)-6, "nod": (h%8)-4, "blink": bool(h%2)}, "hands": [{"joint": "shoulder", "angle": (h%60)-30}], "mouth": round((h%25)/100,2), "body": ["idle","walking","waving"][h%3]}
 

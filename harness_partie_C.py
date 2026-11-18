@@ -14,7 +14,6 @@ import re
 import time
 
 from genio_server.core.agent_loop import AgentLoop
-from genio_server.core.agent_loop import sanitize_for_client as SAN
 
 CYCLES = int(os.getenv("GENIO_PARTIE_C_CYCLES", "10"))
 LATIN_MAX = 95.0  # BUT: 100% Darija ARABE = <5% latin. We keep ≥95% Arabic.

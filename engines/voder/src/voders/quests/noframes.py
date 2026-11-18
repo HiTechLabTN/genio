@@ -35,7 +35,7 @@ class Quest(SideQuest):
         cmd = ['ffmpeg', '-i', path, '-vn', '-acodec', 'pcm_s16le', '-ar', '44100', '-ac', '2', '-y', out_path]
         result = subprocess.run(cmd, capture_output=True, text=True)
         if not os.path.exists(out_path):
-            print(f"Error: ffmpeg failed to extract audio")
+            print("Error: ffmpeg failed to extract audio")
             if result.stderr:
                 print(result.stderr[-500:])
             return False

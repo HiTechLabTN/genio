@@ -7,7 +7,7 @@ import sys
 import tempfile
 from dataclasses import dataclass
 from http import HTTPStatus
-from typing import List, Optional, Union
+from typing import List, Union
 
 import dashscope
 import torch

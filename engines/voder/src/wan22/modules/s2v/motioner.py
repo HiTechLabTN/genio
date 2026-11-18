@@ -1,13 +1,13 @@
 # Copyright 2024-2025 The Alibaba Wan Team Authors. All rights reserved.
 import math
-from typing import Any, Dict, List, Literal, Optional, Union
+from typing import Any, Dict
 
 import numpy as np
 import torch
 import torch.cuda.amp as amp
 import torch.nn as nn
-from diffusers.loaders import FromOriginalModelMixin, PeftAdapterMixin
-from diffusers.utils import BaseOutput, is_torch_version
+from diffusers.loaders import PeftAdapterMixin
+from diffusers.utils import is_torch_version
 from einops import rearrange, repeat
 
 from ..model import flash_attention
@@ -52,10 +52,10 @@ def rope_apply(x, grid_sizes, freqs, start=None):
     output = []
     output = x.clone()
     seq_bucket = [0]
-    if not type(grid_sizes) is list:
+    if type(grid_sizes) is not list:
         grid_sizes = [grid_sizes]
     for g in grid_sizes:
-        if not type(g) is list:
+        if type(g) is not list:
             g = [torch.zeros_like(g), g]
         batch_size = g[0].shape[0]
         for i in range(batch_size):

@@ -17,8 +17,6 @@ import torch.distributed as dist
 import torch.multiprocessing as mp
 
 from safetensors import safe_open
-import os
-from collections import OrderedDict
 from collections.abc import Iterable
 from diffusers.configuration_utils import ConfigMixin, register_to_config
 from diffusers.models.modeling_outputs import AutoencoderKLOutput

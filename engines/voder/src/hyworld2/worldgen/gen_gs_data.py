@@ -147,7 +147,7 @@ if __name__ == '__main__':
                 edge_mask = torch.from_numpy(utils3d.numpy.depth_edge(full_depth["distance"].cpu().numpy(), rtol=0.1)).bool()
                 full_mask = (sky_mask | edge_mask).to(device)
             else:
-                rank0_log(f"Warning: full_depth_prediction.pt or sky_mask.png not found, depth/mask will be skipped for pano/polar regen")
+                rank0_log("Warning: full_depth_prediction.pt or sky_mask.png not found, depth/mask will be skipped for pano/polar regen")
                 full_depth, sky_mask, edge_mask, full_mask = None, None, None, None
         else:
             full_img, full_depth, sky_mask, edge_mask, full_mask = None, None, None, None, None

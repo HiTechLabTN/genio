@@ -20,7 +20,6 @@ import random
 from torchlibrosa.stft import Spectrogram, LogmelFilterBank
 from torchlibrosa.augmentation import SpecAugmentation
 
-from itertools import repeat
 from .utils import do_mixup, interpolate
 
 from .feature_fusion import iAFF, AFF, DAF

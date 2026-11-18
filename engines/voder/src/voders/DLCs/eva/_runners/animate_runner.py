@@ -93,7 +93,6 @@ def _load_pipeline(checkpoint_dir):
 
 
 def handle_animify(spec):
-    import torch
     from voders.DLCs.eva._paths import ANIMATE_DIR
     pipeline = _load_pipeline(ANIMATE_DIR)
     src_root = _prepare_src_root(spec)

@@ -16,10 +16,10 @@ def rope_precompute(x, grid_sizes, freqs, start=None):
     output = torch.view_as_complex(x.detach().reshape(b, s, n, -1,
                                                       2).to(torch.float64))
     seq_bucket = [0]
-    if not type(grid_sizes) is list:
+    if type(grid_sizes) is not list:
         grid_sizes = [grid_sizes]
     for g in grid_sizes:
-        if not type(g) is list:
+        if type(g) is not list:
             g = [torch.zeros_like(g), g]
         batch_size = g[0].shape[0]
         for i in range(batch_size):

@@ -35,7 +35,7 @@ class AnimateWrapper:
         pose_resolved = resolve_input_path(pose_video, media_type='video')
         if pose_resolved is None:
             return False
-        print(f"Generating animation with Wan2.2-Animate...")
+        print("Generating animation with Wan2.2-Animate...")
         spec = {
             "action": "animify",
             "reference_image": ref_resolved,

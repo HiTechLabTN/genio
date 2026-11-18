@@ -1,7 +1,6 @@
 # Copyright (c) 2025. Your modifications here.
 # This file wraps and extends sam2.utils.misc for custom modifications.
 
-from sam2.utils import misc as sam2_misc
 from sam2.utils.misc import * 
 from PIL import Image
 import numpy as np
@@ -9,9 +8,7 @@ import torch
 from tqdm import tqdm
 import os
 
-import logging
 
-import torch
 from hydra import compose
 from hydra.utils import instantiate
 from omegaconf import OmegaConf

@@ -378,12 +378,12 @@ class NavMeshGraph:
             actual_radii.append(obs_radius)
 
             
-            vec_st = (target_pt - start_pt);
+            vec_st = (target_pt - start_pt)
             vec_st[1] = 0
             angle_st = math.atan2(vec_st[2], vec_st[0])
             ideal_angles = [angle_st + math.pi / 2, angle_st - math.pi / 2]
 
-            vec_t_start = (start_pt - target_pt);
+            vec_t_start = (start_pt - target_pt)
             vec_t_start[1] = 0
 
             
@@ -416,7 +416,7 @@ class NavMeshGraph:
                 nearest_nav_node_pt = reachable_centers[idx_local]
 
                 
-                vec_t_sample = (query_pos - target_pt);
+                vec_t_sample = (query_pos - target_pt)
                 vec_t_sample[1] = 0
                 if np.dot(vec_t_start, vec_t_sample) < -1e-4:
                     continue
@@ -471,7 +471,7 @@ class NavMeshGraph:
 
             pruned_path = [start_pt]
             for pt in raw_path:
-                vec_t_pt = (pt - target_pt);
+                vec_t_pt = (pt - target_pt)
                 vec_t_pt[1] = 0
                 if np.dot(vec_t_start, vec_t_pt) < -1e-4:
                     break
@@ -483,7 +483,7 @@ class NavMeshGraph:
                 pruned_path.append(pt)
 
             if np.linalg.norm(pruned_path[-1][[0, 2]] - final_safe_pt[[0, 2]]) > 0.1:
-                vec_t_final = (final_safe_pt - target_pt);
+                vec_t_final = (final_safe_pt - target_pt)
                 vec_t_final[1] = 0
                 if np.dot(vec_t_start, vec_t_final) >= -1e-4:
                     pruned_path.append(final_safe_pt)
@@ -2629,7 +2629,7 @@ def visualize_comparison(original, processed, idx=0, save_path=None):
 
     ax2.set_xlabel('Local X')
     ax2.set_ylabel('Local Y (Forward)')
-    ax2.set_title(f'Aligned Trajectory (Start -> +Y)')
+    ax2.set_title('Aligned Trajectory (Start -> +Y)')
     ax2.legend()
     ax2.axis('equal')
     ax2.grid(True, linestyle='--', alpha=0.5)

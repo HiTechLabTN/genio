@@ -33,8 +33,7 @@ def new_ctx(goal: str) -> "AgentContext":
 
 async def run_node(agent_name: str, action: str, params: dict,
                    goal: str, depends: list = None):
-    from genio_executive_core import (PlanNode, SelfHealingExecutor,
-                                      dispatch)
+    from genio_executive_core import (PlanNode, SelfHealingExecutor)
     s = load_state()
     ctx = new_ctx(goal or s.get("goal", "lab"))
     ctx.dry_run = False

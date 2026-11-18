@@ -16,7 +16,7 @@ from decord import VideoReader
 from tqdm import tqdm
 import torch.nn.functional as F
 from .distributed.fsdp import shard_model
-from .distributed.sequence_parallel import sp_attn_forward, sp_dit_forward
+from .distributed.sequence_parallel import sp_attn_forward
 from .distributed.util import get_world_size
 
 from .modules.animate import WanAnimateModel

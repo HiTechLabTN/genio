@@ -100,7 +100,6 @@ def app(monkeypatch, tmp_path):
     monkeypatch.setattr(oauth, "GITHUB_CLIENT_ID", "test-gh-id")
     monkeypatch.setattr(oauth, "GITHUB_CLIENT_SECRET", "test-gh-secret")
     monkeypatch.setattr(oauth, "OAUTH_BASE", "http://testserver")
-    from fastapi import FastAPI
     fast = FastAPI()
     oauth.register_oauth_routes(fast)
     with TestClient(fast, base_url="http://testserver") as client:
@@ -131,7 +130,6 @@ def rsa_key():
 
 @pytest.fixture()
 def jwks(rsa_key, monkeypatch):
-    from cryptography.hazmat.primitives import serialization
     pub = rsa_key.public_key()
     numbers = pub.public_numbers()
     import base64
@@ -151,7 +149,6 @@ def _google_id_token(rsa_key, aud="test-google-id", nonce="n_x",
                      exp_in=600, iss="https://accounts.google.com",
                      sub="google-sub-1"):
     import jwt as pyjwt
-    from cryptography.hazmat.primitives import serialization
     now = int(time.time())
     return pyjwt.encode(
         {"iss": iss, "aud": aud, "sub": sub, "exp": now + exp_in,
@@ -738,7 +735,6 @@ def _xsrf_deletion(headers):
 
 def test_callback_clears_xsrf_on_success(app, jwks):
     doc = _start(app, "google")
-    import genio_server.server.oauth_login as _o
     FakeProviderHTTP.google_token_doc = {
         "id_token": _google_token_for(jwks, doc["state"])}
     try:
@@ -756,7 +752,6 @@ def test_callback_clears_xsrf_on_success(app, jwks):
 
 
 def test_callback_clears_xsrf_on_failures(app, jwks):
-    import genio_server.server.oauth_login as _o
     # 1) Unknown/expired state.
     r1 = _callback(app, "st_nope")
     assert _xsrf_deletion(_set_cookies(r1)), "bad-state must clear xsrf"

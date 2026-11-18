@@ -74,8 +74,8 @@ def one_hot_encoding(
             window = window.sliding_window
         else:
             msg = (
-                f"`window` must be an instance of `SlidingWindow` "
-                f"or have an attribute called 'sliding_window'."
+                "`window` must be an instance of `SlidingWindow` "
+                "or have an attribute called 'sliding_window'."
             )
             raise TypeError(msg)
 
@@ -106,7 +106,7 @@ def one_hot_encoding(
     for label in annotation.labels():
         try:
             k = indices[label]
-        except KeyError as e:
+        except KeyError:
             msg = f'List of `labels` does not contain label "{label}".'
             print(indices.keys())
             raise ValueError(msg)
@@ -152,8 +152,8 @@ def one_hot_decoding(y, window, labels=None):
             window = window.sliding_window
         else:
             msg = (
-                f"`window` must be an instance of `SlidingWindow` "
-                f"or have an attribute called 'sliding_window'."
+                "`window` must be an instance of `SlidingWindow` "
+                "or have an attribute called 'sliding_window'."
             )
             raise TypeError(msg)
 

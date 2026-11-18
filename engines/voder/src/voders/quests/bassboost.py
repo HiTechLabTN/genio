@@ -74,7 +74,7 @@ class Quest(SideQuest):
             ]
         r = subprocess.run(cmd, capture_output=True, text=True)
         if not os.path.exists(out_path) or r.returncode != 0:
-            print(f"Error: ffmpeg failed to apply bass boost")
+            print("Error: ffmpeg failed to apply bass boost")
             if r.stderr:
                 print(r.stderr[-800:])
             return False

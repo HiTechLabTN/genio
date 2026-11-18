@@ -46,7 +46,7 @@ except ImportError:
     from acestep.llm_inference import LLMHandler
     from acestep.dataset_handler import DatasetHandler
     from acestep.gradio_ui import create_gradio_interface
-    from acestep.gpu_config import get_gpu_config, get_gpu_memory_gb, print_gpu_config_info, set_global_gpu_config
+    from acestep.gpu_config import get_gpu_config, set_global_gpu_config
 
 
 def create_demo(init_params=None, language='en'):
@@ -108,9 +108,9 @@ def main():
     print(f"{'='*60}\n")
     
     if auto_offload:
-        print(f"Auto-enabling CPU offload (GPU < 16GB)")
+        print("Auto-enabling CPU offload (GPU < 16GB)")
     elif gpu_memory_gb > 0:
-        print(f"CPU offload disabled by default (GPU >= 16GB)")
+        print("CPU offload disabled by default (GPU >= 16GB)")
     else:
         print("No GPU detected, running on CPU")
     
@@ -229,7 +229,7 @@ def main():
                 print(f"Error initializing DiT model: {init_status}", file=sys.stderr)
                 sys.exit(1)
             
-            print(f"DiT model initialized successfully")
+            print("DiT model initialized successfully")
             
             # Initialize LM handler if requested
             # Auto-determine init_llm based on GPU config if not explicitly set
@@ -262,7 +262,7 @@ def main():
                     )
                     
                     if lm_success:
-                        print(f"5Hz LM initialized successfully")
+                        print("5Hz LM initialized successfully")
                         init_status += f"\n{lm_status}"
                     else:
                         print(f"Warning: 5Hz LM initialization failed: {lm_status}", file=sys.stderr)

@@ -94,7 +94,7 @@ def handle_objectify(spec):
     input_path = spec["input_path"]
     output_path = spec["output_path"]
     seed = int(spec.get("seed", 0))
-    print(f"Converting image to 3D object with TRELLIS.2...")
+    print("Converting image to 3D object with TRELLIS.2...")
     image = Image.open(input_path).convert("RGB")
     torch.manual_seed(seed)
     outputs = pipeline.run(image=image, num_samples=1, seed=seed)
@@ -118,7 +118,7 @@ def handle_edit(spec):
     reference_image = spec["reference_image"]
     output_path = spec["output_path"]
     seed = int(spec.get("seed", 0))
-    print(f"Retexturing 3D object with TRELLIS.2...")
+    print("Retexturing 3D object with TRELLIS.2...")
     mesh = trimesh.load(input_path, force='mesh')
     image = Image.open(reference_image).convert("RGB")
     torch.manual_seed(seed)

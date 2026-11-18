@@ -161,7 +161,7 @@ def download_pretrained(url: str, root: str = os.path.expanduser("~/.cache/clip"
         != expected_sha256
     ):
         raise RuntimeError(
-            f"Model has been downloaded but the SHA256 checksum does not not match"
+            "Model has been downloaded but the SHA256 checksum does not not match"
         )
 
     return download_target

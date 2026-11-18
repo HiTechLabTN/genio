@@ -61,7 +61,6 @@ def _ensure_model(model_dir):
 
 
 def handle_auto_mask(spec):
-    import torch
     import numpy as np
     from PIL import Image
     from voders.DLCs.eva._paths import SAM3_DIR

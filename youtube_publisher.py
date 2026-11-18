@@ -14,12 +14,10 @@ Credential contract (env):
 from __future__ import annotations
 
 import json
-import re
 import time
 from dataclasses import asdict, dataclass, field
-from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, List
 
 PAYLOAD_DIR = Path("/data/ai_tools/genio/youtube_payloads")
 
@@ -127,7 +125,6 @@ async def upload(payload: YouTubePayload) -> Dict:
                 "payload_path": str(payload_file)}
 
     import os
-    import google.auth.transport.requests
     from google.oauth2.credentials import Credentials
     from google_auth_oauthlib.flow import InstalledAppFlow
 

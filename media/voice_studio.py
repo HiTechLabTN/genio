@@ -6,10 +6,8 @@ with loudness normalization and ducking.
 from __future__ import annotations
 
 import asyncio
-from pathlib import Path
 
 import httpx
-from loguru import logger
 
 from config import get_config
 

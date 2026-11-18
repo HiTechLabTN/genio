@@ -91,7 +91,7 @@ class Quest(SideQuest):
         ]
         pr = subprocess.run(ffprobe_cmd, capture_output=True, text=True)
         if pr.returncode != 0:
-            print(f"Error: ffprobe failed to read duration")
+            print("Error: ffprobe failed to read duration")
             if pr.stderr:
                 print(pr.stderr[-600:])
             return False
@@ -111,7 +111,7 @@ class Quest(SideQuest):
             keep_segments.append((cursor, total_duration))
 
         if not keep_segments:
-            print(f"Error: all ranges cover the entire file — nothing would remain")
+            print("Error: all ranges cover the entire file — nothing would remain")
             return False
 
         ranges_tag = '_'.join(f"{int(rs)}-{int(re_)}s" for rs, re_ in merged)

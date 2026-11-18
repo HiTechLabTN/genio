@@ -9,10 +9,9 @@ from __future__ import annotations
 
 import asyncio
 import re
-import shlex
 import subprocess
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, List, Optional
 
@@ -276,10 +275,10 @@ class LiveLabRecorder:
         """Verify WireGuard tunnel is actually working (handshake + ping)."""
         try:
             srv_out = await self.exec(
-                f"wg show | grep -c 'handshake received'",
+                "wg show | grep -c 'handshake received'",
                 container=SANDBOX_NAME, timeout=30)
             cli_out = await self.exec(
-                f"wg show | grep -c 'handshake received'",
+                "wg show | grep -c 'handshake received'",
                 container="genio_client", timeout=30)
             if int(srv_out.strip() or 0) < 1 or int(cli_out.strip() or 0) < 1:
                 logger.warning("[validate] no handshake detected")

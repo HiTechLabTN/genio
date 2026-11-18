@@ -1,7 +1,6 @@
 # copied from https://github.com/vibevoice-community/VibeVoice/blob/main/vibevoice/modular/modeling_vibevoice.py
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Tuple, Union, Callable
-from tqdm import tqdm
+from typing import Dict, List, Optional, Tuple, Union
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -9,16 +8,13 @@ import torch.distributed as dist
 
 from transformers.models.auto import AutoModel, AutoModelForCausalLM
 
-from transformers.activations import ACT2FN
-from transformers.modeling_outputs import CausalLMOutput, BaseModelOutputWithPast, ModelOutput
+from transformers.modeling_outputs import BaseModelOutputWithPast, ModelOutput
 from transformers.models.llama.modeling_llama import LlamaRMSNorm
 from transformers import modeling_utils
 from transformers.modeling_utils import PreTrainedModel
-from transformers.modeling_flash_attention_utils import FlashAttentionKwargs
 from transformers.utils import logging
 
 
-from .modular_vibevoice_tokenizer import VibeVoiceTokenizerStreamingCache, VibeVoiceAcousticTokenizerModel, VibeVoiceSemanticTokenizerModel
 
 from .configuration_vibevoice import VibeVoiceConfig
 

@@ -555,18 +555,18 @@ def _post_install_trellis_cuda_ext(py_bin, cuda_home):
                            env=build_env).returncode
         if rc != 0:
             print(f"  WARNING: failed to install {name}")
-            print(f"  This usually means CUDA Toolkit (nvcc) is not installed or not on PATH.")
-            print(f"  Install CUDA Toolkit 12.4+ from https://developer.nvidia.com/cuda-toolkit-archive")
-            print(f"  Then re-run: python setup.py --envs trellis --force")
+            print("  This usually means CUDA Toolkit (nvcc) is not installed or not on PATH.")
+            print("  Install CUDA Toolkit 12.4+ from https://developer.nvidia.com/cuda-toolkit-archive")
+            print("  Then re-run: python setup.py --envs trellis --force")
             return False
     ovoxel_target = _clone_trellis_o_voxel(ext_dir)
     if ovoxel_target is None:
         return False
-    print(f"    Installing o-voxel (no build isolation)...")
+    print("    Installing o-voxel (no build isolation)...")
     rc = subprocess.run([py_bin, "-m", "pip", "install", ovoxel_target, "--no-build-isolation"],
                        env=build_env).returncode
     if rc != 0:
-        print(f"  WARNING: failed to install o-voxel")
+        print("  WARNING: failed to install o-voxel")
         return False
     print("  CUDA extensions installed.")
     return True
@@ -608,7 +608,7 @@ def setup_eva_env(env_name, force=False):
         print(f"  To reinstall, run: python setup.py --envs {env_name} --force")
         return True
     if force and os.path.exists(env_dir):
-        print(f"  Removing existing venv (force)...")
+        print("  Removing existing venv (force)...")
         _clean_partial_venv(env_dir)
     py_bin = create_venv(env_name)
     if py_bin is None:

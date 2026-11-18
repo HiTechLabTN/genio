@@ -880,7 +880,7 @@ def build_model_from_openai_state_dict(
         set(
             k.split(".")[2]
             for k in state_dict
-            if k.startswith(f"transformer.resblocks")
+            if k.startswith("transformer.resblocks")
         )
     )
 

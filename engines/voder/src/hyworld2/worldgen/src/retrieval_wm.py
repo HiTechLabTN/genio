@@ -812,14 +812,14 @@ class PanoramaMemoryBank:
         self.align_start_index = self.mem_size
         rank0_log(f"Initialized panorama memory size: {self.mem_size}")
 
-        rank0_log(f"Initializing Moge Model...")
+        rank0_log("Initializing Moge Model...")
         if moge_model is None:
             self.moge_model = MoGeModel.from_pretrained("Ruicheng/moge-2-vitl-normal").to(device)
         else:
             self.moge_model = moge_model
         self.moge_model.eval()
 
-        rank0_log(f"Initializing SAM3 Model...")
+        rank0_log("Initializing SAM3 Model...")
         if sam3_model is None or sam3_processor is None:
             from transformers import Sam3VideoModel, Sam3VideoProcessor
             self.sam3_model = Sam3VideoModel.from_pretrained("facebook/sam3").to(device, dtype=torch.bfloat16)
@@ -1158,7 +1158,7 @@ class PanoramaMemoryBank:
                 with open(f"{self.world_mirror_dir}/name_map.json", "w") as w:
                     json.dump(self.name_map, w, indent=2)
 
-                color_print(f"[Rank0] World Mirror inference completed successfully.", "info")
+                color_print("[Rank0] World Mirror inference completed successfully.", "info")
 
         torch.cuda.empty_cache()
         dist.barrier()
@@ -1258,26 +1258,26 @@ class PanoramaMemoryBank:
                             f"std={all_valid_bs.std():.6f}", "info")
 
                 # Median effect at each anchor, i.e. the "standard" mapping result.
-                color_print(f"\n[Median Effect at Anchors] (aligned_inv_depth = k * anchor_inv_depth + b)", "info")
+                color_print("\n[Median Effect at Anchors] (aligned_inv_depth = k * anchor_inv_depth + b)", "info")
                 for ai, (ad, aid, me) in enumerate(zip(anchor_depths, anchor_inv_depths, median_effect)):
                     # The aligned_depth corresponding to the median effect is 1 / median_effect.
                     aligned_d = 1.0 / me if abs(me) > 1e-8 else float('inf')
                     color_print(f"  Anchor[{ai}]: depth={ad:.4f} -> inv_depth={aid:.4f} -> median_aligned_inv_depth={me:.6f} (aligned_depth={aligned_d:.4f})", "info")
 
                 # Deviation distribution statistics.
-                color_print(f"\n[Max Absolute Deviation Distribution]", "info")
+                color_print("\n[Max Absolute Deviation Distribution]", "info")
                 percentiles = [50, 75, 90, 95, 99, 100]
                 pct_values = np.percentile(max_deviation, percentiles)
                 for p, v in zip(percentiles, pct_values):
                     color_print(f"  P{p}: {v:.6f}", "info")
 
-                color_print(f"\n[Max Relative Deviation Distribution] (相对于中位数效果的百分比)", "info")
+                color_print("\n[Max Relative Deviation Distribution] (相对于中位数效果的百分比)", "info")
                 pct_rel_values = np.percentile(max_relative_deviation, percentiles)
                 for p, v in zip(percentiles, pct_rel_values):
                     color_print(f"  P{p}: {v:.4%}", "info")
 
                 # Statistics grouped by video.
-                color_print(f"\n[Per-Video Deviation Statistics]", "info")
+                color_print("\n[Per-Video Deviation Statistics]", "info")
                 unique_videos = sorted(set(all_valid_video_names))
                 for vname in unique_videos:
                     vid_mask = np.array([v == vname for v in all_valid_video_names])
@@ -1292,7 +1292,7 @@ class PanoramaMemoryBank:
                                 f"max_rel_dev=[{vid_max_rel_dev.min():.4%},{vid_max_rel_dev.max():.4%}]", "info")
 
                 # Output the top 10 frames with the largest deviations.
-                color_print(f"\n[Top-10 Outlier Candidates] (按 max_absolute_deviation 排序)", "info")
+                color_print("\n[Top-10 Outlier Candidates] (按 max_absolute_deviation 排序)", "info")
                 top_indices = np.argsort(max_deviation)[::-1][:10]
                 for rank_i, idx in enumerate(top_indices):
                     color_print(f"  #{rank_i + 1}: video={all_valid_video_names[idx]}, frame_id={all_valid_frame_ids[idx]}, "

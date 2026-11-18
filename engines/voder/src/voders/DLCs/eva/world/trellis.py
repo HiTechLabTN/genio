@@ -26,7 +26,7 @@ class Trellis2Wrapper:
         if resolved is None:
             return False
         input_path = resolved
-        print(f"Converting image to 3D object with TRELLIS.2...")
+        print("Converting image to 3D object with TRELLIS.2...")
         spec = {
             "action": "objectify",
             "input_path": input_path,
@@ -53,7 +53,7 @@ class Trellis2Wrapper:
         resolved_ref = resolve_input_path(reference_image, media_type='image')
         if resolved_ref is None:
             return False
-        print(f"Retexturing 3D object with TRELLIS.2...")
+        print("Retexturing 3D object with TRELLIS.2...")
         spec = {
             "action": "edit",
             "input_path": resolved_input,

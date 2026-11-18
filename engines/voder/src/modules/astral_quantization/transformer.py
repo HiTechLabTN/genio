@@ -10,7 +10,6 @@ import torch
 import torch.nn as nn
 from torch import Tensor
 from torch.nn import functional as F
-import time
 
 def find_multiple(n: int, k: int) -> int:
     if n % k == 0:

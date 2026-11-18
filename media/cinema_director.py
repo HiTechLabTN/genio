@@ -41,7 +41,7 @@ class CinemaDirectorAgent:
         recorder = LiveLabRecorder()
         try:
             plan = await recorder.setup_two_node_network()
-            logger.info(f"[video] 2-node topology ready")
+            logger.info("[video] 2-node topology ready")
         except Exception as exc:
             logger.warning(f"[video] 2-node setup failed: {exc}")
             await recorder.start_sandbox()
@@ -175,7 +175,6 @@ class CinemaDirectorAgent:
             payload_dict = asdict(payload) if hasattr(payload, '__dataclass_fields__') else payload
             payload_path = REPORTS_DIR / f"yt_{int(_time.time() * 1000)}.json"
             payload_path.parent.mkdir(parents=True, exist_ok=True)
-            import json
             payload_path.write_text(json.dumps(payload_dict, indent=2, ensure_ascii=False))
             art = Artifact("youtube_payload", str(payload_path))
             ctx.artifacts["youtube_payload"] = art

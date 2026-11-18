@@ -96,7 +96,7 @@ class Quest(SideQuest):
                 pass
 
         if not os.path.exists(out_path) or r.returncode != 0:
-            print(f"Error: ffmpeg failed to apply professional pitch shift")
+            print("Error: ffmpeg failed to apply professional pitch shift")
             if r.stderr:
                 print(r.stderr[-800:])
             return False

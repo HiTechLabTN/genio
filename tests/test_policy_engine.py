@@ -185,7 +185,10 @@ def test_nonce_single_use_even_concurrent():
     # gate and only the single-use pop decides the winner.
     t1 = threading.Thread(target=_racer)
     t2 = threading.Thread(target=_racer)
-    t1.start(); t2.start(); t1.join(); t2.join()
+    t1.start()
+    t2.start()
+    t1.join()
+    t2.join()
     assert len(wins) == 1, f"nonce must be single-use, got {len(wins)} wins"
 
 

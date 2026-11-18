@@ -2,7 +2,7 @@
 Dataset Handler
 Handles dataset import and exploration functionality
 """
-from typing import Optional, Tuple, Any, Dict
+from typing import Tuple
 
 
 class DatasetHandler:
@@ -24,7 +24,7 @@ class DatasetHandler:
             Status message string
         """
         self.dataset_imported = False
-        return f"⚠️ Dataset import is currently disabled. Text2MusicDataset dependency not available."
+        return "⚠️ Dataset import is currently disabled. Text2MusicDataset dependency not available."
     
     def get_item_data(self, *args, **kwargs) -> Tuple:
         """

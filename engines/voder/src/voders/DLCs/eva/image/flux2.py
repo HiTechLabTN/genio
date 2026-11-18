@@ -65,7 +65,7 @@ class Flux2Wrapper:
             masked_path = input_path.rsplit('.', 1)[0] + '_masked.png'
             sam_apply_mask_to_image(input_path, mask, masked_path)
             input_path = masked_path
-            print(f"SAM: auto-masked subject in input image")
+            print("SAM: auto-masked subject in input image")
         reference_paths = check_reference_limit(reference_paths, FLUX2_MAX_REFS, 'Flux 2 Dev')
         if reference_paths:
             resolved_refs = []
@@ -172,7 +172,7 @@ class KleinWrapper:
             masked_path = input_path.rsplit('.', 1)[0] + '_masked.png'
             sam_apply_mask_to_image(input_path, mask, masked_path)
             input_path = masked_path
-            print(f"SAM: auto-masked subject in input image")
+            print("SAM: auto-masked subject in input image")
         reference_paths = check_reference_limit(reference_paths, KLEIN_MAX_REFS, 'Flux 2 Klein 9B')
         if reference_paths:
             resolved_refs = []

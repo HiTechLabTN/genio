@@ -42,7 +42,7 @@ class Pipeline:
                 continue
             try:
                 _models[k] = models.from_pretrained(f"{path}/{v}")
-            except Exception as e:
+            except Exception:
                 _models[k] = models.from_pretrained(v)
 
         new_pipeline = cls(_models)

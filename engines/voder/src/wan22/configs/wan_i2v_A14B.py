@@ -1,5 +1,4 @@
 # Copyright 2024-2025 The Alibaba Wan Team Authors. All rights reserved.
-import torch
 from easydict import EasyDict
 
 from .shared_config import wan_shared_cfg

@@ -73,7 +73,6 @@ import tempfile
 import shutil
 import gc
 import traceback
-import threading
 import numpy as np
 import torch
 import torchaudio
@@ -83,7 +82,6 @@ from omegaconf import DictConfig
 from hydra.utils import instantiate
 from huggingface_hub import hf_hub_download
 import subprocess
-import json
 import re
 import random
 from urllib.parse import urlparse
@@ -91,10 +89,7 @@ from urllib.parse import urlparse
 HF_TOKEN_FILE = "HF_TOKEN.txt"
 
 from voders.sidequests import (
-    SideQuest,
     oneline_quest,
-    SIDE_QUESTS,
-    _register_side_quest,
 )
 
 PLATFORMS = {
@@ -513,9 +508,9 @@ def download_url_audio(url, temp_dir=None, skip_verify=False):
     if category == "non_video":
         return False, f"This {pname} link does not point to a video", None
     if category == "public_net":
-        print(f"WARNING: This platform is not officially supported. Results may vary — they are untested and we do not know what you may face.")
+        print("WARNING: This platform is not officially supported. Results may vary — they are untested and we do not know what you may face.")
     if category == "unsupported":
-        return False, f"URL is not supported", None
+        return False, "URL is not supported", None
 
     try:
         import yt_dlp
@@ -572,7 +567,7 @@ def download_url_audio(url, temp_dir=None, skip_verify=False):
             elif "Video unavailable" in error_msg or "Private video" in error_msg:
                 return False, "Video is unavailable", None
             elif "Unsupported URL" in error_msg:
-                return False, f"URL is not supported by yt-dlp", None
+                return False, "URL is not supported by yt-dlp", None
             elif "HTTP Error" in error_msg:
                 return False, f"Network error: {error_msg}", None
             elif "Connection" in error_msg or "Timed out" in error_msg:
@@ -646,9 +641,9 @@ def download_url_video(url, temp_dir=None):
     if category == "non_video":
         return None, f"This {pname} link does not point to a video"
     if category == "public_net":
-        print(f"WARNING: This platform is not officially supported. Results may vary — they are untested and we do not know what you may face.")
+        print("WARNING: This platform is not officially supported. Results may vary — they are untested and we do not know what you may face.")
     if category == "unsupported":
-        return None, f"URL is not supported"
+        return None, "URL is not supported"
 
     try:
         import yt_dlp
@@ -775,7 +770,7 @@ def download_url_image(url, temp_dir=None):
     platform_id = detect_platform(url)
     pname = platform_name(platform_id) if platform_id else "public_net"
     if platform_id is None:
-        print(f"WARNING: This platform is not officially supported. Results may vary — they are untested and we do not know what you may face.")
+        print("WARNING: This platform is not officially supported. Results may vary — they are untested and we do not know what you may face.")
     print(f"Downloading image from {pname}: {_normalize_url(url)}")
     target_dir = os.path.join(temp_dir, f"voder_img_{int(time.time())}")
     os.makedirs(target_dir, exist_ok=True)
@@ -1177,16 +1172,16 @@ class SpeakerDiarization:
                 self.pipeline = self.pipeline.to(device)
                 print("Speaker diarization model loaded successfully")
             except ImportError as e:
-                print(f"Error: pyannote.audio not available in local libs")
+                print("Error: pyannote.audio not available in local libs")
                 print(f"Import error: {e}")
             except Exception as e:
                 error_str = str(e).lower()
                 if 'audio_metadata' in error_str or 'torchaudio' in error_str:
-                    print(f"Error loading speaker diarization model: torchaudio compatibility issue")
+                    print("Error loading speaker diarization model: torchaudio compatibility issue")
                     print("Note: Your torchaudio version may be incompatible with pyannote.audio")
                     print("Try upgrading: pip install --upgrade torchaudio")
                 elif 'token' in error_str or 'auth' in error_str:
-                    print(f"Error loading speaker diarization model: Authentication failed")
+                    print("Error loading speaker diarization model: Authentication failed")
                     print("Make sure your HF_TOKEN is valid and has accepted the model conditions")
                     print("Visit: https://huggingface.co/pyannote/speaker-diarization-community-1")
                 else:
@@ -1558,7 +1553,6 @@ class VibeVoiceASR:
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
 
-import re
 
 TRANSLATE_GEMMA_SUPPORTED_LANGS = {
     'af', 'am', 'ar', 'az', 'be', 'bg', 'bn', 'bs', 'ca', 'cs', 'cy', 'da',
@@ -2641,7 +2635,7 @@ def _parse_repaint_pass_spec(spec):
             j += 1
         j += 1
     if references and len(references) > 3:
-        print(f"Warning: repaint pass supports up to 3 references, using first 3")
+        print("Warning: repaint pass supports up to 3 references, using first 3")
         references = references[:3]
     return {
         'start': start_sec,
@@ -3252,7 +3246,6 @@ class QwenTTSVoiceDesign:
             return False
         try:
             import soundfile as sf
-            import torch
             wavs, sr = self.model.generate_voice_design(
                 text=text,
                 language=language,
@@ -3381,7 +3374,6 @@ class QwenTTS:
             return False
         try:
             import soundfile as sf
-            import torch
             wavs, sr = self.model.generate_voice_clone(
                 text=text,
                 language=language,
@@ -3442,7 +3434,6 @@ class FishTTS:
             audio_path, _trunc_cleanup = _enforce_voice_clone_limit(
                 audio_path, FISH_S2PRO_VOICE_CLONE_MAX_SECONDS, engine_label="Fish S2-Pro"
             )
-            import torch
             from fish_speech.models.text2semantic.inference import encode_audio
             prompt_tokens = encode_audio(audio_path, self.codec, self.device)
             self.encoded_refs = {
@@ -3969,14 +3960,14 @@ class AceStepWrapper:
             if self.complete_mode:
                 single_gpu_gb, total_sys_gb = get_system_resources()
                 if single_gpu_gb < 32.0 and total_sys_gb < 48.0:
-                    print(f"Error: ACE-Step Complete (XL-Base) requires 32GB+ VRAM or 48GB+ combined System Memory (RAM+Swap/Pagefile)")
+                    print("Error: ACE-Step Complete (XL-Base) requires 32GB+ VRAM or 48GB+ combined System Memory (RAM+Swap/Pagefile)")
                     print(f"Detected: {single_gpu_gb:.1f}GB VRAM, {total_sys_gb:.1f}GB System Memory")
                     print("Cannot proceed with complete task.")
                     return
             elif self.use_overdose:
                 single_gpu_gb, total_sys_gb = get_system_resources()
                 if single_gpu_gb < 32.0 and total_sys_gb < 48.0:
-                    print(f"Error: ACE-Step Overdose requires 32GB+ VRAM or 48GB+ combined System Memory (RAM+Swap/Pagefile)")
+                    print("Error: ACE-Step Overdose requires 32GB+ VRAM or 48GB+ combined System Memory (RAM+Swap/Pagefile)")
                     print(f"Detected: {single_gpu_gb:.1f}GB VRAM, {total_sys_gb:.1f}GB System Memory")
                     print("Falling back to Standard ACE-Step model...")
                     self.use_overdose = False
@@ -4802,11 +4793,11 @@ def resolve_target_to_audio(path):
     if is_supported_url(path):
         if not is_known_platform_url(path):
             print(f"Error: '{path}' is from an unsupported platform (public_net).")
-            print(f"       Modes only accept URLs from: YouTube, TikTok, Bilibili, Snapchat, Instagram, Facebook, X/Twitter, Reddit.")
-            print(f"       To use content from other sites, download it first with:")
+            print("       Modes only accept URLs from: YouTube, TikTok, Bilibili, Snapchat, Instagram, Facebook, X/Twitter, Reddit.")
+            print("       To use content from other sites, download it first with:")
             print(f"         python voder.py quest download \"{path}\" result myfile.auto")
-            print(f"       Then pass the local file to your command:")
-            print(f"         python voder.py <mode> results/myfile.<ext> ...")
+            print("       Then pass the local file to your command:")
+            print("         python voder.py <mode> results/myfile.<ext> ...")
             return None, cleanup_files
         platform_id = detect_platform(path)
         pname = platform_name(platform_id)
@@ -4902,7 +4893,7 @@ def validate_dialogue_source_file(file_path):
                 return False, "No valid dialogue found in file", None
 
             if auto_formatted:
-                print(f"\n[Auto-format] TXT file has been reformatted for compatibility:")
+                print("\n[Auto-format] TXT file has been reformatted for compatibility:")
                 print("  - Lines without speaker name are prefixed with 'text:'")
                 print("  - Empty lines have been removed")
                 print(f"  - Total lines after formatting: {len(dialogue_items)}")
@@ -6774,7 +6765,7 @@ def oneline_train(params):
             print(f"Extreme voice '{voice_name}' saved to: {saved_path}")
             if has_test:
                 script = test_script if test_script else (ref_text if ref_text else TRAIN_TEST_SCRIPT)
-                print(f"Testing trained voice (extreme)...")
+                print("Testing trained voice (extreme)...")
                 results_dir = os.path.join(os.getcwd(), "results")
                 os.makedirs(results_dir, exist_ok=True)
                 timestamp = time.strftime("%Y%m%d_%H%M%S")
@@ -6812,7 +6803,7 @@ def oneline_train(params):
 
             if has_test:
                 script = test_script if test_script else TRAIN_TEST_SCRIPT
-                print(f"Testing trained voice...")
+                print("Testing trained voice...")
                 results_dir = os.path.join(os.getcwd(), "results")
                 os.makedirs(results_dir, exist_ok=True)
                 timestamp = time.strftime("%Y%m%d_%H%M%S")
@@ -8192,7 +8183,7 @@ def oneline_tts(params):
                                     pass
                         return True
                     else:
-                        print(f"Loading Qwen-TTS VoiceDesign model...")
+                        print("Loading Qwen-TTS VoiceDesign model...")
                         tts_design = QwenTTSVoiceDesign()
                         if tts_design.model is None:
                             print("Error: Failed to load VoiceDesign model")
@@ -8300,14 +8291,14 @@ def oneline_tts(params):
             return False
         ext = os.path.splitext(ocr_path)[1].lower()
         if ext not in ['.png', '.jpg', '.jpeg', '.bmp', '.gif', '.tiff', '.webp']:
-            print(f"Error: Input must be an image file. Supported formats: PNG, JPG, JPEG, BMP, GIF, TIFF, WebP")
+            print("Error: Input must be an image file. Supported formats: PNG, JPG, JPEG, BMP, GIF, TIFF, WebP")
             return False
         print("Loading EasyOCR model...")
         ocr = EasyOCRReader()
         if ocr.reader is None:
             print("Error: Failed to load EasyOCR model")
             return False
-        print(f"Extracting text from image...")
+        print("Extracting text from image...")
         success, extracted_text, error_msg = ocr.extract_text_from_image(ocr_path)
         ocr.cleanup()
         del ocr
@@ -10315,7 +10306,7 @@ def oneline_ttm_complete(params):
         if unknown is not None and len(unknown) > 0:
             print(f"Error: Unknown stem name(s): {', '.join(unknown)}")
             print(f"Valid stems: {', '.join(sorted(VALID_ACESTEP_TRACKS))}")
-            print(f'Shortcuts: everything, instruments (non-vocal), voices (vocal only)')
+            print('Shortcuts: everything, instruments (non-vocal), voices (vocal only)')
             return False
         if track_classes is None:
             print("Error: No valid tracks specified")
@@ -10574,7 +10565,7 @@ def oneline_ttm_lego(params):
     if unknown is not None and len(unknown) > 0:
         print(f"Error: Unknown stem name(s): {', '.join(unknown)}")
         print(f"Valid stems: {', '.join(sorted(VALID_ACESTEP_TRACKS))}")
-        print(f'Shortcuts: everything, instruments (non-vocal), voices (vocal only)')
+        print('Shortcuts: everything, instruments (non-vocal), voices (vocal only)')
         return False
     if track_classes is None:
         print("Error: No valid tracks specified")
@@ -10646,7 +10637,7 @@ def oneline_ttm_lego(params):
                     print(f"Downloading reference audio from URL: {ref_path}")
                     resolved_ref, ref_cl = resolve_target_to_audio(ref_path)
                     if resolved_ref is None:
-                        print(f"Warning: Could not download reference, skipping")
+                        print("Warning: Could not download reference, skipping")
                         continue
                     _cleanup.extend(ref_cl)
                     ref_audio = resolved_ref
@@ -10876,7 +10867,7 @@ def oneline_ttm_extract(params):
     if unknown is not None and len(unknown) > 0:
         print(f"Error: Unknown stem name(s): {', '.join(unknown)}")
         print(f"Valid stems: {', '.join(sorted(VALID_ACESTEP_TRACKS))}")
-        print(f'Shortcuts: everything, instruments (non-vocal), voices (vocal only)')
+        print('Shortcuts: everything, instruments (non-vocal), voices (vocal only)')
         return False
     if track_classes is None:
         print("Error: No valid tracks specified")
@@ -10971,7 +10962,7 @@ def oneline_ttm_extract(params):
             input_list = " ".join(f'-i "{f}"' for f in generated_files)
             ret = os.system(f'ffmpeg -y {input_list} -filter_complex amix=inputs={len(generated_files)}:duration=longest "{mix_output}" 2>/dev/null')
             if ret != 0 or not os.path.exists(mix_output):
-                print(f"Error: Failed to mix extracted tracks")
+                print("Error: Failed to mix extracted tracks")
                 for f in generated_files:
                     if os.path.exists(f):
                         try:
@@ -12024,7 +12015,7 @@ def oneline_stt(params):
                     print("Error: Failed to load EasyOCR model")
                     continue
 
-                print(f"Extracting text from image...")
+                print("Extracting text from image...")
                 success, text, error_msg = ocr.extract_text_from_image(file_path)
 
                 ocr.cleanup()
@@ -12036,7 +12027,7 @@ def oneline_stt(params):
                     continue
 
                 if not text:
-                    print(f"Error: No text found in image")
+                    print("Error: No text found in image")
                     continue
 
                 formatted_text = f"image: {text}"
@@ -12754,7 +12745,7 @@ ScaledBorderAndShadow: yes
 
 [V4+ Styles]
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
-""" + "\n".join(style_lines) + f"""
+""" + "\n".join(style_lines) + """
 
 [Events]
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
@@ -13718,7 +13709,7 @@ def _ss_resolve_input(file_path, results_dir, timestamp):
     is_url = is_youtube_url(file_path)
 
     if is_url:
-        print(f"Downloading audio from URL...")
+        print("Downloading audio from URL...")
         success_dl, error_msg, downloaded_path = download_youtube_audio(file_path)
         if not success_dl:
             return None, None, None, cleanup_list, f"Download failed: {error_msg}"
@@ -13811,7 +13802,7 @@ def _ss_run_pipeline(audio_path, use_se, results_dir, original_name, timestamp, 
         temp_dirs.append(tse_temp_dir)
         tse_temp_path = os.path.join(tse_temp_dir, output_filename)
 
-        print(f"  Extracting target voice from source using reference...")
+        print("  Extracting target voice from source using reference...")
         tse_ok = tse_enhancer.tse_extract(clean_source, target_path, tse_temp_path)
         tse_enhancer.cleanup()
         del tse_enhancer
@@ -13858,7 +13849,7 @@ def _ss_run_pipeline(audio_path, use_se, results_dir, original_name, timestamp, 
                 all_outputs.append(final_path)
                 print(f"  Extracted voice saved to: {final_path}")
         else:
-            print(f"  Warning: TSE extraction failed for target voice")
+            print("  Warning: TSE extraction failed for target voice")
 
         for td in temp_dirs:
             try:
@@ -14516,7 +14507,7 @@ def _ss_run_pipeline(audio_path, use_se, results_dir, original_name, timestamp, 
                 pass
 
         print(f"\n{'=' * 60}")
-        print(f"Separated 1 speaker successfully:")
+        print("Separated 1 speaker successfully:")
         for p in all_outputs:
             print(f"  {os.path.basename(p)}")
 
@@ -15137,7 +15128,7 @@ def oneline_sfx(params):
         print("Warning: Duration >30s clamped to 30s (model maximum).")
         duration = 30
 
-    print(f"SFX Generation")
+    print("SFX Generation")
     print(f"  Prompt: {prompt}")
     print(f"  Duration: {duration}s")
     print(f"  Steps: {steps}")
@@ -15152,7 +15143,7 @@ def oneline_sfx(params):
         return False
 
     try:
-        print(f"\nGenerating sound effect...")
+        print("\nGenerating sound effect...")
         audio = generator.generate(prompt, duration, steps=steps, guidance_scale=guide)
         if audio is None:
             print("Error: Generation failed")
@@ -16089,7 +16080,7 @@ def _journey_one_chain(chain_idx, chain_result, total_chains):
             if ctype == "manual":
                 lines.append(f"> **The step holds.** It will ask the traveler for {m_count} offering(s).")
             elif ctype == "automated":
-                lines.append(f"> **The step holds.** It is fully automated — the traveler need only press onward.")
+                lines.append("> **The step holds.** It is fully automated — the traveler need only press onward.")
             elif ctype == "semi-automated":
                 lines.append(f"> **The step holds.** Semi-automated: {m_count} offering(s) from the traveler, {a_count} echo(es) from prior steps.")
             else:
@@ -16325,7 +16316,7 @@ def handle_load(args, result_path=None):
             if user_values is not None:
                 if len(user_values) != len(manual_slots):
                     print(f"  Error: step {step_idx} '{c['name']}' has {len(manual_slots)} manual input slot(s) but marker provides {len(user_values)} value(s)")
-                    print(f"         (automated slots are auto-resolved and never take values)")
+                    print("         (automated slots are auto-resolved and never take values)")
                     return False
                 substituted = list(tokens)
                 for (pos, _), value in zip(manual_slots, user_values):
@@ -16520,7 +16511,7 @@ def handle_comment(args):
         return False
     chain_parsed, parse_errs = parse_chain_file(path)
     if chain_parsed is None:
-        print(f"Error: chain file could not be parsed:")
+        print("Error: chain file could not be parsed:")
         for e in parse_errs:
             loc = f"step {e['step_index']} '{e['step_name']}'" if e["step_index"] else "file"
             print(f"  [{loc}] {e['category']}: {e['message']}")
@@ -16933,7 +16924,7 @@ def _run_extended_commands(args):
                 if not os.path.exists(raw_path):
                     print(f"\n[Dimensions Resolver] MANDELA ERROR — step {dim.index} references '{raw_path}'")
                     print(f"  No command produces '{inp_stem}' and the file does not exist on disk.")
-                    print(f"  This file will never exist. Either add a command that produces it, or fix the reference.")
+                    print("  This file will never exist. Either add a command that produces it, or fix the reference.")
                     return False
 
     dependents = {dim.index: [] for dim in dimensions}
@@ -16966,7 +16957,7 @@ def _run_extended_commands(args):
             dim = dimensions[idx - 1]
             deps = ', '.join(f"step {d}" for d in sorted(dim.dependencies)) or '(none)'
             print(f"  Step {idx} waits for: {deps}")
-        print(f"  Cannot resolve execution order. Fix the circular reference.")
+        print("  Cannot resolve execution order. Fix the circular reference.")
         return False
 
     max_level = max(levels.values())
@@ -16980,7 +16971,7 @@ def _run_extended_commands(args):
         deps = ', '.join(f"step {d}" for d in sorted(dim.dependencies)) or '(none)'
         outs = ', '.join(f"{s} ({l + '/' if l else 'results/'})" for s, l in dim.outputs) or '(none)'
         print(f"  Step {dim.index} [{dim.mode}] — waits for: {deps} — produces: {outs}")
-    print(f"\n[Dimensions Resolver] Execution plan:")
+    print("\n[Dimensions Resolver] Execution plan:")
     for lv, group in level_groups:
         steps_str = ' → '.join(f"step {d.index}" for d in sorted(group, key=lambda d: d.index))
         print(f"  Level {lv}: {steps_str}")
@@ -17103,7 +17094,7 @@ def _eva_parse_common_args(args):
             _flush_url_items()
             result_path = args[i + 1]
             i += 2
-        elif input_path is None and not al in ('gen', 'edit', 'nbg', 'objectify', 'animify', 'lipsync', 'mini', 'url', 'image', 'video', 'audio'):
+        elif input_path is None and al not in ('gen', 'edit', 'nbg', 'objectify', 'animify', 'lipsync', 'mini', 'url', 'image', 'video', 'audio'):
             input_path = arg
             i += 1
         else:
@@ -17114,7 +17105,6 @@ def _eva_parse_common_args(args):
 
 def _eva_tti(sub_mode, args):
     from voders.DLCs.eva.image.flux2 import Flux2Wrapper
-    from voders.DLCs.eva.downscale import check_and_downscale_input
 
     desc, resolution, seed, duration, references, result_path, fmt, input_path = _eva_parse_common_args(args)
 
@@ -17142,10 +17132,10 @@ def _eva_tti(sub_mode, args):
         if not desc:
             print("Error: tti edit requires desc \"<description>\"")
             return False
-        from voder import resolve_target_to_audio, is_supported_url, is_known_platform_url
+        from voder import is_supported_url, is_known_platform_url
         if is_supported_url(input_path):
             if not is_known_platform_url(input_path):
-                print(f"Error: unsupported platform URL. Use quest download first.")
+                print("Error: unsupported platform URL. Use quest download first.")
                 return False
         timestamp = time.strftime("%Y%m%d_%H%M%S")
         safe_desc = re.sub(r'[^A-Za-z0-9_\-]', '_', desc[:100]) or 'edit'
@@ -17387,7 +17377,7 @@ def _eva_ttt(sub_mode, args):
     if sub_mode == 'gen':
         if args:
             user_message = ' '.join(args)
-            print(f"\n[VADAR]: ", end='', flush=True)
+            print("\n[VADAR]: ", end='', flush=True)
             for chunk in vadar_chat_stream(user_message, model_name=model_name):
                 print(chunk, end='', flush=True)
             print('\n')
@@ -17398,7 +17388,7 @@ def _eva_ttt(sub_mode, args):
         if not args:
             return vadar_interactive(model_name=model_name)
         user_message = ' '.join(args)
-        print(f"\n[VADAR]: ", end='', flush=True)
+        print("\n[VADAR]: ", end='', flush=True)
         for chunk in vadar_chat_stream(user_message, model_name=model_name):
             print(chunk, end='', flush=True)
         print('\n')
@@ -17504,8 +17494,7 @@ def oneline_klarify(params):
         print(f"Error: klarify {klarify_mode} requires an input file path")
         return False
     from voders.DLCs.klarify.klarify_engine import (
-        klarify_upscale, klarify_enhance, klarify_interpolate, klarify_cleanup,
-        KLARIFY_RESULTS_DIR
+        klarify_upscale, klarify_enhance, klarify_interpolate, klarify_cleanup
     )
     results_dir = os.path.join(os.getcwd(), "results", "DLCs", "klarify")
     os.makedirs(results_dir, exist_ok=True)

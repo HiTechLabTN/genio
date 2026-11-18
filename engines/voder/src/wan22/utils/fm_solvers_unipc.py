@@ -16,7 +16,7 @@ from diffusers.schedulers.scheduling_utils import (
 from diffusers.utils import deprecate, is_scipy_available
 
 if is_scipy_available():
-    import scipy.stats
+    pass
 
 
 class FlowUniPCMultistepScheduler(SchedulerMixin, ConfigMixin):

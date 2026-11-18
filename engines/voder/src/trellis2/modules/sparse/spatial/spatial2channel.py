@@ -46,11 +46,11 @@ class SparseSpatial2Channel(nn.Module):
         if cache is None:
             x.register_spatial_cache(f'spatial2channel_{self.factor}', (new_coords, idx, subidx))
             out.register_spatial_cache(f'channel2spatial_{self.factor}', (x.coords, idx, subidx))
-            out.register_spatial_cache(f'shape', torch.Size(MAX))
+            out.register_spatial_cache('shape', torch.Size(MAX))
             if self.training:
                 subdivision = torch.zeros((new_coords.shape[0], self.factor ** DIM), device=x.device, dtype=torch.bool)
                 subdivision[idx, subidx] = True
-                out.register_spatial_cache(f'subdivision', subdivision)
+                out.register_spatial_cache('subdivision', subdivision)
                 
         return out
 

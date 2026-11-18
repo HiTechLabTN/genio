@@ -98,7 +98,7 @@ def sparse_windowed_scaled_dot_product_self_attention(
         for i in range(len(seq_lens)):
             seq_coords = qkv_coords[start:start+seq_lens[i]]
             assert (seq_coords[:, 1:].max(dim=0).values - seq_coords[:, 1:].min(dim=0).values < window_size).all(), \
-                    f"SparseWindowedScaledDotProductSelfAttention: window size exceeded"
+                    "SparseWindowedScaledDotProductSelfAttention: window size exceeded"
             start += seq_lens[i]
 
     if config.ATTN == 'xformers':

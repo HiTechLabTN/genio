@@ -20,7 +20,6 @@ import json
 import os
 import re
 import resource
-import subprocess
 import sys
 import time
 import traceback

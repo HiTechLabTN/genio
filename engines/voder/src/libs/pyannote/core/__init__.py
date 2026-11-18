@@ -45,7 +45,7 @@ from .feature import SlidingWindowFeature
 
 try:
     from .notebook import notebook
-except ImportError as e:
+except ImportError:
     pass
 
 Segment.set_precision()

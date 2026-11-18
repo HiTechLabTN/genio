@@ -1,6 +1,5 @@
 """Tokenization classes for vibevoice."""
 
-from typing import List, Optional, Union
 
 from transformers.utils import logging
 from transformers.models.qwen2.tokenization_qwen2 import Qwen2Tokenizer

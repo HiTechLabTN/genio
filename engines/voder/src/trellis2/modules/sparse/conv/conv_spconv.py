@@ -1,5 +1,4 @@
 import torch
-import torch.nn as nn
 from .. import SparseTensor
 from . import config
 import spconv.pytorch as spconv

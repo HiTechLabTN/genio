@@ -77,7 +77,7 @@ def handle_generate(spec):
     kwargs = {"prompt": prompt}
     if references:
         kwargs["reference_images"] = references
-    print(f"Generating 3D world with HY-World 2.0...")
+    print("Generating 3D world with HY-World 2.0...")
     result = pipeline(**kwargs)
     save_path = output_path.rsplit(".", 1)[0] + ".glb"
     output_saved = False

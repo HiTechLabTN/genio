@@ -38,9 +38,9 @@ class HYWorldWrapper:
                             masked_path = resolved.rsplit('.', 1)[0] + '_masked.png'
                             sam_apply_mask_to_image(resolved, mask, masked_path)
                             resolved = masked_path
-                            print(f"SAM: auto-masked subject in reference image")
+                            print("SAM: auto-masked subject in reference image")
                     resolved_refs.append(resolved)
-        print(f"Generating 3D world with HY-World 2.0...")
+        print("Generating 3D world with HY-World 2.0...")
         spec = {
             "action": "generate",
             "prompt": prompt,

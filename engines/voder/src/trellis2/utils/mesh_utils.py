@@ -1,6 +1,4 @@
-from typing import Tuple, Dict
 import numpy as np
-from trimesh import grouping, util, remesh
 import struct
 import re
 from plyfile import PlyData, PlyElement

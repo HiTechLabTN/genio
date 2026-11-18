@@ -20,7 +20,7 @@ from transformers.generation.logits_process import (
 )
 from acestep.constrained_logits_processor import MetadataConstrainedLogitsProcessor
 from acestep.constants import DEFAULT_LM_INSTRUCTION, DEFAULT_LM_UNDERSTAND_INSTRUCTION, DEFAULT_LM_INSPIRED_INSTRUCTION, DEFAULT_LM_REWRITE_INSTRUCTION
-from acestep.gpu_config import get_lm_gpu_memory_ratio, get_gpu_memory_gb, get_lm_model_size, get_global_gpu_config
+from acestep.gpu_config import get_lm_gpu_memory_ratio, get_global_gpu_config
 
 
 class LLMHandler:
@@ -950,7 +950,7 @@ class LLMHandler:
         
         # ========== PHASE 1: CoT Generation ==========
         # Skip CoT if all metadata are user-provided OR caption is already formatted
-        progress(0.1, f"Phase 1: Generating CoT metadata (once for all items)...")
+        progress(0.1, "Phase 1: Generating CoT metadata (once for all items)...")
         if not has_all_metas and use_cot_metas:
             if is_batch:
                 logger.info("Batch Phase 1: Generating CoT metadata (once for all items)...")
@@ -2372,7 +2372,7 @@ class LLMHandler:
             yield
         finally:
             # Offload to CPU
-            logger.info(f"Offloading LLM to CPU")
+            logger.info("Offloading LLM to CPU")
             start_time = time.time()
             if hasattr(model, "to"):
                 model.to("cpu")

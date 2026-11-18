@@ -1,26 +1,16 @@
 import os
-import sys
-import time
-import shutil
 
 from voder import (
-    parse_and_execute_oneline,
-    validate_file_exists,
     is_youtube_url,
-    VIDEO_EXTENSIONS,
-    VOICE_PROFILE_EXTENSIONS,
     ChainPipeline,
     parse_chain_file,
     verify_chain_file,
     classify_chain_step,
-    find_chain_by_name,
     list_chains,
     resolve_chain_path,
-    get_input_formats_for_step,
     describe_input_slot,
     _is_voice_profile_position,
     PREBUILT_CHAINS_DIR,
-    CHAIN_FILE_EXT,
 )
 
 
@@ -35,7 +25,7 @@ def _select_chain_by_list():
     chains = list_chains()
     if not chains:
         print(f"\nNo prebuilt chains found in: {PREBUILT_CHAINS_DIR}")
-        print(f"Build one with:  python voder.py chains build <name> description \"...\" chain ...")
+        print("Build one with:  python voder.py chains build <name> description \"...\" chain ...")
         return None
     print("\nAvailable prebuilt chains:")
     print("-" * 60)
@@ -217,7 +207,7 @@ def _gather_inputs_for_chain(parsed, pipeline, prebuilt_idx, total_prebuilts, pr
                 if tok in prior_names:
                     ref_descs.append(f"'{tok}'")
             if ref_descs:
-                print(f"\n  → Automated input — press Enter to continue")
+                print("\n  → Automated input — press Enter to continue")
                 print()
                 print("  [details]")
                 detail_lines = _format_automated_details(parsed, c, pipeline, prior_prebuilt_names)
@@ -233,7 +223,7 @@ def _gather_inputs_for_chain(parsed, pipeline, prebuilt_idx, total_prebuilts, pr
             for tok in tokens:
                 if tok in prior_names:
                     ref_descs.append(f"'{tok}'")
-            print(f"\n  → Automated input(s) — auto-resolved at runtime")
+            print("\n  → Automated input(s) — auto-resolved at runtime")
             print()
             print("  [details]")
             detail_lines = _format_automated_details(parsed, c, pipeline, prior_prebuilt_names)

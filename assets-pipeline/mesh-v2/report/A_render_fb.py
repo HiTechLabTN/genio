@@ -1,4 +1,7 @@
-import bpy, sys, math, os, mathutils
+import bpy
+import math
+import os
+import mathutils
 SRC="/data/ai_tools/genio/assets-pipeline/mesh-v2/v2_fallback_baked_v2.glb"
 OUT="/tmp/partA_fbv2"
 os.makedirs(OUT, exist_ok=True)

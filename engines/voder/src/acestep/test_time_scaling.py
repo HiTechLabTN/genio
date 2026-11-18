@@ -4,11 +4,10 @@ Implements perplexity-based scoring for generated audio codes
 """
 import torch
 import torch.nn.functional as F
-from typing import Tuple, Optional, Dict, Any, List
+from typing import Tuple, Optional, Dict, Any
 from loguru import logger
 import yaml
 import math
-import re
 
 
 def pmi_score(log_prob_conditional: float, log_prob_unconditional: float) -> float:

@@ -1,8 +1,8 @@
 import math
 import typing as tp
 from functools import partial
-from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Tuple, Union
+from dataclasses import dataclass
+from typing import Optional, Union
 import copy
 
 import numpy as np
@@ -12,7 +12,6 @@ import torch.nn.functional as F
 
 from transformers.models.auto import AutoModel
 
-from transformers.configuration_utils import PretrainedConfig
 from transformers.utils import logging
 from transformers.modeling_utils import PreTrainedModel
 from transformers.activations import ACT2FN
@@ -345,7 +344,7 @@ class SConv1d(nn.Module):
             else:
                 cached_states = torch.zeros(B, C, 0, device=x.device, dtype=x.dtype)
                 if debug:
-                    print(f"[DEBUG] No context needed (kernel_size=stride)")
+                    print("[DEBUG] No context needed (kernel_size=stride)")
         
         # Concatenate cached states with input
         if cached_states.shape[2] > 0:
@@ -501,7 +500,7 @@ class SConvTranspose1d(nn.Module):
             # First chunk - no history yet
             cached_input = torch.zeros(B, C, 0, device=x.device, dtype=x.dtype)
             if debug:
-                print(f"[DEBUG] Initialized empty cache for transposed conv")
+                print("[DEBUG] Initialized empty cache for transposed conv")
         
         # Concatenate cached input with new input
         full_input = torch.cat([cached_input, x], dim=2)

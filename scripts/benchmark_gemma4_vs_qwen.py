@@ -21,7 +21,6 @@ import argparse
 import base64
 import json
 import subprocess
-import sys
 import threading
 import time
 from datetime import datetime
@@ -225,7 +224,7 @@ def main() -> int:
 
     BENCH_DIR.mkdir(parents=True, exist_ok=True)
     print(f"# Genio multimodal benchmark  {datetime.now().isoformat(timespec='seconds')}")
-    print(f"GPU:", subprocess.run(
+    print("GPU:", subprocess.run(
         ["nvidia-smi", "--query-gpu=name,memory.total,memory.used", "--format=csv,noheader"],
         capture_output=True, text=True).stdout.strip())
     print(f"image: {image_path} ({image_path.stat().st_size if image_path.exists() else 'MISSING'} bytes)")

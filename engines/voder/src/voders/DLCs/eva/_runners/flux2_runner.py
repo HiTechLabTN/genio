@@ -97,7 +97,6 @@ def _parse_resolution(resolution):
 
 def handle_generate(spec):
     import torch
-    from PIL import Image
     from voders.DLCs.eva._paths import FLUX2_DIR
     pipe, device, dtype = _load_pipeline(FLUX2_DIR)
     prompt = spec["prompt"]

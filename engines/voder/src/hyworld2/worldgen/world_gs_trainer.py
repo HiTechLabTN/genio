@@ -2622,8 +2622,7 @@ if __name__ == "__main__":
     # try import extra dependencies
     if cfg.compression == "png":
         try:
-            import plas
-            import torchpq
+            pass
         except:
             raise ImportError(
                 "To use PNG compression, you need to install "

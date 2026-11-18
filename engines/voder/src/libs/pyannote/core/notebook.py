@@ -98,7 +98,7 @@ from .utils.types import Label, LabelStyle, Resource
 
 try:
     from IPython.core.pylabtools import print_figure
-except Exception as e:
+except Exception:
     pass
 import numpy as np
 from itertools import cycle, product, groupby

@@ -71,7 +71,7 @@ class Quest(SideQuest):
         print(f"  Target offset:             {target_offset} LU")
 
         if input_i_f is not None and abs(input_i_f - (-16.0)) < 0.2:
-            print(f"  Already at target (-16 LUFS) — applying pass-through normalization for true-peak safety.")
+            print("  Already at target (-16 LUFS) — applying pass-through normalization for true-peak safety.")
 
         norm_filter = (
             f"loudnorm="
@@ -106,7 +106,7 @@ class Quest(SideQuest):
             ]
         r = subprocess.run(cmd, capture_output=True, text=True)
         if not os.path.exists(out_path) or r.returncode != 0:
-            print(f"Error: ffmpeg failed to apply loudnorm")
+            print("Error: ffmpeg failed to apply loudnorm")
             if r.stderr:
                 print(r.stderr[-1200:])
             return False

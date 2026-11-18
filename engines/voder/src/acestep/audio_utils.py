@@ -11,7 +11,7 @@ import os
 import hashlib
 import json
 from pathlib import Path
-from typing import Union, Optional, List, Tuple
+from typing import Union, Optional, List
 import torch
 import numpy as np
 import torchaudio
@@ -117,7 +117,7 @@ class AudioSaver:
             logger.debug(f"[AudioSaver] Saved audio to {output_path} ({format}, {sample_rate}Hz)")
             return str(output_path)
             
-        except Exception as e:
+        except Exception:
             try:
                 import soundfile as sf
                 audio_np = audio_tensor.transpose(0, 1).numpy()  # -> [samples, channels]

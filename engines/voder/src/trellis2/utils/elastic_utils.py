@@ -22,7 +22,7 @@ class MemoryController:
         if self._last_input_size is None:
             self._last_input_size = input_size
         elif self._last_input_size!= input_size:
-            raise ValueError(f'Input size should not change for different ElasticModules.')
+            raise ValueError('Input size should not change for different ElasticModules.')
         self._last_mem_ratio.append(mem_ratio)
     
     @abstractmethod

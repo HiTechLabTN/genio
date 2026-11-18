@@ -10,7 +10,6 @@ from typing_extensions import Literal
 from .cuda._wrapper import (
     RollingShutterType,
     FThetaCameraDistortionParameters,
-    FThetaPolynomialType,
     fully_fused_projection,
     fully_fused_projection_2dgs,
     fully_fused_projection_with_ut,

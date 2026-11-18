@@ -1,9 +1,5 @@
 import random
-import time
-from collections import defaultdict
-from contextlib import contextmanager
 
-import cv2
 import matplotlib.pyplot as plt
 import numpy as np
 import torch

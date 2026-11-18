@@ -29,9 +29,9 @@ import time
 from pathlib import Path
 from typing import Dict, List, Optional
 
-logger = logging.getLogger(__name__)
-
 from genio_server.tools.bash_tool import MAX_OUTPUT, TRUNCATE_MARKER
+
+logger = logging.getLogger(__name__)
 
 SKILLS_DIR = Path(__file__).resolve().parents[2] / "state" / "skills_library"
 PATTERNS_FILE = SKILLS_DIR / "patterns.json"

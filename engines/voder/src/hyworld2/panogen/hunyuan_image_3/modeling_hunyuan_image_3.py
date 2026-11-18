@@ -18,7 +18,6 @@ import time
 import warnings
 from dataclasses import dataclass
 from typing import List, Union, Optional, Dict, Any, Tuple, Callable, TYPE_CHECKING
-from datetime import datetime
 
 import torch
 import torch.nn.functional as F
@@ -50,7 +49,7 @@ from transformers.utils import (
 
 try:
     import flashinfer
-except Exception as e:
+except Exception:
     flashinfer = None
 
 #from .autoencoder_kl_3d import AutoencoderKLConv3D
@@ -62,7 +61,7 @@ from .siglip2 import Siglip2VisionTransformer, LightProjector
 from .tokenization_hunyuan_image_3 import HunyuanImage3TokenizerFast, ImageInfo, ImageTensor, CondImage
 from .system_prompt import get_system_prompt
 
-from .cache_utils import TaylorCacheContainer, CacheWithFreqsContainer
+from .cache_utils import CacheWithFreqsContainer
 
 if TYPE_CHECKING:
     from transformers.generation.streamers import BaseStreamer
@@ -71,7 +70,7 @@ logger = logging.get_logger(__name__)
 
 
 if is_flash_attn_2_available():
-    from flash_attn import flash_attn_func
+    pass
 
 # Type aliases
 BatchRaggedImages = Union[torch.Tensor, List[Union[torch.Tensor, List[torch.Tensor]]]]

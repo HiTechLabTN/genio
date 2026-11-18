@@ -1,6 +1,5 @@
 import os
 import sys
-import time
 import tempfile
 import subprocess
 import shutil
@@ -124,7 +123,7 @@ def _load_deblur_model():
     model = model.to(_get_device())
     model.eval()
     _klarify_models['deblur'] = model
-    print(f"Loaded deblur model (NAFNet-GoPro-width64)")
+    print("Loaded deblur model (NAFNet-GoPro-width64)")
     return model
 
 
@@ -155,7 +154,7 @@ def _load_denoise_model():
     model = model.to(_get_device())
     model.eval()
     _klarify_models['denoise'] = model
-    print(f"Loaded denoise model (NAFNet-SIDD-width64)")
+    print("Loaded denoise model (NAFNet-SIDD-width64)")
     return model
 
 
@@ -195,7 +194,7 @@ def _load_upscale_model():
     model = model.to(_get_device())
     model.eval()
     _klarify_models['upscale'] = model
-    print(f"Loaded upscale model (Real-HAT-GAN-sharper)")
+    print("Loaded upscale model (Real-HAT-GAN-sharper)")
     return model
 
 
@@ -203,7 +202,6 @@ def _load_rife_model():
     global _klarify_models
     if 'rife' in _klarify_models:
         return _klarify_models['rife']
-    import torch
     model_path = _ensure_klarify_model('rife')
     if not model_path:
         return None
@@ -214,7 +212,7 @@ def _load_rife_model():
     model.eval()
     model.device()
     _klarify_models['rife'] = model
-    print(f"Loaded frame interpolation model (RIFE v4.25)")
+    print("Loaded frame interpolation model (RIFE v4.25)")
     return model
 
 
@@ -268,7 +266,6 @@ def _process_upscale_tensor(model, img_tensor):
 
 def klarify_denoise(input_path, output_path):
     import cv2
-    import torch
     model = _load_denoise_model()
     if model is None:
         return False
@@ -326,7 +323,6 @@ def klarify_enhance(input_path, output_path):
 
 def klarify_upscale(input_path, output_path):
     import cv2
-    import numpy as np
     model = _load_upscale_model()
     if model is None:
         return False

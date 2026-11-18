@@ -50,9 +50,8 @@ class Quest(SideQuest):
 
     def execute(self, parsed, results_dir, timestamp, result_path=None):
         from voder import (
-            is_supported_url, is_public_net_url, download_url_audio,
-            download_url_video, download_url_image, derive_output_name,
-            is_video_url, platform_name, detect_platform,
+            is_supported_url, download_url_audio,
+            download_url_video, download_url_image, is_video_url,
         )
         url = parsed['url']
         want_video = parsed['want_video']

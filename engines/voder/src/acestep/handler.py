@@ -8,14 +8,9 @@ import os
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 import math
-from copy import deepcopy
-import tempfile
 import traceback
 import re
 import random
-import uuid
-import hashlib
-import json
 from contextlib import contextmanager
 from typing import Optional, Dict, Any, Tuple, List, Union
 
@@ -27,8 +22,7 @@ from tqdm import tqdm
 from loguru import logger
 import warnings
 
-from transformers import AutoTokenizer, AutoModel, AutoModelForCausalLM
-from transformers.generation.streamers import BaseStreamer
+from transformers import AutoTokenizer, AutoModel
 from diffusers.models import AutoencoderOobleck
 from acestep.model_downloader import (
     ensure_main_model,
@@ -699,7 +693,7 @@ class AceStepHandler:
             audio = self._normalize_audio_to_stereo_48k(audio, sr)
             
             return audio
-        except Exception as e:
+        except Exception:
             logger.exception("[process_target_audio] Error processing target audio")
             return None
     
@@ -910,7 +904,7 @@ class AceStepHandler:
                 if match:
                     return match.group(1).strip()
             return caption
-        except Exception as e:
+        except Exception:
             logger.exception("[extract_caption_from_sft_format] Error extracting caption")
             return caption
 
@@ -1262,7 +1256,7 @@ class AceStepHandler:
             
             return audio
             
-        except Exception as e:
+        except Exception:
             logger.exception("[process_reference_audio] Error processing reference audio")
             return None
 
@@ -1279,7 +1273,7 @@ class AceStepHandler:
             
             return audio
             
-        except Exception as e:
+        except Exception:
             logger.exception("[process_src_audio] Error processing source audio")
             return None
     
@@ -1402,7 +1396,7 @@ class AceStepHandler:
             # Create silent stereo audio
             target_wavs = torch.zeros(2, frames)
             return target_wavs
-        except Exception as e:
+        except Exception:
             logger.exception("[create_target_wavs] Error creating target audio")
             # Fallback to 30 seconds if error
             return torch.zeros(2, 30 * 48000)
@@ -2918,7 +2912,7 @@ class AceStepHandler:
                 audio_tensor = pred_wavs[i].cpu().float()
                 audio_tensors.append(audio_tensor)
             
-            status_message = f"✅ Generation completed successfully!"
+            status_message = "✅ Generation completed successfully!"
             logger.info(f"[generate_music] Done! Generated {len(audio_tensors)} audio tensors.")
             
             # Extract intermediate information from outputs
@@ -3019,7 +3013,6 @@ class AceStepHandler:
             - success: Whether generation succeeded
             - error: Error message if failed
         """
-        from transformers.cache_utils import EncoderDecoderCache, DynamicCache
         
         if self.model is None:
             return {
@@ -3233,7 +3226,6 @@ class AceStepHandler:
             - success: Whether generation succeeded
             - error: Error message if failed
         """
-        from transformers.cache_utils import EncoderDecoderCache, DynamicCache
 
         if self.model is None:
             return {

@@ -1,4 +1,5 @@
-import trimesh, numpy as np
+import trimesh
+import numpy as np
 from PIL import Image, ImageEnhance
 import rembg
 

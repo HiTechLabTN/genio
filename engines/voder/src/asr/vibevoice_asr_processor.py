@@ -6,7 +6,7 @@ import os
 import json
 import math
 import warnings
-from typing import List, Optional, Union, Dict, Any, Tuple
+from typing import List, Optional, Union, Dict, Any
 
 import numpy as np
 import torch

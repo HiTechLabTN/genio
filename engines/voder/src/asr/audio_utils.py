@@ -3,7 +3,7 @@ import threading
 
 import numpy as np
 from subprocess import run
-from typing import List, Optional, Union, Dict, Any
+from typing import Optional
 
 COMMON_AUDIO_EXTS = [
     '.mp3', '.MP3', '.Mp3',  # All case variations of mp3

@@ -1,4 +1,3 @@
-import asyncio
 import html
 import json
 import os
@@ -7,7 +6,7 @@ import time
 import urllib.request
 import urllib.error
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional
 
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, FileResponse

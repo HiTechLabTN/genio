@@ -40,7 +40,6 @@ from pyannote.core import Segment
 from torch import Tensor
 
 try:
-    import torchcodec
     from torchcodec import AudioSamples
     from torchcodec.decoders import AudioDecoder, AudioStreamMetadata
 except Exception as e:

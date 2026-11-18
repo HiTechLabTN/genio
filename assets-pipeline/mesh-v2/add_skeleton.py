@@ -8,7 +8,8 @@ procedural "eye saccades" (sin(t*0.3)*0.15) and accessory bone sockets.
 
 Output: v2_fallback_baked_rigged.glb
 """
-import json, struct, sys
+import json
+import struct
 import numpy as np
 
 SRC = "/data/ai_tools/genio/assets-pipeline/mesh-v2/v2_fallback_baked.glb"

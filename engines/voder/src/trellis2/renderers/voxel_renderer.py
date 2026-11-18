@@ -1,7 +1,6 @@
 import torch
 from easydict import EasyDict as edict
 from ..representations import Voxel
-from easydict import EasyDict as edict
 
 
 class VoxelRenderer:

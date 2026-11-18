@@ -3,7 +3,6 @@ import os
 import subprocess
 import platform
 import re
-import time
 
 def _q(v):
     if not v:
@@ -14,11 +13,10 @@ def _q(v):
 
 from PyQt5.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout,
                              QHBoxLayout, QLabel, QPushButton, QFileDialog,
-                             QMessageBox, QProgressBar, QFrame, QComboBox,
-                             QTextEdit, QListWidget, QListWidgetItem, QLineEdit,
+                             QProgressBar, QFrame, QComboBox,
+                             QTextEdit, QListWidget, QLineEdit,
                              QSpinBox, QScrollArea, QCheckBox, QRadioButton,
-                             QStackedWidget, QDoubleSpinBox, QShortcut, QSlider,
-                             QSizePolicy, QGridLayout)
+                             QStackedWidget, QDoubleSpinBox, QShortcut, QSlider)
 from PyQt5.QtCore import Qt, QThread, pyqtSignal, QTimer, QSize
 from PyQt5.QtGui import QColor, QPainter, QPalette, QKeySequence, QFont
 
@@ -1735,7 +1733,7 @@ class StemSelectorWidget(QWidget):
             if selected:
                 self.toggle_btn.setText(f"Select Stems ({len(selected)} + custom)")
             else:
-                self.toggle_btn.setText(f"Select Stems (custom)")
+                self.toggle_btn.setText("Select Stems (custom)")
         elif selected:
             display = ", ".join(selected[:3])
             if len(selected) > 3:

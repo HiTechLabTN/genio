@@ -8,7 +8,7 @@ import sys
 import tempfile
 from dataclasses import dataclass
 from http import HTTPStatus
-from typing import Optional, Union
+from typing import Union
 
 import dashscope
 import torch
@@ -466,7 +466,7 @@ if __name__ == "__main__":
         # test prompt extend
         if "t2v" in task or "ti2v" in task:
             # test dashscope api
-            logging.info(f"-" * 40)
+            logging.info("-" * 40)
             logging.info(f"Testing {task} dashscope prompt extend")
             test(
                 DashScopePromptExpander,
@@ -478,7 +478,7 @@ if __name__ == "__main__":
                 seed=seed)
 
             # test qwen api
-            logging.info(f"-" * 40)
+            logging.info("-" * 40)
             logging.info(f"Testing {task} qwen prompt extend")
             test(
                 QwenPromptExpander,
@@ -492,7 +492,7 @@ if __name__ == "__main__":
         # test prompt-image extend
         if "i2v" in task:
             # test dashscope api
-            logging.info(f"-" * 40)
+            logging.info("-" * 40)
             logging.info(f"Testing {task} dashscope vl prompt extend")
             test(
                 DashScopePromptExpander,
@@ -504,7 +504,7 @@ if __name__ == "__main__":
                 seed=seed)
 
             # test qwen api
-            logging.info(f"-" * 40)
+            logging.info("-" * 40)
             logging.info(f"Testing {task} qwen vl prompt extend")
             test(
                 QwenPromptExpander,
@@ -518,7 +518,7 @@ if __name__ == "__main__":
         # test empty prompt extend
         if "i2v-A14B" in task:
             # test dashscope api
-            logging.info(f"-" * 40)
+            logging.info("-" * 40)
             logging.info(f"Testing {task} dashscope vl empty prompt extend")
             test(
                 DashScopePromptExpander,
@@ -530,7 +530,7 @@ if __name__ == "__main__":
                 seed=seed)
 
             # test qwen api
-            logging.info(f"-" * 40)
+            logging.info("-" * 40)
             logging.info(f"Testing {task} qwen vl empty prompt extend")
             test(
                 QwenPromptExpander,

@@ -1154,7 +1154,7 @@ if __name__ == '__main__':
                                 up_rot_deg = up_rot_deg * (obs_decay ** obs_iteration_inner)
 
                                 if up_rot_deg < 15:
-                                    rank0_log(f"Too many collisions are detected in the whole aerial routes, ignore...", "WARNING")
+                                    rank0_log("Too many collisions are detected in the whole aerial routes, ignore...", "WARNING")
                                     success_aerial = False
                                     break
 

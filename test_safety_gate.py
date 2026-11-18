@@ -7,7 +7,6 @@ and the P1 empty-answer / workspace-scoping fixes.
 Fail-closed: any regression here blocks the gate.
 """
 import json
-import os
 import sys
 
 sys.path.insert(0, "/data/ai_tools/genio")

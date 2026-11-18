@@ -1,6 +1,4 @@
 # Copyright 2024-2025 The Alibaba Wan Team Authors. All rights reserved.
-import math
-from typing import Tuple, Union
 
 import torch
 import torch.cuda.amp as amp

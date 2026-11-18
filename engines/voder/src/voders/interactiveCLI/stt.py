@@ -5,7 +5,6 @@ import shutil
 import tempfile
 import gc
 import torch
-import torchaudio
 
 from voder import (
     is_youtube_url,

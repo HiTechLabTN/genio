@@ -64,7 +64,7 @@ class ProcessPipeline():
 
             frames = [resize_by_area(frame, resolution_area[0] * resolution_area[1], divisor=16) for frame in frames]
             height, width = frames[0].shape[:2]
-            logger.info(f"Processing pose meta")
+            logger.info("Processing pose meta")
 
 
             tpl_pose_metas = self.pose2d(frames)
@@ -160,7 +160,7 @@ class ProcessPipeline():
             idxs = get_frame_indices(frame_num, video_fps, target_num, fps)
             frames = video_reader.get_batch(idxs).asnumpy()
 
-            logger.info(f"Processing pose meta")
+            logger.info("Processing pose meta")
 
             tpl_pose_meta0 = self.pose2d(frames[:1])[0]
             tpl_pose_metas = self.pose2d(frames)

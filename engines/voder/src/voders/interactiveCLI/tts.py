@@ -771,7 +771,7 @@ def cli_tts_mode():
                     target_assignments[char_lower] = clean_vocal
                     print(f"  {orig_char} -> manual ({len(ref_paths)} ref{'s' if len(ref_paths) > 1 else ''})")
             else:
-                print(f"\nDo you have a multi-speaker audio source? (for auto voice cloning)")
+                print("\nDo you have a multi-speaker audio source? (for auto voice cloning)")
                 print("Press Y to provide a file, or N to enter manually for each character")
                 has_multispeaker = input("> ").strip().lower()
 
@@ -787,7 +787,7 @@ def cli_tts_mode():
                         ss_source_cleanup = []
 
                         if is_youtube_url(file_path):
-                            print(f"Downloading audio from YouTube...")
+                            print("Downloading audio from YouTube...")
                             _dl_ok, _dl_err, _dl_path = download_youtube_audio(file_path)
                             if not _dl_ok:
                                 print(f"Error: {_dl_err}")
@@ -816,7 +816,7 @@ def cli_tts_mode():
                                 return False
                             continue
 
-                        print(f"\nExtracting speakers via TSE...")
+                        print("\nExtracting speakers via TSE...")
                         _ms_speaker_extraction = _extract_speakers_for_subtitles(ss_source_audio)
                         for _cf in ss_source_cleanup:
                             _dialogue_cleanup.append(_cf)

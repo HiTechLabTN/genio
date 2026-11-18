@@ -22,7 +22,6 @@ Needs: openssl CLI (cert generation), IPv6 loopback for the v6 test
 import contextlib
 import http.server
 import json
-import os
 import socket
 import ssl
 import subprocess
@@ -33,7 +32,6 @@ sys.path.insert(0, "/data/ai_tools/genio")
 
 from genio_server.server.api_engine import (
     _blocked_url, _is_metadata_ip, _pin_request, clear, execute,
-    load_spec_from_dict,
 )
 
 
@@ -200,7 +198,6 @@ def test_pinned_ip_from_checked_set_v4_v6(monkeypatch):
                                                 "2606:4700:4700::1111",
                                                 "93.184.216.34"]})
     req = httpx.Request("GET", "https://mix.example.com/x")
-    from genio_server.server.api_engine import _pin_request
     pinned, reason = _pin_request(req)
     assert reason is None and pinned is not None
     # sorted() over the string forms, first wins:

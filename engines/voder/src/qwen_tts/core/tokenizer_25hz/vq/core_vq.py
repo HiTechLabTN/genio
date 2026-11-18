@@ -32,7 +32,6 @@
 """Core vector quantization implementation."""
 import random
 import typing as tp
-from random import randrange
 
 import numpy as np
 from einops import rearrange, repeat

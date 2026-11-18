@@ -18,7 +18,6 @@ import sys
 import threading
 import time
 
-import pytest
 
 sys.path.insert(0, "/data/ai_tools/genio")
 

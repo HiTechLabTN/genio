@@ -2,11 +2,8 @@
 # A wrapper for sam2 functions
 from collections import OrderedDict
 import torch
-from tqdm import tqdm
 
-from sam2.modeling.sam2_base import NO_OBJ_SCORE, SAM2Base
 from sam2.sam2_video_predictor import SAM2VideoPredictor as _SAM2VideoPredictor
-from sam2.utils.misc import concat_points, fill_holes_in_mask_scores
 
 from sam_utils import load_video_frames_v2, load_video_frames
 

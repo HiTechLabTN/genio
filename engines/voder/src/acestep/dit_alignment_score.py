@@ -10,7 +10,7 @@ import numba
 import torch
 import numpy as np
 import torch.nn.functional as F
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass
 from typing import List, Dict, Any, Optional, Tuple, Union
 
 

@@ -57,13 +57,13 @@ class SparseDownsample(nn.Module):
         if cache is None:
             x.register_spatial_cache(f'downsample_{self.factor}', (new_coords, idx))
             out.register_spatial_cache(f'upsample_{self.factor}', (x.coords, idx))
-            out.register_spatial_cache(f'shape', torch.Size(MAX))
+            out.register_spatial_cache('shape', torch.Size(MAX))
             if self.training:
                 subidx = x.coords[:, 1:] % self.factor
                 subidx = sum([subidx[..., i] * self.factor ** i for i in range(DIM)])
                 subdivision = torch.zeros((new_coords.shape[0], self.factor ** DIM), device=x.device, dtype=torch.bool)
                 subdivision[idx, subidx] = True
-                out.register_spatial_cache(f'subdivision', subdivision)
+                out.register_spatial_cache('subdivision', subdivision)
 
         return out
 

@@ -323,7 +323,7 @@ class Quest(SideQuest):
             print(f"  → {platform}: {len(results)} result(s)")
 
         if not all_results:
-            print(f"\n[media-search] No results across any platform. No list file created.")
+            print("\n[media-search] No results across any platform. No list file created.")
             print("\nPer-platform summary:")
             for p, n, e in per_platform_summary:
                 status = f"{n} result(s)" if not e else f"failed — {e}"

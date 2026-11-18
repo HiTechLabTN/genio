@@ -49,7 +49,7 @@ class H3Wrapper:
                             masked_path = resolved.rsplit('.', 1)[0] + '_masked.png'
                             sam_apply_mask_to_image(resolved, mask, masked_path)
                             resolved = masked_path
-                            print(f"SAM: auto-masked subject in reference image")
+                            print("SAM: auto-masked subject in reference image")
                     resolved_image_refs.append(resolved)
         resolved_video_refs = []
         if video_refs:

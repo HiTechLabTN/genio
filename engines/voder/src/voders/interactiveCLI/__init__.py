@@ -100,7 +100,9 @@ def _eva_tti_interactive():
         desc = input("Enter image description: ").strip()
         resolution = input("Resolution (e.g. 1024x1024, or press Enter for default): ").strip() or None
         from voders.DLCs.eva.image.flux2 import Flux2Wrapper
-        import time, re, os
+        import time
+        import re
+        import os
         ts = time.strftime("%Y%m%d_%H%M%S")
         safe = re.sub(r'[^A-Za-z0-9_\-]', '_', desc[:100]) or 'image'
         out = os.path.join("results", "DLCs", "eva", f"voder_eva_tti_gen_{safe}_{ts}.png")
@@ -114,7 +116,9 @@ def _eva_tti_interactive():
         inp = input("Input image path: ").strip()
         desc = input("Edit description: ").strip()
         from voders.DLCs.eva.image.flux2 import Flux2Wrapper
-        import time, re, os
+        import time
+        import re
+        import os
         ts = time.strftime("%Y%m%d_%H%M%S")
         safe = re.sub(r'[^A-Za-z0-9_\-]', '_', desc[:100]) or 'edit'
         out = os.path.join("results", "DLCs", "eva", f"voder_eva_tti_edit_{safe}_{ts}.png")
@@ -127,7 +131,9 @@ def _eva_tti_interactive():
     elif sub == '3':
         desc = input("Enter image description (will generate transparent PNG): ").strip()
         from voders.DLCs.eva.image.flux2 import Flux2Wrapper
-        import time, re, os
+        import time
+        import re
+        import os
         ts = time.strftime("%Y%m%d_%H%M%S")
         safe = re.sub(r'[^A-Za-z0-9_\-]', '_', desc[:100]) or 'nbg'
         out = os.path.join("results", "DLCs", "eva", f"voder_eva_tti_nbg_{safe}_{ts}.png")
@@ -151,7 +157,9 @@ def _eva_ttv_interactive():
     if sub == '1':
         desc = input("Enter video description: ").strip()
         from voders.DLCs.eva.video.h3 import H3Wrapper
-        import time, re, os
+        import time
+        import re
+        import os
         ts = time.strftime("%Y%m%d_%H%M%S")
         safe = re.sub(r'[^A-Za-z0-9_\-]', '_', desc[:100]) or 'video'
         out = os.path.join("results", "DLCs", "eva", f"voder_eva_ttv_gen_{safe}_{ts}.mp4")
@@ -165,7 +173,9 @@ def _eva_ttv_interactive():
         inp = input("Input video path: ").strip()
         desc = input("Edit description: ").strip()
         from voders.DLCs.eva.video.vace import VACEWrapper
-        import time, re, os
+        import time
+        import re
+        import os
         ts = time.strftime("%Y%m%d_%H%M%S")
         safe = re.sub(r'[^A-Za-z0-9_\-]', '_', desc[:100]) or 'edit'
         out = os.path.join("results", "DLCs", "eva", f"voder_eva_ttv_edit_{safe}_{ts}.mp4")
@@ -189,7 +199,9 @@ def _eva_ttw_interactive():
     if sub == '1':
         desc = input("Enter world description: ").strip()
         from voders.DLCs.eva.world.hyworld import HYWorldWrapper
-        import time, re, os
+        import time
+        import re
+        import os
         ts = time.strftime("%Y%m%d_%H%M%S")
         safe = re.sub(r'[^A-Za-z0-9_\-]', '_', desc[:100]) or 'world'
         out = os.path.join("results", "DLCs", "eva", f"voder_eva_ttw_gen_{safe}_{ts}.glb")
@@ -203,7 +215,8 @@ def _eva_ttw_interactive():
         inp = input("Input image path: ").strip()
         fmt = input("Output format (glb/obj, default glb): ").strip() or "glb"
         from voders.DLCs.eva.world.trellis import Trellis2Wrapper
-        import time, os
+        import time
+        import os
         ts = time.strftime("%Y%m%d_%H%M%S")
         out = os.path.join("results", "DLCs", "eva", f"voder_eva_ttw_objectify_{ts}.glb")
         os.makedirs(os.path.join("results", "DLCs", "eva"), exist_ok=True)
@@ -279,7 +292,9 @@ def _klarify_interactive(mode_name):
     if not inp:
         print("No input file provided.")
         return True
-    import time, os, re
+    import time
+    import os
+    import re
     from voders.DLCs.klarify.klarify_engine import (
         klarify_upscale, klarify_enhance, klarify_interpolate, klarify_cleanup
     )

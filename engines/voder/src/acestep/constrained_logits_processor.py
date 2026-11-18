@@ -1,6 +1,6 @@
 
 from enum import Enum, auto
-from typing import Optional, Dict, Any, Tuple, List, Callable, Set
+from typing import Optional, Dict, Tuple, List, Set
 from loguru import logger
 from transformers import AutoTokenizer
 from transformers.generation.logits_process import LogitsProcessor
@@ -9,8 +9,6 @@ import torch
 from acestep.constants import (
     VALID_LANGUAGES,
     KEYSCALE_NOTES,
-    KEYSCALE_ACCIDENTALS,
-    KEYSCALE_MODES,
     VALID_KEYSCALES,
     BPM_MIN,
     BPM_MAX,
@@ -972,7 +970,7 @@ class MetadataConstrainedLogitsProcessor(LogitsProcessor):
         
         if not matched_genres:
             if self.debug:
-                logger.debug(f"No genres matched in caption, using full vocab")
+                logger.debug("No genres matched in caption, using full vocab")
             return
         
         # Build a trie from matched genres
@@ -1716,7 +1714,7 @@ class MetadataConstrainedLogitsProcessor(LogitsProcessor):
                     if self.eos_token_id is not None:
                         self._apply_whitelist_inplace(scores, [self.eos_token_id])
                         if self.debug:
-                            logger.debug(f"stop_at_reasoning=True: forcing EOS after completing </think> tag")
+                            logger.debug("stop_at_reasoning=True: forcing EOS after completing </think> tag")
                         return scores
                 
                 old_state = self.state
@@ -2053,7 +2051,7 @@ class MetadataConstrainedLogitsProcessor(LogitsProcessor):
                     # No more constrained decoding after </think>
                     next_state = FSMState.COMPLETED
                     if self.debug:
-                        logger.debug(f"generation_phase='understand': allowing free-form lyrics after </think>")
+                        logger.debug("generation_phase='understand': allowing free-form lyrics after </think>")
                 # else: default to CODES_GENERATION (for "codes" phase) or respect stop_at_reasoning flag
             
             self.state = next_state

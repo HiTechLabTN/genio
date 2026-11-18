@@ -10,7 +10,6 @@ Debug Mode:
 """
 
 import os
-import sys
 from dataclasses import dataclass
 from typing import Optional, List, Dict, Tuple
 from loguru import logger
@@ -365,7 +364,7 @@ def get_recommended_lm_model(gpu_config: GPUConfig) -> Optional[str]:
 
 def print_gpu_config_info(gpu_config: GPUConfig):
     """Print GPU configuration information for debugging."""
-    logger.info(f"GPU Configuration:")
+    logger.info("GPU Configuration:")
     logger.info(f"  - GPU Memory: {gpu_config.gpu_memory_gb:.1f} GB")
     logger.info(f"  - Tier: {gpu_config.tier}")
     logger.info(f"  - Max Duration (with LM): {gpu_config.max_duration_with_lm}s ({gpu_config.max_duration_with_lm // 60} min)")

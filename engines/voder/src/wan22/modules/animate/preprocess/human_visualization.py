@@ -1,7 +1,5 @@
 # Copyright 2024-2025 The Alibaba Wan Team Authors. All rights reserved.
-import os
 import cv2
-import time
 import math
 import matplotlib
 import matplotlib.pyplot as plt

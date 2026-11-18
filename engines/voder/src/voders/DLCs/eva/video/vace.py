@@ -30,7 +30,6 @@ class VACEWrapper:
         from voders.DLCs.eva._envrunner import run_in_venv
         from voders.DLCs.eva.media_download import resolve_input_path, check_reference_limit
         from voders.DLCs.eva.downscale import check_and_downscale_input
-        from voders.DLCs.eva.image.sam import sam_auto_mask_for_edit, sam_apply_mask_to_image
         resolved = resolve_input_path(input_path, media_type='video')
         if resolved is None:
             return False
@@ -45,7 +44,7 @@ class VACEWrapper:
                     resolved_ref = check_and_downscale_input(resolved_ref, VACE_MAX_DIMENSION, VACE_MAX_DIMENSION)
                     resolved_refs.append(resolved_ref)
             reference_paths = resolved_refs if resolved_refs else None
-        print(f"Editing video with Wan VACE...")
+        print("Editing video with Wan VACE...")
         spec = {
             "action": "edit",
             "input_path": input_path,

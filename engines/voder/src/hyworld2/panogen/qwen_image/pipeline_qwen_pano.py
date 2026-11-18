@@ -30,7 +30,7 @@ from diffusers.utils import is_torch_xla_available, logging
 try:
     from diffusers.models.autoencoders.vae import DecoderOutput
 except ImportError:
-    from diffusers.models.vae import DecoderOutput
+    pass
 
 if is_torch_xla_available():
     import torch_xla.core.xla_model as xm

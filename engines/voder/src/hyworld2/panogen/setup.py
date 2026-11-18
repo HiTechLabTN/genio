@@ -1,5 +1,4 @@
 from setuptools import setup, find_packages
-import os
 
 # Read README.md for long description
 try:

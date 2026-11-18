@@ -2,7 +2,6 @@ import torch
 import torch.nn as nn
 from ..utils import manual_cast
 from . import VarLenTensor
-from . import config
 
 __all__ = [
     'SparseGroupNorm',

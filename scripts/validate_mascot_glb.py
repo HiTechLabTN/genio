@@ -3,8 +3,10 @@
 Usage: python3 scripts/validate_mascot_glb.py [path] [--max-mb 60]
 Exit 0 = all gates pass. Prints PASS/FAIL per gate.
 """
-import struct, json, sys, os
-import math
+import struct
+import json
+import sys
+import os
 
 PATH = sys.argv[1] if len(sys.argv) > 1 else "genio_client/public/models/genio_mascot_master.glb"
 MAX_MB = float((sys.argv[sys.argv.index("--max-mb") + 1] if "--max-mb" in sys.argv else 60))

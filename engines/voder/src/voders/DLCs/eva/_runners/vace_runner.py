@@ -144,7 +144,7 @@ def handle_edit(spec):
     seed = int(spec.get("seed", 0))
     generator = torch.Generator(device=device).manual_seed(seed)
     num_frames = max(1, int(duration * 24))
-    print(f"Editing video with Wan VACE...")
+    print("Editing video with Wan VACE...")
     from PIL import Image
     kwargs = dict(
         prompt=prompt,

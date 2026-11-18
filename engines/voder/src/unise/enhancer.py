@@ -6,7 +6,6 @@ import numpy as np
 import soundfile as sf
 import tempfile
 import subprocess
-from pathlib import Path
 
 
 class UniSEEnhancer:

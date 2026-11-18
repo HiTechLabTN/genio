@@ -57,7 +57,7 @@ def downscale_video(video_path, max_width, max_height, output_path=None):
         if result.returncode == 0:
             print(f"Video downscaled to {output_path} (LANCZOS via ffmpeg)")
             return output_path
-        print(f"Video downscale failed, using original")
+        print("Video downscale failed, using original")
         return video_path
     except Exception as e:
         print(f"Video downscale error: {e}")

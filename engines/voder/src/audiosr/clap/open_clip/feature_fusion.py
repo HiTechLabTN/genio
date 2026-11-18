@@ -104,7 +104,7 @@ class iAFF(nn.Module):
                 nn.BatchNorm2d(channels),
             )
         else:
-            raise f"the type is not supported"
+            raise "the type is not supported"
 
         self.sigmoid = nn.Sigmoid()
 
@@ -172,7 +172,7 @@ class AFF(nn.Module):
                 nn.BatchNorm2d(channels),
             )
         else:
-            raise f"the type is not supported."
+            raise "the type is not supported."
 
         self.sigmoid = nn.Sigmoid()
 

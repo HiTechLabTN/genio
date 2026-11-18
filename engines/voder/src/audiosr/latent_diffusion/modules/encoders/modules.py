@@ -22,7 +22,7 @@ except ImportError:
     TextEncoder = None
 from audiosr.latent_diffusion.util import instantiate_from_config
 
-from transformers import AutoTokenizer, T5Config
+from transformers import T5Config
 
 
 import numpy as np

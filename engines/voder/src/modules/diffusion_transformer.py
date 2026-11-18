@@ -16,8 +16,6 @@ from torch.nn.utils import weight_norm
 from dataclasses import dataclass
 from typing import Optional
 
-import torch
-import torch.nn as nn
 from torch import Tensor
 from torch.nn import functional as F
 

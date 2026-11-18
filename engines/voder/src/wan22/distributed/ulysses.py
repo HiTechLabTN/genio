@@ -1,5 +1,4 @@
 # Copyright 2024-2025 The Alibaba Wan Team Authors. All rights reserved.
-import torch
 import torch.distributed as dist
 
 from ..modules.attention import flash_attention

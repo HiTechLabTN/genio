@@ -56,7 +56,7 @@ def cli_sfx_mode():
         return False
 
     try:
-        print(f"\nGenerating sound effect...")
+        print("\nGenerating sound effect...")
         audio = generator.generate(prompt, duration, steps=30, guidance_scale=4.5)
         if audio is None:
             print("Error: Generation failed")

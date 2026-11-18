@@ -47,7 +47,6 @@ from acestep.handler import AceStepHandler
 from acestep.llm_inference import LLMHandler
 from acestep.constants import (
     DEFAULT_DIT_INSTRUCTION,
-    DEFAULT_LM_INSTRUCTION,
     TASK_INSTRUCTIONS,
 )
 from acestep.inference import (
@@ -60,12 +59,9 @@ from acestep.inference import (
 from acestep.gradio_ui.events.results_handlers import _build_generation_info
 from acestep.gpu_config import (
     get_gpu_config,
-    get_gpu_memory_gb,
-    print_gpu_config_info,
     set_global_gpu_config,
     get_recommended_lm_model,
     is_lm_model_supported,
-    GPUConfig,
 )
 
 
@@ -1524,9 +1520,9 @@ def create_app() -> FastAPI:
         print(f"{'='*60}\n")
 
         if auto_offload:
-            print(f"[API Server] Auto-enabling CPU offload (GPU < 16GB)")
+            print("[API Server] Auto-enabling CPU offload (GPU < 16GB)")
         elif gpu_memory_gb > 0:
-            print(f"[API Server] CPU offload disabled by default (GPU >= 16GB)")
+            print("[API Server] CPU offload disabled by default (GPU >= 16GB)")
         else:
             print("[API Server] No GPU detected, running on CPU")
 
@@ -1542,7 +1538,7 @@ def create_app() -> FastAPI:
         else:
             offload_to_cpu = auto_offload
             if auto_offload:
-                print(f"[API Server] Auto-setting offload_to_cpu=True based on GPU memory")
+                print("[API Server] Auto-setting offload_to_cpu=True based on GPU memory")
 
         offload_dit_to_cpu = _env_bool("ACESTEP_OFFLOAD_DIT_TO_CPU", False)
 

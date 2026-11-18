@@ -31,7 +31,6 @@ Security contract (see task reqs 1-12):
 from __future__ import annotations
 
 import asyncio
-import hashlib
 import hmac
 import logging
 import os

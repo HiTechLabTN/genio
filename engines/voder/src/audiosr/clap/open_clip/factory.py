@@ -12,7 +12,7 @@ from .openai import load_openai_model
 from .pretrained import get_pretrained_url, download_pretrained
 from .transform import image_transform
 
-_MODEL_CONFIG_PATHS = [Path(__file__).parent / f"model_configs/"]
+_MODEL_CONFIG_PATHS = [Path(__file__).parent / "model_configs/"]
 _MODEL_CONFIGS = {}  # directory (model_name: config) of model architecture configs
 
 
@@ -97,7 +97,7 @@ def create_model(
             )
             raise RuntimeError(f"Model config for {amodel_name} not found.")
 
-        logging.info(f"Loading pretrained ViT-B-16 text encoder from OpenAI.")
+        logging.info("Loading pretrained ViT-B-16 text encoder from OpenAI.")
         # Hard Code in model name
         model_cfg["text_cfg"]["model_type"] = tmodel_name
         model = load_openai_model(
@@ -219,7 +219,7 @@ def create_model(
                 else:
                     raise ValueError("Unknown audio checkpoint")
             else:
-                raise f"this audio encoder pretrained checkpoint is not support"
+                raise "this audio encoder pretrained checkpoint is not support"
 
             model.load_state_dict(audio_ckpt, strict=False)
             logging.info(

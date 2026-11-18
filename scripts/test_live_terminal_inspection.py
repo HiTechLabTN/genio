@@ -242,7 +242,7 @@ async def run() -> None:
         "# Genio — Live Vision-CLI Diagnostic Test",
         "",
         f"- **Date**: {TS}",
-        f"- **Model used**: gemma4:12b (primary, with qwen2.5vl:7b fallback)",
+        "- **Model used**: gemma4:12b (primary, with qwen2.5vl:7b fallback)",
         f"- **Screenshot**: `{SCREENSHOT_PATH.name}`",
         f"- **Latency**: {result['latency_s']}s",
         f"- **VRAM**: {_VRAM_STATE['baseline']} MiB baseline → {peak} MiB peak",

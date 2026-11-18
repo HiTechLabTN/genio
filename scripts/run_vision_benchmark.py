@@ -21,7 +21,7 @@ import threading
 import time
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict
 
 import httpx
 
@@ -175,8 +175,8 @@ def build_report(download: Dict[str, Any], image: Path, vram_before: int,
         "# Genio — Qwen2.5-VL-7B Vision Benchmark (RTX 3060)",
         "",
         f"- **Date**: {now_iso()}",
-        f"- **Host GPU**: NVIDIA GeForce RTX 3060 (12 GB)",
-        f"- **Ollama version**: CLI",
+        "- **Host GPU**: NVIDIA GeForce RTX 3060 (12 GB)",
+        "- **Ollama version**: CLI",
         f"- **Model**: `{download.get('name')}` ({download.get('size_label', '?')})",
         "",
         "## 1. Model Download",
@@ -188,14 +188,14 @@ def build_report(download: Dict[str, Any], image: Path, vram_before: int,
         "",
         f"- Path: `{image}`",
         f"- Size on disk: {image.stat().st_size} bytes",
-        f"- Description: synthetic DevOps terminal failure screenshot "
+        "- Description: synthetic DevOps terminal failure screenshot "
         "(nginx `502 Bad Gateway`, systemd `app-worker.service failed "
         "(code=exited, status=1/FAILURE)`, docker.sock `Permission denied`)",
         "",
         "## 3. Inference",
         "",
         f"- Endpoint: `{GENERATE_URL}`",
-        f"- Stream: `false`",
+        "- Stream: `false`",
         f"- Prompt: \"{PROMPT}\"",
         f"- Total latency: **{result['latency_s']} s**",
         f"- Generated tokens: `{result['eval_count']}`",
@@ -222,13 +222,13 @@ def build_report(download: Dict[str, Any], image: Path, vram_before: int,
         "",
         f"- **Signal detection**: detected `app-worker.service` failure + docker.sock "
         f"`Permission denied`, and the upstream `502 Bad Gateway` — {2 or 3}/3 root causes.",
-        f"- **Root-cause reasoning**: correctly linked the 502 to the dead backend "
-        f"`127.0.0.1:8080` served by the failed worker unit.",
-        f"- **Self-Healing actions**: `systemctl restart/status`, permission "
-        f"remediation (`chmod`/`chown`), nginx health checks, backend curl probe.",
-        f"- **Language adherence**: Arabic ✓, but Egyptian-flavored dialect "
-        f"(\"دي كده\", \"إحنا بنقول\") instead of requested Tunisian darja — partial ✓.",
-        f"- **Minor artifacts**: one stray non-Arabic token (\"复查\") in the summary.",
+        "- **Root-cause reasoning**: correctly linked the 502 to the dead backend "
+        "`127.0.0.1:8080` served by the failed worker unit.",
+        "- **Self-Healing actions**: `systemctl restart/status`, permission "
+        "remediation (`chmod`/`chown`), nginx health checks, backend curl probe.",
+        "- **Language adherence**: Arabic ✓, but Egyptian-flavored dialect "
+        "(\"دي كده\", \"إحنا بنقول\") instead of requested Tunisian darja — partial ✓.",
+        "- **Minor artifacts**: one stray non-Arabic token (\"复查\") in the summary.",
         "",
         "**Conclusion**: strong vision-OCR + fault diagnosis for a 7B multimodal "
         "model; repair steps are actionable and ordered. Dialect fidelity and the "

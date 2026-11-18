@@ -6,7 +6,6 @@ import torch
 from transformers import PreTrainedTokenizerFast
 
 from fish_speech.content_sequence import (
-    AudioPart,
     BasePart,
     ContentSequence,
     EncodedMessage,

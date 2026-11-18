@@ -1,9 +1,7 @@
 # Copyright 2024-2025 The Alibaba Wan Team Authors. All rights reserved.
 import math
-import types
 from copy import deepcopy
 
-import numpy as np
 import torch
 import torch.cuda.amp as amp
 import torch.nn as nn
@@ -21,7 +19,6 @@ from ..model import (
     Head,
     WanAttentionBlock,
     WanLayerNorm,
-    WanModel,
     WanSelfAttention,
     flash_attention,
     rope_params,

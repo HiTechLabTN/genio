@@ -16,7 +16,6 @@ Guard rules under test:
 """
 import os
 import sys
-import tempfile
 
 sys.path.insert(0, "/data/ai_tools/genio")
 
@@ -151,7 +150,6 @@ def test_load_spec_file_inside_trusted_dir(tmp_path, monkeypatch):
 # execute — base URL guard + no request to forbidden destination
 # --------------------------------------------------------------------------- #
 def test_execute_base_url_forbidden_no_request():
-    import json
     import genio_server.server.api_engine as eng
     clear()
     # Load a spec whose base URL points at loopback (via inline dict — the
@@ -489,7 +487,6 @@ def test_execute_malformed_base_no_raise():
 def test_allow_private_does_not_widen_file_reads(monkeypatch):
     # GENIO_API_ALLOW_PRIVATE=1 lifts NETWORK checks only. Spec FILE
     # containment applies regardless.
-    import os as _os
     monkeypatch.setenv("GENIO_API_ALLOW_PRIVATE", "1")
     assert _blocked_url("http://127.0.0.1/") is None  # network lifted
     ok, _, why = _trusted_spec_file("/etc/passwd")

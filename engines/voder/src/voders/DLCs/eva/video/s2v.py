@@ -21,7 +21,7 @@ class S2VWrapper:
         from voders.DLCs.eva._envrunner import venv_exists
         if venv_exists(ENV_KEY):
             return True
-        print(f"Wan2.2-S2V env not set up. Run: python setup.py --envs animate")
+        print("Wan2.2-S2V env not set up. Run: python setup.py --envs animate")
         return False
 
     def lipsync(self, reference_image, audio_path, output_path, prompt="", seed=-1,
@@ -40,7 +40,7 @@ class S2VWrapper:
         else:
             print(f"Error: audio file not found: {audio_path}")
             return False
-        print(f"Generating lip-sync video with Wan2.2-S2V...")
+        print("Generating lip-sync video with Wan2.2-S2V...")
         spec = {
             "action": "lipsync",
             "reference_image": ref_resolved,

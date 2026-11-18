@@ -74,7 +74,6 @@ def _load_pipeline(checkpoint_dir):
 
 
 def handle_lipsync(spec):
-    import torch
     from voders.DLCs.eva._paths import S2V_DIR
     pipeline = _load_pipeline(S2V_DIR)
     ref_image_path = spec["reference_image"]

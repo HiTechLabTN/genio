@@ -15,7 +15,6 @@ No commit, no staging changes by these tests.
 """
 import io
 import os
-import struct
 import sys
 
 sys.path.insert(0, "/data/ai_tools/genio")
@@ -147,7 +146,6 @@ def test_numbers_punctuation_speak():
 # Preserved paths — Qwen set unchanged, FR/EN untouched by this work
 # --------------------------------------------------------------------------- #
 def test_qwen_language_set_unchanged():
-    import ast
     src = open("/data/ai_tools/genio/engines/voder/voder_service.py").read()
     assert '"ar"' not in src.split("SUPPORTED_LANGUAGES")[1].split("}")[0], \
         "ar must stay out of the Qwen set (model limitation, honest 422)"

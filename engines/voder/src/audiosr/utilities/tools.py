@@ -16,7 +16,6 @@ from matplotlib import pyplot as plt
 matplotlib.use("Agg")
 
 import hashlib
-import os
 
 import requests
 from tqdm import tqdm

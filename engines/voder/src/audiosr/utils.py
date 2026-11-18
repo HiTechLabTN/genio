@@ -245,7 +245,8 @@ def get_time():
 
 
 def seed_everything(seed):
-    import random, os
+    import random
+    import os
     import numpy as np
     import torch
 
@@ -293,14 +294,14 @@ def save_wave(waveform, inputpath, savepath, name="outwav", samplerate=16000):
         if waveform.shape[0] > 1:
             fname = "%s_%s.wav" % (
                 os.path.basename(name[i])
-                if (not ".wav" in name[i])
+                if (".wav" not in name[i])
                 else os.path.basename(name[i]).split(".")[0],
                 i,
             )
         else:
             fname = (
                 "%s.wav" % os.path.basename(name[i])
-                if (not ".wav" in name[i])
+                if (".wav" not in name[i])
                 else os.path.basename(name[i]).split(".")[0]
             )
             # Avoid the file name too long to be saved
@@ -347,7 +348,7 @@ def get_obj_from_str(string, reload=False):
 
 
 def instantiate_from_config(config):
-    if not "target" in config:
+    if "target" not in config:
         if config == "__is_first_stage__":
             return None
         elif config == "__is_unconditional__":

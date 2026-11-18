@@ -48,7 +48,6 @@ def main():
 
 
 def _load_model():
-    import torch
     from transformers import AutoModel, AutoProcessor
     ckpt = "google/siglip2-giant-opt-patch16-384"
     print("Loading SigLIP 2 giant...")

@@ -366,7 +366,7 @@ class LPMetrics(object):
         elif name == "mauc":
             return get_mauc
         else:
-            raise ValueError(f"the metric should be at least one of [map, acc, mauc]")
+            raise ValueError("the metric should be at least one of [map, acc, mauc]")
 
     def evaluate_mertics(self, pred, target):
         metric_dict = {}
@@ -390,7 +390,7 @@ class LPLoss(nn.Module):
         elif loss_name == "mse":
             self.loss_func = nn.MSELoss()
         else:
-            raise ValueError(f"the loss func should be at least one of [bce, ce, mse]")
+            raise ValueError("the loss func should be at least one of [bce, ce, mse]")
 
     def forward(self, pred, target):
         loss = self.loss_func(pred, target)

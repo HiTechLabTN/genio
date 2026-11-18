@@ -12,7 +12,6 @@ import torch
 from torch import nn
 import torch.nn.functional as F
 from typing import Optional
-import math
 
 from x_transformers.x_transformers import RotaryEmbedding, apply_rotary_pos_emb
 

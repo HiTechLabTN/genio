@@ -106,7 +106,7 @@ class SlidingWindowFeature(np.lib.mixins.NDArrayOperatorsMixin):
         self.__i += 1
         try:
             return self.sliding_window[self.__i], self.data[self.__i]
-        except IndexError as e:
+        except IndexError:
             raise StopIteration()
 
     def next(self):

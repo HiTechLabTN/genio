@@ -4,9 +4,7 @@ Generates dark-mode, neon-accented SVG/HTML cards for Ghost publication.
 """
 from __future__ import annotations
 
-from typing import Optional
 
-from loguru import logger
 
 
 def generate_callout_box(title: str, text: str, kind: str = "warn") -> str:

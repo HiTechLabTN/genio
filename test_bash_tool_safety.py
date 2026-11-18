@@ -88,7 +88,6 @@ def test_relative_destructive_needs_approval_by_default(cmd: str):
 
 
 def test_relative_destructive_allowed_in_explicit_workspace(tmp_path, monkeypatch):
-    import os
     from genio_server.tools.bash_tool import run_command
     (tmp_path / "build").mkdir()
     (tmp_path / "build" / "x.o").write_text("obj")

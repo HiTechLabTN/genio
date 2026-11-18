@@ -24,9 +24,7 @@ Usage:
     python extract_mesh.py --ckpt ckpt_rank0.pt ckpt_rank1.pt --data_dir data/scene
 """
 
-import argparse
 import math
-import os
 
 import numpy as np
 import open3d as o3d
@@ -39,9 +37,7 @@ from skimage import measure
 import trimesh
 
 from gsplat.rendering import rasterization
-from .opencv import Parser
 from concurrent.futures import ThreadPoolExecutor
-import threading
 
 
 # ============ Checkpoint Loading (same as show_gs.py) ============

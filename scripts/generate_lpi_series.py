@@ -287,7 +287,7 @@ def build_storyboard(module: Dict[str, Any], markdown: str) -> Dict[str, Any]:
 
     act_defs = [
         ("hook",
-         f"⚠️ المشكل اللي يقع للكل؟",
+         "⚠️ المشكل اللي يقع للكل؟",
          "لقطة تحذير: شاشة حمراء فيها مثلا 'Permission denied' أو 'unit failed' ترتج ثم تستقر",
          "glitch_in", ["glitch", "whoosh"], "#f43f5e", "warning",
          ""),
