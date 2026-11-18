@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { speakArabic } from "../../lib/arabicVoice";
 
 const STORAGE_KEY = "genio:voice:enabled";
 
@@ -133,8 +134,12 @@ export function useVoiceOutput() {
     if (hasArabic) {
       cleaned = sanitizeForArabic(baseStripped);
       if (!cleaned) return;
-      lang = "ar-TN";
-      voiceLangPref = "ar";
+      // L'arabe est lu par le sidecar TTS local (127.0.0.1:5051, MMS-TTS-ara)
+      // car speechSynthesis du navigateur n'a pas de voix arabe sous Linux.
+      void speakArabic(cleaned).catch(() => {
+        /* sidecar indisponible — le texte reste la source de vérité, pas de son */
+      });
+      return;
     } else if (hasLatin) {
       cleaned = sanitizeForFrench(baseStripped);
       if (!cleaned) return;

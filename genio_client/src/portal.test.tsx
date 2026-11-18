@@ -32,7 +32,7 @@ describe("portal routes resolve", () => {
     expect(html).toMatch(/ما فماش زر تحميل وهمي/);
     expect(html).toContain("github.com/HiTechLabTN/genio/releases");
     const pd = productData as { artifacts: { archive: string } };
-    expect(pd.artifacts.archive).toContain("4.1.0");
+    expect(pd.artifacts.archive).toContain("5.0.0");
   });
   it("/explore shows blocked areas honestly (Tunisian-first)", () => {
     const html = renderAt("/explore", <ArchitectureExplorer />);
