@@ -1,44 +1,25 @@
+import { Globe, Shield, Sparkles, Zap } from "lucide-react";
 import { motion } from "framer-motion";
-import { Globe, Shield, Sparkles, Loader2, LogIn, Zap } from "lucide-react";
-import { useEffect, useState } from "react";
-import { signInWithGoogle, getGoogleProfile, getGoogleToken, hasGoogleAuth } from "../lib/googleAuth";
-import { getLang, t, mapError } from "../lib/lang";
+import { useState } from "react";
+import OAuthLoginButtons from "./OAuthLoginButtons";
+import { getLang, t } from "../lib/lang";
+import type { SessionUser } from "../lib/session";
 
 interface Props {
-  onAuthed: (token: string) => void;
+  sessionUser: SessionUser | null;
+  onAuthed: () => void;
   onSkip?: () => void;
 }
 
-export default function GoogleAuthOnboarding({ onAuthed, onSkip }: Props) {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+/**
+ * Login onboarding — backend-verified Google/GitHub OAuth.
+ * Never forces login: the skip path always stays available, and an
+ * already-logged-in user sees their verified account with Continue.
+ * No mock tokens, no demo bypass anywhere in this flow.
+ */
+export default function GoogleAuthOnboarding({ sessionUser, onAuthed, onSkip }: Props) {
   const [lang] = useState(getLang);
-
-  async function handleGoogle() {
-    setError(null);
-    setLoading(true);
-    try {
-      const token = await signInWithGoogle();
-      onAuthed(token);
-    } catch (e: unknown) {
-      const mapped = mapError(lang, e instanceof Error ? e.message : String(e));
-      setError(mapped.friendly);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  const profile = getGoogleProfile();
-  const already = hasGoogleAuth();
-
-  // P4: if stored token exists, auto-continue after 1.2s (no manual tap)
-  useEffect(() => {
-    if (!already) return;
-    const token = getGoogleToken();
-    if (!token) return;
-    const id = window.setTimeout(() => onAuthed(token), 1200);
-    return () => clearTimeout(id);
-  }, [already, onAuthed]);
+  const [error, setError] = useState<string | null>(null);
 
   return (
     <div className="flex h-screen w-full items-center justify-center bg-void px-6 py-8">
@@ -65,28 +46,31 @@ export default function GoogleAuthOnboarding({ onAuthed, onSkip }: Props) {
           </p>
         </div>
 
-        {already && profile?.email && (
+        {sessionUser ? (
           <div className="mb-4 flex items-center gap-3 rounded-xl border border-ok/20 bg-ok/5 px-4 py-3">
-            <img src={profile.picture || `https://api.dicebear.com/7.x/initials/svg?seed=${profile.email}`} alt="avatar" className="h-8 w-8 rounded-full" />
-            <div className="min-w-0">
-              <p className="truncate text-sm font-medium text-slate-100">{profile.name || profile.email}</p>
-              <p className="truncate font-mono text-[11px] text-ok">{t(lang, "auth.signed_in")}</p>
+            {sessionUser.picture ? (
+              <img src={sessionUser.picture} alt="avatar" className="h-8 w-8 rounded-full" />
+            ) : (
+              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-neon/20 font-bold text-neon">
+                {(sessionUser.name || sessionUser.email || "?").slice(0, 1)}
+              </span>
+            )}
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-medium text-slate-100">
+                {sessionUser.name || sessionUser.email}
+              </p>
+              <p className="truncate font-mono text-[11px] text-ok">
+                {t(lang, "auth.signed_in")} · {sessionUser.provider}
+              </p>
             </div>
           </div>
+        ) : (
+          <OAuthLoginButtons onError={setError} />
         )}
-
-        <button
-          onClick={handleGoogle}
-          disabled={loading}
-          className="flex w-full items-center justify-center gap-3 rounded-xl bg-white px-5 py-3 text-sm font-semibold text-slate-900 shadow hover:bg-slate-50 disabled:opacity-60"
-        >
-          {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Globe className="h-5 w-5 text-[#4285F4]" />}
-          {already ? t(lang, "auth.continue_google") : t(lang, "auth.google")}
-        </button>
 
         <div className="my-4 flex items-center gap-3">
           <div className="h-px flex-1 bg-slate-700/40" />
-          <span className="font-mono text-[10px] text-slate-600">SECURE • GEMINI 2.0 FLASH • DARIJA</span>
+          <span className="font-mono text-[10px] text-slate-600">SECURE • DARIJA</span>
           <div className="h-px flex-1 bg-slate-700/40" />
         </div>
 
@@ -97,11 +81,7 @@ export default function GoogleAuthOnboarding({ onAuthed, onSkip }: Props) {
 
         {error && (
           <div className="mt-4 rounded-lg border border-danger/20 bg-danger/10 px-3 py-2 text-center text-xs text-rose-300">
-            <p>{t(lang, "errors.auth")}</p>
-            <details className="mt-1">
-              <summary className="cursor-pointer font-mono text-[10px] text-slate-500">{t(lang, "errors.tech_details")}</summary>
-              <p className="mt-1 font-mono text-[10px] text-slate-500" dir="ltr">{error}</p>
-            </details>
+            <p>{error}</p>
           </div>
         )}
 
@@ -111,9 +91,14 @@ export default function GoogleAuthOnboarding({ onAuthed, onSkip }: Props) {
               {t(lang, "auth.skip")}
             </button>
           )}
-          <button onClick={() => onAuthed("mock-bypass-" + Date.now())} className="flex items-center gap-1 font-mono text-xs text-neon/70 hover:text-neon">
-            <LogIn className="h-3 w-3" /> Demo bypass
-          </button>
+          {(sessionUser || undefined) && (
+            <button
+              onClick={onAuthed}
+              className="font-mono text-xs text-neon/70 hover:text-neon"
+            >
+              {t(lang, "auth.continue")}
+            </button>
+          )}
         </div>
 
         <p className="mt-4 text-center font-mono text-[10px] text-slate-600">
@@ -125,5 +110,17 @@ export default function GoogleAuthOnboarding({ onAuthed, onSkip }: Props) {
 }
 
 export function shouldShowGoogleAuth(): boolean {
-  return !hasGoogleAuth();
+  // Login is optional: show the onboarding only when there is no
+  // verified session. Callers combine this with useSession().
+  try {
+    return localStorage.getItem("genio:auth:skip") !== "1";
+  } catch {
+    return true;
+  }
+}
+
+export function markAuthSkipped(): void {
+  try {
+    localStorage.setItem("genio:auth:skip", "1");
+  } catch {}
 }

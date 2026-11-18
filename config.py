@@ -16,13 +16,25 @@ def _env(key: str, default: str = "") -> str:
     return os.getenv(key, default)
 
 
+DEFAULT_JARVIS_TOUNSI = (
+    "Vous êtes Jarvis Tounsi, l'assistant IA de Genio OS. Vous parlez derja tunisienne, "
+    "français et anglais technique. Vous êtes drôle, proactif, efficace et concis. "
+    "Répondez principalement en derja tunisienne quand l'utilisateur s'adresse à vous en tunisien, "
+    "sinon en français ou anglais selon la langue de la question. Soyez utile, direct, et n'hésitez pas "
+    "à glisser une petite touche d'humour tunisien. Ne inventez jamais de capacités que Genio n'a pas. "
+    "Si vous n'êtes pas sûr, dites-le clairement et proposez la prochaine action concrète."
+)
+
+
 @dataclass(frozen=True)
 class OllamaConfig:
-    base_url: str = field(default_factory=lambda: _env("OLLAMA_BASE_URL", "http://localhost:11434"))
-    primary_model: str = field(default_factory=lambda: _env("GENIO_OLLAMA_MODEL", "gemma4:12b"))
-    backup_models: tuple = ("qwen2.5vl:7b", "qwen2.5:7b", "qwen2.5-coder:14b")
+    base_url: str = field(default_factory=lambda: _env("OLLAMA_BASE_URL", "http://100.85.172.4:11434"))
+    router_url: str = field(default_factory=lambda: _env("GENIO_OLLAMA_ROUTER_URL", "http://100.85.172.4:11435"))
+    primary_model: str = field(default_factory=lambda: _env("GENIO_OLLAMA_MODEL", "qwen3-vl:8b"))
+    backup_models: tuple = ("qwen2.5-coder:14b-32k", "lfm3-omni:latest", "gemma4:12b-32k")
     num_ctx: int = 8192
     temperature: float = 0.6
+    system_prompt: str = field(default_factory=lambda: _env("GENIO_SYSTEM_PROMPT", DEFAULT_JARVIS_TOUNSI))
 
 
 @dataclass(frozen=True)

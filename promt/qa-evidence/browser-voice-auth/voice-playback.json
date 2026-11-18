@@ -1,0 +1,39 @@
+{
+ "requests": [
+  {
+   "body": "{\"text\":\"متصل — Genio جاهز\",\"language\":\"ar\"}"
+  },
+  {
+   "body": "{\"text\":\"أنا جينيو، مهندس الذكاء الاصطناعي في مختبر هاي تيك، وموجود باش نعاونك في كل ما يخص التكنولوجيا والبرمجة.\",\"language\":\"ar\"}"
+  }
+ ],
+ "responses": [
+  {
+   "status": 200,
+   "bytes": 75820,
+   "riff": true
+  },
+  {
+   "status": 200,
+   "bytes": 421420,
+   "riff": true
+  }
+ ],
+ "play_calls": [
+  {
+   "t": 2,
+   "srcLen": 63,
+   "state": "resolved-playing"
+  },
+  {
+   "t": 7,
+   "srcLen": 57,
+   "state": "resolved-playing"
+  },
+  {
+   "t": 28,
+   "srcLen": 63,
+   "state": "resolved-playing"
+  }
+ ]
+}

@@ -79,6 +79,9 @@ _KILL_EVENTS: Dict[int, threading.Event] = {}
 _SCREEN_TASKS: Dict[int, asyncio.Task] = {}
 # Phase D: track session_ids per connection for container cleanup
 _SESSION_IDS: Dict[int, set] = {}
+# Phase 4 (identity): logged-in user id per WS connection (None = anonymous
+# or api-key caller). Drives session-ownership scoping, never authZ bypass.
+_WS_USERS: Dict[int, int] = {}
 _CLEANUP_TASK: Optional[asyncio.Task] = None
 
 app = FastAPI(
@@ -92,6 +95,16 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# OAuth login (Google/GitHub, backend-verified) — plain routes, no
+# changes to existing gates: api-key/Bearer behavior, rate limits and
+# the prod boot guard apply to these routes unchanged.
+try:
+    from genio_server.server.oauth_login import register_oauth_routes
+    register_oauth_routes(app)
+except Exception as _oauth_exc:  # pragma: no cover
+    logging.getLogger("genio").warning(
+        "oauth router unavailable: %s", _oauth_exc)
 
 
 # --------------------------------------------------------------------------- #
@@ -690,10 +703,30 @@ def _emit(ws: WebSocket, event: Dict[str, Any]) -> None:
 @app.websocket("/ws/agent")
 async def ws_agent(ws: WebSocket, node: str = Query(default=None)) -> None:
     await ws.accept()
-    if not _ws_authorized(ws):
+    # Phase 4 (identity, additive only): a valid login-session cookie also
+    # authorizes the socket and binds it to the user id for memory scoping.
+    # The legacy api-key/Bearer gate below is UNCHANGED when no cookie
+    # resolves — cookie auth strictly adds a path, never removes one.
+    ws_user_id: Optional[int] = None
+    try:
+        _cookie_hdr = ws.headers.get("cookie", "")
+        if _cookie_hdr:
+            from genio_server.server.oauth_login import (
+                get_session_user_from_cookie)
+            from genio_server.server.user_store import get_user_store
+            _tok = get_session_user_from_cookie(_cookie_hdr)
+            if _tok:
+                _u = await get_user_store().get_session_user(_tok)
+                if _u is not None:
+                    ws_user_id = int(_u["id"])
+    except Exception:
+        ws_user_id = None
+    if not _ws_authorized(ws) and ws_user_id is None:
         await safe_send(ws, {"type": "error", "message": "invalid or missing API key"})
         await ws.close(code=4401)
         return
+    if ws_user_id is not None:
+        _WS_USERS[id(ws)] = ws_user_id
 
     conn_id = id(ws)
     _ACTIVE_RUNS[conn_id] = False
@@ -797,6 +830,17 @@ async def ws_agent(ws: WebSocket, node: str = Query(default=None)) -> None:
                 if not sid:
                     await safe_send(ws, {"type": "error", "message": "missing session_id"})
                     continue
+                # Phase 4 (identity): an owned session only resumes for its
+                # owner. Unowned (legacy/anonymous) sessions keep working.
+                try:
+                    from genio_server.server.user_store import get_user_store
+                    _owner = await get_user_store().get_session_owner(sid)
+                    _me = _WS_USERS.get(conn_id)
+                    if _owner is not None and _me is not None and _owner != _me:
+                        await safe_send(ws, {"type": "error", "message": "session belongs to another user"})
+                        continue
+                except Exception:
+                    pass
                 try:
                     store = get_session_store()
                     session = await store.load_session(sid)
@@ -823,6 +867,21 @@ async def ws_agent(ws: WebSocket, node: str = Query(default=None)) -> None:
                 sid = str(msg.get("session_id") or "").strip() or None
                 if sid:
                     _SESSION_IDS.setdefault(conn_id, set()).add(sid)
+                    # Phase 4 (identity): bind a fresh agent session to its
+                    # owner (first writer wins, inside user_store); refuse
+                    # to continue a session owned by another user.
+                    try:
+                        from genio_server.server.user_store import get_user_store
+                        _me = _WS_USERS.get(conn_id)
+                        if _me is not None:
+                            _owner = await get_user_store().get_session_owner(sid)
+                            if _owner is not None and _owner != _me:
+                                _ACTIVE_RUNS[conn_id] = False
+                                await safe_send(ws, {"type": "error", "message": "session belongs to another user"})
+                                continue
+                            await get_user_store().set_session_owner(sid, _me)
+                    except Exception:
+                        pass
                 agent = AgentLoop(
                     mode=str(msg.get("mode", "autonomous")),
                     cancel_event=_KILL_EVENTS[conn_id],
@@ -920,6 +979,7 @@ async def ws_agent(ws: WebSocket, node: str = Query(default=None)) -> None:
         _stop_screen_task(conn_id)
         _ACTIVE_RUNS.pop(conn_id, None)
         _KILL_EVENTS.pop(conn_id, None)
+        _WS_USERS.pop(conn_id, None)
         _VOICE_STATE.pop(str(conn_id), None)
         _PENDING_TRANSCRIPT.pop(str(conn_id), None)
         # Phase D: cleanup containers for this connection's sessions

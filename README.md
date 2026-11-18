@@ -43,8 +43,8 @@ Genio وكيل ذكي (agent) يخدم محليًا ولا عبر السحاب �
 
 ```bash
 # AppImage + تحقق SHA-256
-curl -fsSL -o genio.AppImage https://github.com/HiTechLabTN/genio/releases/download/v5.0.0/genio-client_4.3.0_amd64.AppImage
-curl -fsSL -o genio.AppImage.sha256 https://github.com/HiTechLabTN/genio/releases/download/v5.0.0/genio-client_4.3.0_amd64.AppImage.sha256
+curl -fsSL -o genio.AppImage https://github.com/HiTechLabTN/genio/releases/download/v5.0.0/genio-client_5.0.0_amd64.AppImage
+curl -fsSL -o genio.AppImage.sha256 https://github.com/HiTechLabTN/genio/releases/download/v5.0.0/genio-client_5.0.0_amd64.AppImage.sha256
 sha256sum -c genio.AppImage.sha256
 ```
 

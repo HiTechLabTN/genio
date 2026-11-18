@@ -1,0 +1,28 @@
+{
+ "console_err": [
+  "error:Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+  "error:Applying inline style violates the following Content Security Policy directive 'style-src 'self' https://fonts.googleapis.com'. Either the 'unsafe-inline' keywo",
+  "error:Applying inline style violates the following Content Security Policy directive 'style-src 'self' https://fonts.googleapis.com'. Either the 'unsafe-inline' keywo",
+  "error:Applying inline style violates the following Content Security Policy directive 'style-src 'self' https://fonts.googleapis.com'. Either the 'unsafe-inline' keywo"
+ ],
+ "requests5051": [
+  {
+   "body": "{\"text\":\"متصل — Genio جاهز\",\"language\":\"ar\"}"
+  },
+  {
+   "body": "{\"text\":\"عسلامة! أنا جينيو، المهندس متاع الذكاء الاصطناعي في مختبر هاي تيك.\",\"language\":\"ar\"}"
+  }
+ ],
+ "responses5051": [
+  {
+   "status": 200,
+   "bytes": 0,
+   "riff": false
+  },
+  {
+   "status": 200,
+   "bytes": 0,
+   "riff": false
+  }
+ ]
+}

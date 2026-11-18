@@ -1,7 +1,8 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { Mic, Paperclip, Send, X, MessageCircle, Sparkles } from "lucide-react";
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
-import GoogleAuthOnboarding, { shouldShowGoogleAuth } from "./components/GoogleAuthOnboarding";
+import GoogleAuthOnboarding, { shouldShowGoogleAuth, markAuthSkipped } from "./components/GoogleAuthOnboarding";
+import { useSession } from "./hooks/useSession";
 import PermissionOnboarding, { shouldShowOnboarding } from "./components/PermissionOnboarding";
 import UpdateModal from "./components/UpdateModal";
 import { useGenioSocket } from "./hooks/useGenioSocket";
@@ -11,6 +12,7 @@ import { hasGoogleAuth } from "./lib/googleAuth";
 import type { Attachment, ServerNode } from "./lib/types";
 import { ErrorBoundary } from "./components/v3";
 import { useVoiceOutput } from "./components/v3/useVoiceOutput";
+import { hasArabicScript, speakArabic, stopArabic } from "./lib/arabicVoice";
 import IslamicPatterns from "./components/background/IslamicPatterns";
 import TelemetryBar from "./components/TelemetryBar";
 import { useTaskNotifications } from "./desktop/notifications";
@@ -87,12 +89,32 @@ export default function App() {
     }
   });
   const [lang] = useLang();
+  // Backend-verified session (HttpOnly cookie). Login stays optional:
+  // the onboarding shows when there is no session and the user never
+  // skipped; a successful OAuth callback lands on /app?login=ok.
+  const session = useSession();
   useEffect(() => {
-    if (!showGoogleAuth) return;
-    if (!hasGoogleAuth()) return;
-    const id = window.setTimeout(() => setShowGoogleAuth(false), 1200);
-    return () => clearTimeout(id);
-  }, [showGoogleAuth]);
+    try {
+      const q = new URLSearchParams(window.location.search);
+      const outcome = q.get("login");
+      if (!outcome) return;
+      q.delete("login");
+      q.delete("reason");
+      const url = `${window.location.pathname}${q.toString() ? `?${q.toString()}` : ""}`;
+      window.history.replaceState(null, "", url);
+      if (outcome === "ok") {
+        void session.refresh();
+        setShowGoogleAuth(false);
+      } else {
+        // Failed login: reopen the login screen (with its own retry
+        // states) instead of stranding the user.
+        setShowGoogleAuth(true);
+      }
+    } catch {
+      return undefined;
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Partie A — interface mascotte primaire par défaut, bascule technique ↔ mascotte
   // Écran par défaut = Mode technique (vue agent 2D légère, sans canvas 3D
@@ -246,14 +268,29 @@ export default function App() {
     const r = taskProc.result;
     if (r && r !== prevResultRef.current) {
       prevResultRef.current = r;
-      voice.speak(r);
+      // Arabic-script answers go to the local Arabic TTS sidecar (the
+      // browser SpeechSynthesis path has no Arabic voice on most Linux
+      // desktops, and Qwen3-TTS cannot do Arabic). French/English keep
+      // the existing browser-synthesis path untouched. On Arabic-voice
+      // failure we fall back to the browser path (best effort) — the
+      // written answer always remains readable with a retry affordance.
+      if (hasArabicScript(r)) {
+        void speakArabic(r).then((s) => {
+          if (!s.ok) voice.speak(r);
+        });
+      } else {
+        voice.speak(r);
+      }
       const t = window.setTimeout(() => taskProc.setIsMinimized(true), 700);
       return () => clearTimeout(t);
     }
     if (!r) prevResultRef.current = "";
   }, [taskProc.result, taskProc.setIsMinimized, voice]);
   useEffect(() => {
-    if (taskProc.isProcessing) voice.stop();
+    if (taskProc.isProcessing) {
+      voice.stop();
+      stopArabic();
+    }
   }, [taskProc.isProcessing, voice]);
 
   const [update, setUpdate] = useState<{ version: string; notes?: string } | null>(null);
@@ -615,7 +652,14 @@ export default function App() {
         <ErrorBoundary name="IslamicPatterns">
           <IslamicPatterns />
         </ErrorBoundary>
-        <GoogleAuthOnboarding onAuthed={() => setShowGoogleAuth(false)} onSkip={() => setShowGoogleAuth(false)} />
+        <GoogleAuthOnboarding
+          sessionUser={session.user}
+          onAuthed={() => setShowGoogleAuth(false)}
+          onSkip={() => {
+            markAuthSkipped();
+            setShowGoogleAuth(false);
+          }}
+        />
       </div>
     );
   }
@@ -910,12 +954,26 @@ export default function App() {
                         return (
                           <div key={i} className="rounded-xl border border-cyan-500/30 bg-cyan-500/10 p-3">
                             <p className="font-mono text-[12px] font-bold text-cyan-200">{cleanText}</p>
-                            <button
-                              onClick={() => setShowGoogleAuth(true)}
-                              className="mt-2 rounded-full bg-white px-4 py-1.5 font-mono text-[11px] font-bold text-slate-900 hover:bg-slate-100 transition-colors"
-                            >
-                              {t(lang, "errors.google_signin")}
-                            </button>
+                            {session.user ? (
+                              <div className="mt-2 flex items-center gap-2">
+                                <span className="font-mono text-[11px] text-ok">
+                                  {t(lang, "auth.account")}: {session.user.name || session.user.email} · {session.user.provider}
+                                </span>
+                                <button
+                                  onClick={() => void session.logout()}
+                                  className="rounded-full border border-slate-500/40 px-3 py-1 font-mono text-[11px] text-slate-300 hover:text-white transition-colors"
+                                >
+                                  {t(lang, "auth.logout")}
+                                </button>
+                              </div>
+                            ) : (
+                              <button
+                                onClick={() => setShowGoogleAuth(true)}
+                                className="mt-2 rounded-full bg-white px-4 py-1.5 font-mono text-[11px] font-bold text-slate-900 hover:bg-slate-100 transition-colors"
+                              >
+                                {t(lang, "errors.google_signin")}
+                              </button>
+                            )}
                           </div>
                         );
                       }

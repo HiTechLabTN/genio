@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Genio — Guide d'assistance OAuth (Google + GitHub)</title>
+<style>
+  :root { --bg: #020b1e; --card: #0a1730; --neon: #22d3ee; --ok: #34d399;
+    --warn: #fbbf24; --err: #fb7185; --txt: #e2e8f0; --mut: #94a3b8; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--txt);
+    font-family: "Segoe UI", Tahoma, Arial, sans-serif; line-height: 1.65; }
+  .wrap { max-width: 900px; margin: 0 auto; padding: 24px 18px 80px; }
+  h1 { font-size: 1.7rem; color: #fff; }
+  h2 { color: var(--neon); border-bottom: 1px solid #164e63;
+    padding-bottom: 6px; margin-top: 42px; }
+  h3 { color: #fff; margin-top: 26px; }
+  .card { background: var(--card); border: 1px solid #164e63; border-radius: 14px;
+    padding: 16px 18px; margin: 14px 0; }
+  .step { display: flex; gap: 12px; margin: 12px 0; }
+  .num { flex: 0 0 30px; height: 30px; border-radius: 50%;
+    background: var(--neon); color: #02141f; font-weight: 700;
+    display: flex; align-items: center; justify-content: center; }
+  code, .code { font-family: Consolas, monospace; font-size: 0.86em;
+    background: #02141f; padding: 2px 7px; border-radius: 6px;
+    border: 1px solid #164e63; word-break: break-all; }
+  pre { background: #02141f; border: 1px solid #164e63; border-radius: 10px;
+    padding: 12px 14px; overflow-x: auto; font-size: 0.82em; }
+  a.btn, .btn { display: inline-block; background: var(--neon); color: #02141f;
+    font-weight: 700; padding: 9px 18px; border-radius: 10px;
+    text-decoration: none; margin: 6px 8px 6px 0; }
+  a.btn.ghost { background: transparent; color: var(--neon);
+    border: 1px solid var(--neon); }
+  .warn { border-right: 4px solid var(--warn); }
+  .errb { border-right: 4px solid var(--err); }
+  .okb { border-right: 4px solid var(--ok); }
+  .mock { border: 2px dashed var(--warn); border-radius: 12px; padding: 14px;
+    margin: 14px 0; background: #0c1526; }
+  .mock .tag { display: inline-block; font-size: 0.72em; font-weight: 700;
+    background: var(--warn); color: #02141f; border-radius: 6px;
+    padding: 2px 10px; margin-bottom: 8px; }
+  .field { margin: 8px 0; }
+  .field label { display: block; font-size: 0.8em; color: var(--mut); margin-bottom: 3px; }
+  .field .val { background: #02141f; border: 1px solid var(--ok);
+    border-radius: 8px; padding: 7px 10px; font-family: Consolas, monospace;
+    font-size: 0.82em; word-break: break-all; }
+  table { width: 100%; border-collapse: collapse; font-size: 0.88em; }
+  th, td { border: 1px solid #164e63; padding: 8px 10px; text-align: right; }
+  th { background: #0c2540; }
+  .check li { margin: 7px 0; list-style: none; }
+  .check li::before { content: "☐ "; color: var(--neon); font-weight: 700; }
+  @media print { body { background: #fff; color: #111; } .card { border-color: #999; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>🧭 Genio — Guide d'assistance OAuth<br>
+<small style="font-size:1rem;color:var(--mut)">Google + GitHub · pas à pas avec liens directs</small></h1>
+
+<div class="card okb">
+  <b>Objectif :</b> créer les deux applications OAuth, renseigner 5 variables,
+  redémarrer le service, puis tester une vraie connexion depuis votre navigateur.
+  <b>Aucun secret réel</b> dans ce document — uniquement des exemples à remplacer.
+  <br><b>Note d'honnêteté :</b> les encadrés « schéma » ci-dessous sont des
+  maquettes illustratives (je ne peux pas capturer vos consoles, elles exigent
+  votre propre connexion). Les liens, eux, sont directs et officiels.
+</div>
+
+<h2>0 · Prérequis (2 minutes)</h2>
+<div class="card">
+  <div class="step"><div class="num">1</div><div>
+    Un <b>compte Google</b> (pour Cloud Console) et un <b>compte GitHub</b>.
+  </div></div>
+  <div class="step"><div class="num">2</div><div>
+    L'URL publique exacte du frontend Genio. Exemples de ce déploiement :
+    <br>dev → <code>http://localhost:8098</code>
+    <br>prod → <code>https://genio.hitech.tn</code>
+  </div></div>
+  <div class="step"><div class="num">3</div><div>
+    Accès SSH/sudo à la machine Genio (pour poser les variables + redémarrer).
+  </div></div>
+</div>
+
+<h2>A · Google — créer le client OAuth</h2>
+
+<div class="step"><div class="num">1</div><div>
+  Ouvrez la console (connectez-vous avec votre compte Google) :
+  <br><a class="btn" href="https://console.cloud.google.com/apis/credentials">🔗 Console → Identifiants (Credentials)</a>
+  <br><span style="color:var(--mut)">Si aucun projet : « Select a project » → New Project → nommez-le <code>genio</code> → Create.</span>
+</div></div>
+
+<div class="step"><div class="num">2</div><div>
+  <b>Écran de consentement OAuth</b> (obligatoire avant le client ID) :
+  <br><a class="btn ghost" href="https://console.cloud.google.com/apis/credentials/consent">🔗 Écran de consentement</a>
+  <ul>
+    <li>User type : <b>External</b> (ou Internal si Google Workspace).</li>
+    <li>Nom d'application : <code>Genio</code> · scopes : <code>openid</code>, <code>email</code>, <code>profile</code> uniquement.</li>
+    <li>Si External en mode <i>Testing</i> : ajoutez votre adresse Gmail dans <b>Test users</b>, sinon Google refusera votre propre connexion.</li>
+  </ul>
+</div></div>
+
+<div class="step"><div class="num">3</div><div>
+  Retournez dans <b>Credentials → Create Credentials → OAuth client ID</b>,
+  type <b>Web application</b>, puis ajoutez <b>exactement</b> cette URI
+  (copiez-collez, sans espace ni slash final) :
+  <div class="mock"><span class="tag">SCHÉMA ILLUSTRATIF — champ « Authorized redirect URIs »</span>
+    <div class="field"><label>Authorized redirect URIs → ADD URI</label>
+      <div class="val">http://localhost:8098/api/v1/auth/oauth/callback</div>
+    </div>
+    <div class="field"><label>prod (deuxième URI, même écran)</label>
+      <div class="val">https://genio.hitech.tn/api/v1/auth/oauth/callback</div>
+    </div>
+  </div>
+</div></div>
+
+<div class="step"><div class="num">4</div><div>
+  Cliquez <b>Create</b> → copiez <b>Client ID</b> (finit par
+  <code>.apps.googleusercontent.com</code>) et <b>Client Secret</b>
+  (<code>GOCSPX-…</code> affiché une seule fois).
+  <div class="card warn"><b>⚠ Ne les collez jamais</b> dans le frontend, git ou un chat public — variables d'environnement serveur uniquement (§C).</div>
+</div></div>
+
+<h2>B · GitHub — créer l'OAuth App</h2>
+
+<div class="step"><div class="num">1</div><div>
+  <br><a class="btn" href="https://github.com/settings/applications/new">🔗 Nouvelle OAuth App GitHub</a>
+  <br><span style="color:var(--mut)">(ou : avatar → Settings → Developer settings → OAuth Apps → New OAuth App)</span>
+</div></div>
+
+<div class="step"><div class="num">2</div><div>
+  Remplissez <b>exactement</b> :
+  <div class="mock"><span class="tag">SCHÉMA ILLUSTRATIF — formulaire GitHub</span>
+    <div class="field"><label>Application name</label><div class="val">Genio</div></div>
+    <div class="field"><label>Homepage URL</label><div class="val">http://localhost:8098</div></div>
+    <div class="field"><label>Authorization callback URL ⚠ (copie exacte)</label>
+      <div class="val">http://localhost:8098/api/v1/auth/oauth/callback</div></div>
+  </div>
+  <b>Register application</b> → copiez le <b>Client ID</b> (<code>Ov23…</code>),
+  puis <b>Generate a new client secret</b> (affiché une seule fois).
+</div></div>
+
+<h2>C · Poser les 5 variables + redémarrer</h2>
+<div class="card">
+<pre>sudo -e /etc/systemd/system/genio.service.d/oauth.conf
+# Collez (remplacez les xxxx par VOS valeurs copiées) :
+[Service]
+Environment=GENIO_GOOGLE_CLIENT_ID=1234567890-....apps.googleusercontent.com
+Environment=GENIO_GOOGLE_CLIENT_SECRET=GOCSPX-....
+Environment=GENIO_GITHUB_CLIENT_ID=Ov23....
+Environment=GENIO_GITHUB_CLIENT_SECRET=....
+Environment=GENIO_OAUTH_REDIRECT_BASE=http://localhost:8098
+# GENIO_SESSION_TTL=604800   # optionnel (défaut 7 jours)
+
+sudo systemctl daemon-reload && sudo systemctl restart genio.service
+curl -s http://127.0.0.1:8000/api/v1/auth/oauth/google/start | head -c 120
+# Attendu : {"ok":true,"auth_url":"https://accounts.google.com/..."}</pre>
+</div>
+
+<h2>D · Tester la vraie connexion (vous, dans votre navigateur)</h2>
+<div class="step"><div class="num">1</div><div>Ouvrez Genio → cliquez <b>« ادخل بـ Google »</b> → complétez chez Google → retour auto sur <code>/app?login=ok</code> + prénom/avatar affichés.</div></div>
+<div class="step"><div class="num">2</div><div>Déconnectez-vous (bouton <b>اخرج</b>) → recommencez avec <b>GitHub</b> → autorisez → même vérification.</div></div>
+<div class="step"><div class="num">3</div><div>Envoyez-moi : ce que chaque étape a affiché (ok/erreur + libellé exact). Je vérifierai côté serveur : callback/state/PKCE/XSRF/session, isolation croisée, binding WebSocket.</div></div>
+
+<h2>E · Dépannage rapide</h2>
+<table>
+  <tr><th>Symptôme</th><th>Cause probable</th><th>Correctif</th></tr>
+  <tr><td>Bouton → erreur « تسجيل الدخول موش مفعّل »</td><td>Variables absentes / service non redémarré</td><td>§C + restart, retester <code>/start</code></td></tr>
+  <tr><td>Google : <code>redirect_uri_mismatch</code> (Error 400)</td><td>L'URI enregistrée ≠ l'URI envoyée au caractère près</td><td>Recopier l'URI du §A-3, attendre 5 min (propagation)</td></tr>
+  <tr><td>GitHub : <code>redirect_uri_mismatch</code></td><td>Callback URL inexacte</td><td>Recopier l'URI du §B, vérifier l'absence de slash final</td></tr>
+  <tr><td>Retour <code>?login=error&reason=identity_failed</code></td><td>Consent refusé / email non vérifié / horloge machine décalée</td><td>Réessayer, vérifier l'heure système</td></tr>
+  <tr><td>Test users rejeté (Google)</td><td>App en mode Testing sans votre email en testeur</td><td>Ajouter l'email (§A-2)</td></tr>
+</table>
+
+<h2>F · Sécurité (rappels non négociables)</h2>
+<div class="card errb">
+  <ul>
+    <li>Secrets <b>uniquement</b> en variables d'environnement serveur — jamais frontend/git/chat/logs.</li>
+    <li>Une seule callback enregistrée par provider (celle du §A-3/§B) — le backend refuse toute autre.</li>
+    <li>Pas de liaison automatique Google↔GitHub par email : même adresse = deux comptes séparés.</li>
+    <li>Docs officielles :
+      <a class="btn ghost" href="https://developers.google.com/identity/openid-connect/openid-connect">OpenID Connect Google</a>
+      <a class="btn ghost" href="https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/creating-an-oauth-app">OAuth Apps GitHub</a>
+    </li>
+  </ul>
+</div>
+
+<ul class="check">
+  <li>App Google créée + redirect URIs exactes</li>
+  <li>App GitHub créée + callback URL exacte</li>
+  <li>5 variables posées + restart + <code>/start</code> → auth_url</li>
+  <li>Login Google réel OK (nom/avatar affichés)</li>
+  <li>Logout OK · Login GitHub réel OK</li>
+  <li>Résultats envoyés pour vérification serveur finale</li>
+</ul>
+
+<p style="color:var(--mut);font-size:0.8em">Genio · guide généré le 2026-10-12 · valeurs secrètes = exemples à remplacer (aucun credential réel dans ce fichier).</p>
+
+</div>
+</body>
+</html>

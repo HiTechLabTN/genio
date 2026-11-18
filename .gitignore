@@ -54,6 +54,11 @@ venv_voder/
 **/*.key
 .env.*
 
+# 6. Artefacts de build / release à ne jamais tracker (ni committer).
+**/*.zip
+feedback_memory.json.lock
+unsloth_compiled_cache/
+
 # Phase 30 : workdirs de session éphémères (tests/conteneurs)
 state/session_workdirs/
 

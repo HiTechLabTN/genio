@@ -1,9 +1,9 @@
 {
   "generated_from": "authoritative repo sources (see scripts/gen-product-data.mjs)",
   "product": "genio",
-  "version": "4.1.0",
+  "version": "5.0.0",
   "installer_version": "1.0.0",
-  "client_version": "4.3.0",
+  "client_version": "5.0.0",
   "ipc_protocol": "1.0",
   "api_routes": 17,
   "ipc_error_codes": [
@@ -44,12 +44,12 @@
     "vision"
   ],
   "artifacts": {
-    "base": "https://github.com/HiTechLabTN/genio/releases/tag/v4.1.0",
-    "archive": "https://github.com/HiTechLabTN/genio/releases/download/v4.1.0/genio-4.1.0.tar.gz",
-    "checksum": "https://github.com/HiTechLabTN/genio/releases/download/v4.1.0/genio-4.1.0.tar.gz.sha256",
-    "manifest": "https://github.com/HiTechLabTN/genio/releases/download/v4.1.0/genio-4.1.0.release.json",
-    "sbom": "https://github.com/HiTechLabTN/genio/releases/download/v4.1.0/sbom.json",
-    "docker": "ghcr.io/hitechlabtn/genio:4.1.0"
+    "base": "https://github.com/HiTechLabTN/genio/releases/tag/v5.0.0",
+    "archive": "https://github.com/HiTechLabTN/genio/releases/download/v5.0.0/genio-5.0.0.tar.gz",
+    "checksum": "https://github.com/HiTechLabTN/genio/releases/download/v5.0.0/genio-5.0.0.tar.gz.sha256",
+    "manifest": "https://github.com/HiTechLabTN/genio/releases/download/v5.0.0/genio-5.0.0.release.json",
+    "sbom": "https://github.com/HiTechLabTN/genio/releases/download/v5.0.0/sbom.json",
+    "docker": "ghcr.io/hitechlabtn/genio:5.0.0"
   },
   "platforms": {
     "linux": {
@@ -62,7 +62,7 @@
     },
     "docker": {
       "status": "supported",
-      "image": "ghcr.io/hitechlabtn/genio:4.1.0"
+      "image": "ghcr.io/hitechlabtn/genio:5.0.0"
     },
     "windows": {
       "status": "unavailable",
@@ -79,10 +79,10 @@
   },
   "release_notes": "- Smart installer (`installer/genio`): install/doctor/status/repair/\n  update/rollback/uninstall, manifests, backups, port detection.\n- Release archives `.tar.g\n\n- VODER `language=\"ar\"` 500 → default `auto` + explicit 422.\n- Strict-mode keyless boot refused (boot guard + tests).\n- CI: pinned ruff, portable test paths, Playwright browsers, missing\n  PWA asset, sibling-path guard.\n- Docker context: secrets/weights excluded (proven).",
   "public_release": {
-    "appimage": "https://github.com/HiTechLabTN/genio/releases/download/v5.0.0/genio-client_4.3.0_amd64.AppImage",
-    "appimage_sha256": "https://github.com/HiTechLabTN/genio/releases/download/v5.0.0/genio-client_4.3.0_amd64.AppImage.sha256",
-    "deb": "https://github.com/HiTechLabTN/genio/releases/download/v5.0.0/genio-client_4.3.0_amd64.deb",
-    "deb_sha256": "https://github.com/HiTechLabTN/genio/releases/download/v5.0.0/genio-client_4.3.0_amd64.deb.sha256",
+    "appimage": "https://github.com/HiTechLabTN/genio/releases/download/v5.0.0/genio-client_5.0.0_amd64.AppImage",
+    "appimage_sha256": "https://github.com/HiTechLabTN/genio/releases/download/v5.0.0/genio-client_5.0.0_amd64.AppImage.sha256",
+    "deb": "https://github.com/HiTechLabTN/genio/releases/download/v5.0.0/genio-client_5.0.0_amd64.deb",
+    "deb_sha256": "https://github.com/HiTechLabTN/genio/releases/download/v5.0.0/genio-client_5.0.0_amd64.deb.sha256",
     "docker": "ghcr.io/hitechlabtn/genio:5.0.0",
     "manifest": "https://github.com/HiTechLabTN/genio/releases/download/v5.0.0/genio-5.0.0.manifest.json",
     "notes": "https://github.com/HiTechLabTN/genio/releases/tag/v5.0.0",

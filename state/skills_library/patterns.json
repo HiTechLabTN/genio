@@ -13,5 +13,134 @@
       }
     ],
     "compiled_at": "2026-09-22T23:41:04Z"
+  },
+  {
+    "name": "auto-1790916251",
+    "description": "compiled from prompt: chna7wel el serveur mta3na",
+    "prompt_re": "(?=.*\\bchna7wel\\b)(?=.*\\bserveur\\b)(?=.*\\bmta3na\\b).*",
+    "params": [],
+    "steps": [
+      {
+        "command": "netstat -tuln | grep -E ':80|:443|:8000|:5000'"
+      },
+      {
+        "command": "free -h && df -h / && uptime"
+      }
+    ],
+    "compiled_at": "2026-10-02T04:44:11Z"
+  },
+  {
+    "name": "auto-1791495870",
+    "description": "compiled from prompt: نحب نعمل backup للـdocuments متاعي.",
+    "prompt_re": "(?=.*\\bللـdocuments\\b)(?=.*\\bbackup\\b)(?=.*\\bمتاعي\\b).*",
+    "params": [],
+    "steps": [
+      {
+        "command": "ls -R ~/Documents"
+      },
+      {
+        "command": "mkdir -p ~/backup_documents && tar -czvf ~/backup_documents/documents_backup_$(date +%Y%m%d).tar.gz -C /home/hitech/Documents ."
+      }
+    ],
+    "compiled_at": "2026-10-08T21:44:30Z"
+  },
+  {
+    "name": "auto-1791502820",
+    "description": "compiled from prompt: جينيو، الحاسوب متاعي بطيء برشة، تنجم تشوفلي علاش؟",
+    "prompt_re": "(?=.*\\bالحاسوب\\b)(?=.*\\bتشوفلي\\b)(?=.*\\bجينيو\\b).*",
+    "params": [],
+    "steps": [
+      {
+        "command": "top -bn1 | head -n 20"
+      },
+      {
+        "command": "ps -up 2460256"
+      },
+      {
+        "command": "ps aux | grep python"
+      }
+    ],
+    "compiled_at": "2026-10-08T23:40:20Z"
+  },
+  {
+    "name": "auto-1791503317",
+    "description": "compiled from prompt: الحاسوب متاعي بطيء، شنوّة نعمل؟",
+    "prompt_re": "(?=.*\\bالحاسوب\\b)(?=.*\\bمتاعي\\b)(?=.*\\bبطيء\\b).*",
+    "params": [],
+    "steps": [
+      {
+        "command": "top -bn 1 | head -n 20"
+      },
+      {
+        "command": "ps -fp 2521013 -o args="
+      },
+      {
+        "command": "ps aux | grep python | grep -v grep"
+      }
+    ],
+    "compiled_at": "2026-10-08T23:48:37Z"
+  },
+  {
+    "name": "auto-1791510598",
+    "description": "compiled from prompt: نفّذ الأمر: ls /tmp/genio-gate-test",
+    "prompt_re": "(?=.*\\bgenio\\b)(?=.*\\bالأمر\\b)(?=.*\\bgate\\b).*",
+    "params": [],
+    "steps": [
+      {
+        "command": "ls /tmp/genio-gate-test"
+      },
+      {
+        "command": "cat /tmp/genio-gate-test/doomed.txt"
+      }
+    ],
+    "compiled_at": "2026-10-09T01:49:58Z"
+  },
+  {
+    "name": "auto-1791615336",
+    "description": "compiled from prompt: احذف ملف test_example_tmp.txt من المجلد الحالي.",
+    "prompt_re": "(?=.*\\btest_example_tmp\\b)(?=.*\\bالحالي\\b)(?=.*\\bالمجلد\\b).*",
+    "params": [],
+    "steps": [
+      {
+        "command": "ls -l test_example_tmp.txt"
+      },
+      {
+        "command": "ls -la"
+      },
+      {
+        "command": "find . -name \"test_example_tmp.txt\""
+      }
+    ],
+    "compiled_at": "2026-10-10T06:55:36Z"
+  },
+  {
+    "name": "auto-1791616313",
+    "description": "compiled from prompt: احذف ملف scratch.tmp من المجلد الحالي",
+    "prompt_re": "(?=.*\\bscratch\\b)(?=.*\\bالحالي\\b)(?=.*\\bالمجلد\\b).*",
+    "params": [],
+    "steps": [
+      {
+        "command": "ls -l scratch.tmp"
+      },
+      {
+        "command": "ls"
+      }
+    ],
+    "compiled_at": "2026-10-10T07:11:53Z"
+  },
+  {
+    "name": "auto-1791740541",
+    "description": "compiled from prompt: chna7wel el system famma des mise ) jour na9sin",
+    "prompt_re": "(?=.*\\bchna7wel\\b)(?=.*\\bna9sin\\b)(?=.*\\bsystem\\b).*",
+    "params": [],
+    "steps": [
+      {
+        "command": "sudo apt update && apt list --upgradable"
+      },
+      {
+        "command": "apt list --upgradable"
+      }
+    ],
+    "compiled_at": "2026-10-11T17:42:21Z"
   }
 ]

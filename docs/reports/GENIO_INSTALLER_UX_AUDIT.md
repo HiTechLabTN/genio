@@ -49,9 +49,9 @@ success + first-run invitation. No traceback anywhere; no `git-all`.
 | First-run menu (old) | `[1] جرّب / [2] لا` (all Debian logs) | TN | Partial | New start/how/no menu in tree has **zero live runs** (P0) |
 | Doctor | TN statuses (`سليم/ملاحظة/ناقص`), `--json` clean (code + test) | TN | Yes | None |
 | repair/update/rollback/status/uninstall operator lines | `REPAIR FAILED:`, `updated X -> Y`, `rolled back, commit=`, `diagnosis:` (`installer/genio:229-277`) | EN | Partial | Operator surfaces, not the main flow — acceptable short-term, should be keyed (P1) |
-| CANCELLED handler | `CANCELLED by user — ...` (`installer/genio:409`) | EN | **No** | Reachable by normal Ctrl-C users (P1) |
+| CANCELLED handler | `CANCELLED by user — ...` (`installer/genio:412`) | EN | **No** | Reachable by normal Ctrl-C users (P1) |
 
-English-leakage verdict: default main flow is TN-first **in the working tree** (TN default now forced in `resolve_lang`; bare `LANG` no longer switches language). Residual leaks are the apt flood, the `Installed…` line, CANCELLED, and operator subcommands.
+English-leakage verdict: default main flow is TN-first **in the working tree** (TN default now forced in `resolve_lang`; bare `LANG` no longer switches language). Residual leaks are the apt flood, the `Installed …` line, CANCELLED, and operator subcommands.
 
 ## 4. Tunisian Quality Score
 
@@ -73,7 +73,7 @@ Overall Tunisian UX: **~2.4 / 3** — natural Derja, correct tone; deductions fo
 ## 5. UX Audit
 
 Works: greeting → detection → explanation → single consent → real repair → honest verify → retry → install → smoke → invitation. Nontechnical users never need to know pip/venv/PATH; sudo is explained; `git-all`/`sudo pip` absent (map + AST-tested).
-Confusing: apt EN flood mid-conversation; unexplained `Installed <sha> …` line; CANCELLED in English; operator subcommands in English; new first-run menu never seen live.
+Confusing: apt EN flood mid-conversation; unexplained `Installed …` line; CANCELLED in English; operator subcommands in English; new first-run menu never seen live.
 
 ## 6. False-Ready Audit
 
@@ -88,7 +88,7 @@ State table: HEALTHY→success, PARTIAL→success+caveat, BLOCKED→abort-13, FA
 
 ## 7. Docker Audit
 
-Proven: MISSING detected → `docker.io` installed for real → re-detection → daemon unreachable → `DAEMON_DOWN` (`daemon not running`, from real CLI output) → honest skip + Tier-A continue. User learns: installed ✓, daemon ✗, permission untested, works-without ✓ (`Tier A`), next action ✓ (`genio doctor`).
+Proven: MISSING detected → `docker.io` installed for real → re-detect → daemon unreachable → `DAEMON_DOWN` (`daemon not running`, real CLI output) → honest skip + Tier-A continue. User learns: installed ✓, daemon ✗, permission untested, works-without ✓ (`Tier A`), next action ✓ (`genio doctor`).
 Not proven live: PERMISSION_DENIED execution (unit-tested against verbatim real message only — no spare OS user exists), daemon `systemctl enable --now` success path, `usermod -aG docker` recovery. User never needs socket/systemd/group knowledge unless they open technical details. Correct.
 
 ## 8. First-Run Audit
@@ -125,7 +125,7 @@ Shim `prefix/bin/genio` is created (code) but no evidence it was ever executed, 
 
 | Failure | Detection | Explanation | Recovery | Retry | Final state |
 |---|---|---|---|---|---|
-| git missing | ✅ live | ✅ TN + minimal pkg | ✅ live apt | n/a (bootstrap) | ✅ continue |
+| git missing | ✅ live | ✅ | ✅ live apt | n/a (bootstrap) | ✅ continue |
 | python3 missing | ✅ live | ✅ | ✅ live apt | — | ✅ continue |
 | pip missing / venv broken | ✅ live | ✅ | ✅ live apt | ✅ bounded | ✅ continue |
 | docker missing | ✅ live | ✅ | ✅ live install | ✅ | ✅ → daemon triage |
@@ -147,7 +147,7 @@ Consent before every privileged change (proven in logs, incl. details view); arg
 ## 14. Exact Remaining Problems
 
 **P0 (block product experience):**
-1. **No E2E of the current tree.** Every Debian transcript predates: partial-health success variant (half-covered by v2), start/how/no menu, launcher shim/start, TN-default `resolve_lang`, `start_cmd_real`, doubled-mark fix. Symptom: can't claim any of it works. Evidence: log timestamps vs commit dates. Desired: one fresh Debian-container full run on HEAD.
+1. **No E2E of the current tree.** Every Debian transcript predates the newest fixes (partial-health success, start/how menu, launcher shim/start, TN-default `resolve_lang`, doubled-mark fix). Symptom: can't claim any of it works. Evidence: log timestamps vs commit dates. Desired: one fresh Debian-container full run on HEAD.
 2. **`genio start` never executed live.** Symptom: unknown whether first-run start succeeds/fails honestly (container lacks ollama → expect honest failure path, also unproven). Desired: live `start` → observe honest outcome; live `stop`.
 3. **Permission-denied + daemon-repair never executed live.** Symptom: two central Docker branches are message-tested only. Desired: spare-user run or systemd host run.
 

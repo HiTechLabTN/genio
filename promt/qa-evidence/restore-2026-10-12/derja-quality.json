@@ -1,0 +1,17 @@
+{
+  "note": "Real Derja conversation tests via /api/chat (no mocks). Grades by native-level review.",
+  "tests": [
+    {"model": "gemma4:12b", "register": "casual",
+     "prompt": "عسلامة! شنوّة أحوالك اليوم؟ جاوبني بالتونسي كيما نحكيو في القهوة.",
+     "verdict": "EXCELLENT Derja — natural café register throughout",
+     "sample": "عسلامة! يا أهلاً بيك. والله لاباس... تجبّد الروح... هاني نسمع فيك!"},
+    {"model": "gemma4:12b", "register": "technical",
+     "prompt": "CPU 90%: first step to find the culprit, briefly in Tunisian.",
+     "verdict": "EXCELLENT technical Derja — top/htop + P sorting, Derja particles intact",
+     "sample": "يا خويا، أول حاجة تعملها هي تستعمل الأمر top ولاّ htop..."},
+    {"model": "genio-fast14b:latest", "register": "casual",
+     "prompt": "same café prompt",
+     "verdict": "MIXED — opens MSA then switches to Derja; understands Derja, not purely Tunisian",
+     "sample": "وعليكم السلام! أنا بخير، شكراً لك... شنوّة أحوالك اليوم؟"}
+  ]
+}

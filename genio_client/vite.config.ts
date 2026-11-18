@@ -1,9 +1,30 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
+// @ts-expect-error os is a nodejs builtin (config runs in node)
+import * as os from "node:os";
 
 // @ts-expect-error process is a nodejs global
 const host = process.env.TAURI_DEV_HOST;
+
+// Machine LAN hostname (e.g. "pop-os"): allowed for preview so the UI +
+// downloads work via http://<hostname>:8098, not only localhost. Falls
+// back gracefully if hostname lookup fails.
+let lanHostname = "";
+try {
+  lanHostname = os.hostname().split(".")[0];
+} catch {
+  lanHostname = "";
+}
+const previewAllowedHosts = [
+  "genio.hitech.tn",
+  "localhost",
+  "127.0.0.1",
+  ...(lanHostname &&
+  !["localhost", "127.0.0.1"].includes(lanHostname)
+    ? [lanHostname]
+    : []),
+];
 
 // Local backend proxy (dev + preview ONLY): same-origin /ws + /api → 127.0.0.1:8000.
 // Lets a locally-served frontend reach the local daemon without touching CSP
@@ -84,7 +105,7 @@ export default defineConfig(async () => ({
     port: 8098,
     strictPort: true,
     host: "0.0.0.0",
-    allowedHosts: ["genio.hitech.tn", "localhost", "127.0.0.1"],
+    allowedHosts: previewAllowedHosts,
     proxy: localBackendProxy,
   },
   // Vite options tailored for Tauri development and only applied in `tauri dev` or `tauri build`
